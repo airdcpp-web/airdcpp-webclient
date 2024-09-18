@@ -36,7 +36,7 @@
 #include "Util.h"
 #include "version.h"
 
-#include <thread>
+#include <thread> // thread::hardware_concurrency
 
 namespace dcpp {
 
@@ -428,8 +428,6 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 
 	setDefault(MAPPER, Mapper_MiniUPnPc::name);
 	setDefault(INCOMING_CONNECTIONS, INCOMING_ACTIVE);
-
-	//TODO: check whether we have ipv6 available
 	setDefault(INCOMING_CONNECTIONS6, INCOMING_ACTIVE);
 
 	setDefault(OUTGOING_CONNECTIONS, OUTGOING_DIRECT);
@@ -1048,72 +1046,77 @@ string SettingsManager::getProfileName(int profile) const noexcept {
 	}
 }
 
+void SettingsManager::loadSettings(SimpleXML& xml) {
+	if (xml.findChild("Settings")) {
+		xml.stepIn();
+
+		int i;
+
+		for (i = STR_FIRST; i < STR_LAST; i++) {
+			const string& attr = settingTags[i];
+			dcassert(attr.find("SENTRY") == string::npos);
+
+			if (xml.findChild(attr))
+				set(StrSetting(i), xml.getChildData(), true);
+			xml.resetCurrentChild();
+		}
+
+		for (i = INT_FIRST; i < INT_LAST; i++) {
+			const string& attr = settingTags[i];
+			dcassert(attr.find("SENTRY") == string::npos);
+
+			if (xml.findChild(attr))
+				set(IntSetting(i), Util::toInt(xml.getChildData()), true);
+			xml.resetCurrentChild();
+		}
+
+		for (i = BOOL_FIRST; i < BOOL_LAST; i++) {
+			const string& attr = settingTags[i];
+			dcassert(attr.find("SENTRY") == string::npos);
+
+			if (xml.findChild(attr)) {
+				auto val = Util::toInt(xml.getChildData());
+				dcassert(val == 0 || val == 1);
+				set(BoolSetting(i), val ? true : false, true);
+			}
+			xml.resetCurrentChild();
+		}
+
+		for (i = INT64_FIRST; i < INT64_LAST; i++) {
+			const string& attr = settingTags[i];
+			dcassert(attr.find("SENTRY") == string::npos);
+
+			if (xml.findChild(attr))
+				set(Int64Setting(i), Util::toInt64(xml.getChildData()), true);
+			xml.resetCurrentChild();
+		}
+
+		xml.stepOut();
+	}
+
+	xml.resetCurrentChild();
+}
+
+void SettingsManager::loadHistory(SimpleXML& xml) {
+	for (int i = 0; i < HISTORY_LAST; ++i) {
+		if (xml.findChild(historyTags[i])) {
+			xml.stepIn();
+			while (xml.findChild("HistoryItem")) {
+				addToHistory(xml.getChildData(), static_cast<HistoryType>(i));
+			}
+			xml.stepOut();
+		}
+		xml.resetCurrentChild();
+	}
+}
+
 void SettingsManager::load(StartupLoader& aLoader) noexcept {
 	auto fileLoaded = loadSettingFile(CONFIG_DIR, CONFIG_NAME, [this](SimpleXML& xml) {
 		if (xml.findChild("DCPlusPlus")) {
 			xml.stepIn();
 
-			if (xml.findChild("Settings")) {
-				xml.stepIn();
-
-				int i;
-
-				for (i = STR_FIRST; i < STR_LAST; i++) {
-					const string& attr = settingTags[i];
-					dcassert(attr.find("SENTRY") == string::npos);
-
-					if (xml.findChild(attr))
-						set(StrSetting(i), xml.getChildData(), true);
-					xml.resetCurrentChild();
-				}
-
-				for (i = INT_FIRST; i < INT_LAST; i++) {
-					const string& attr = settingTags[i];
-					dcassert(attr.find("SENTRY") == string::npos);
-
-					if (xml.findChild(attr))
-						set(IntSetting(i), Util::toInt(xml.getChildData()), true);
-					xml.resetCurrentChild();
-				}
-
-				for (i = BOOL_FIRST; i < BOOL_LAST; i++) {
-					const string& attr = settingTags[i];
-					dcassert(attr.find("SENTRY") == string::npos);
-
-					if (xml.findChild(attr)) {
-						auto val = Util::toInt(xml.getChildData());
-						dcassert(val == 0 || val == 1);
-						set(BoolSetting(i), val ? true : false, true);
-					}
-					xml.resetCurrentChild();
-				}
-
-				for (i = INT64_FIRST; i < INT64_LAST; i++) {
-					const string& attr = settingTags[i];
-					dcassert(attr.find("SENTRY") == string::npos);
-
-					if (xml.findChild(attr))
-						set(Int64Setting(i), Util::toInt64(xml.getChildData()), true);
-					xml.resetCurrentChild();
-				}
-
-				xml.stepOut();
-			}
-
-			xml.resetCurrentChild();
-
-
-			//load history lists
-			for (int i = 0; i < HISTORY_LAST; ++i) {
-				if (xml.findChild(historyTags[i])) {
-					xml.stepIn();
-					while (xml.findChild("HistoryItem")) {
-						addToHistory(xml.getChildData(), static_cast<HistoryType>(i));
-					}
-					xml.stepOut();
-				}
-				xml.resetCurrentChild();
-			}
+			loadSettings(xml);
+			loadHistory(xml);
 
 			fire(SettingsManagerListener::Load(), xml);
 
@@ -1121,16 +1124,21 @@ void SettingsManager::load(StartupLoader& aLoader) noexcept {
 		}
 	});
 
-	setDefault(UDP_PORT, SETTING(TCP_PORT));
-
 	File::ensureDirectory(SETTING(TLS_TRUSTED_CERTIFICATES_PATH));
 
 	if(SETTING(PRIVATE_ID).length() != 39 || !CID(SETTING(PRIVATE_ID))) {
 		set(SettingsManager::PRIVATE_ID, CID::generate().toBase32());
 	}
 
-	//check the bind address
-	auto checkBind = [&] (SettingsManager::StrSetting aSetting, bool v6) {
+	ensureValidBindAddresses(aLoader);
+
+	applyProfileDefaults();
+
+	fire(SettingsManagerListener::LoadCompleted(), fileLoaded);
+}
+
+void SettingsManager::ensureValidBindAddresses(const StartupLoader& aLoader) noexcept {
+	auto checkBind = [&](SettingsManager::StrSetting aSetting, bool v6) {
 		if (!isDefault(aSetting)) {
 			auto adapters = NetworkUtil::getNetworkAdapters(v6);
 			auto p = ranges::find_if(adapters, [this, aSetting](const AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
@@ -1142,10 +1150,6 @@ void SettingsManager::load(StartupLoader& aLoader) noexcept {
 
 	checkBind(BIND_ADDRESS, false);
 	checkBind(BIND_ADDRESS6, true);
-
-	applyProfileDefaults();
-
-	fire(SettingsManagerListener::LoadCompleted(), fileLoaded);
 }
 
 const SettingsManager::BoolSetting clearSettings[SettingsManager::HISTORY_LAST] = {
@@ -1288,11 +1292,7 @@ void SettingsManager::set(Int64Setting key, const string& value) noexcept {
 	}
 }
 
-void SettingsManager::save() noexcept {
-
-	SimpleXML xml;
-	xml.addTag("DCPlusPlus");
-	xml.stepIn();
+void SettingsManager::saveSettings(SimpleXML& xml) const {
 	xml.addTag("Settings");
 	xml.stepIn();
 
@@ -1344,18 +1344,31 @@ void SettingsManager::save() noexcept {
 		}
 	}
 	xml.stepOut();
+}
 
-	for(i = 0; i < HISTORY_LAST; ++i) {
+void SettingsManager::saveHistory(SimpleXML& xml) const {
+
+	for (auto i = 0; i < HISTORY_LAST; ++i) {
 		const auto& hist = history[i];
 		if (!hist.empty() && !get(clearSettings[i])) {
 			xml.addTag(historyTags[i]);
 			xml.stepIn();
-			for (auto& hi: hist) {
+			for (auto& hi : hist) {
 				xml.addTag("HistoryItem", hi);
 			}
 			xml.stepOut();
 		}
 	}
+}
+
+void SettingsManager::save() noexcept {
+
+	SimpleXML xml;
+	xml.addTag("DCPlusPlus");
+	xml.stepIn();
+
+	saveSettings(xml);
+	saveHistory(xml);
 
 	fire(SettingsManagerListener::Save(), xml);
 	saveSettingFile(xml, CONFIG_DIR, CONFIG_NAME);

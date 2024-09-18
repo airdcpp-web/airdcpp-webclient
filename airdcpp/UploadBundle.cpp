@@ -25,8 +25,8 @@
 
 namespace dcpp {
 
-UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded) : target(aTarget), token(aToken), size(aSize),
-	singleUser(aSingleUser), uploadedSegments(aUploaded) { 
+UploadBundle::UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded) : size(aSize), uploadedSegments(aUploaded), target(aTarget),
+	singleUser(aSingleUser), token(aToken) { 
 
 	if (uploadedSegments > size)
 		uploadedSegments = size;
@@ -40,7 +40,6 @@ UploadBundle::~UploadBundle() {
 void UploadBundle::addUploadedSegment(int64_t aSize) noexcept {
 	dcassert(aSize + uploadedSegments <= size);
 	if (singleUser && aSize + uploadedSegments <= size) {
-		// countSpeed();
 		uploadedSegments += aSize;
 		currentUploaded -= aSize;
 	} else {
@@ -64,7 +63,7 @@ void UploadBundle::setSingleUser(bool aSingleUser, int64_t aUploadedSegments) no
 uint64_t UploadBundle::getSecondsLeft() const noexcept {
 	auto avg = totalSpeed > 0 ? totalSpeed : speed;
 	int64_t bytesLeft =  getSize() - getUploaded();
-	return (avg > 0) ? static_cast<int64_t>(bytesLeft / avg) : 0;
+	return (avg > 0) ? bytesLeft / avg : 0;
 }
 
 string UploadBundle::getName() const noexcept {
@@ -109,6 +108,16 @@ bool UploadBundle::removeUpload(const Upload* u) noexcept {
 
 uint64_t UploadBundle::getUploaded() const noexcept {
 	return currentUploaded + uploadedSegments; 
+}
+
+constexpr auto BUNDLE_DELAY_SECONDS = 60;
+bool UploadBundle::checkDelaySecond() noexcept {
+	if (uploads.empty()) {
+		return false;
+	}
+
+	delayTime++;
+	return delayTime > BUNDLE_DELAY_SECONDS;
 }
 
 uint64_t UploadBundle::countSpeed(const UploadList& aUploads) noexcept {

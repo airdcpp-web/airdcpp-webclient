@@ -38,7 +38,7 @@ public:
 };
 
 
-class HttpConnection : BufferedSocketListener, public Speaker<HttpConnectionListener>, boost::noncopyable
+class HttpConnection : private BufferedSocketListener, public Speaker<HttpConnectionListener>, public boost::noncopyable
 {
 public:
 	HttpConnection(bool aIsUnique = false, const HttpOptions& aOptions = HttpOptions());
@@ -79,11 +79,12 @@ private:
 	void abortRequest(bool disconnect);
 
 	// BufferedSocketListener
-	void on(Connected) noexcept;
-	void on(Line, const string&) noexcept;
-	void on(Data, uint8_t*, size_t) noexcept;
-	void on(ModeChange) noexcept;
-	void on(Failed, const string&) noexcept;
+	void on(BufferedSocketListener::Connected) noexcept override;
+	void on(BufferedSocketListener::Line, const string&) noexcept override;
+	void on(BufferedSocketListener::Data, uint8_t*, size_t) noexcept override;
+	void on(BufferedSocketListener::ModeChange) noexcept override;
+	void on(BufferedSocketListener::Failed, const string&) noexcept override;
+
 	const bool isUnique;
 	const HttpOptions options;
 };

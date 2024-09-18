@@ -51,7 +51,7 @@ public:
 	ActionHook<nullptr_t, const SearchResultPtr&> incomingSearchResultHook;
 
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
-	SearchQueueInfo search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
+	SearchQueueInfo search(const StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
 	
 	void respond(const AdcCommand& cmd, Client* aClient, OnlineUser* aUser, bool aIsUdpActive, ProfileToken aProfile) noexcept;
 	void respond(Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, int aFileType, const string& aString, bool aIsPassive) noexcept;
@@ -91,14 +91,14 @@ private:
 
 	static std::string normalizeWhitespace(const std::string& aString);
 
-	~SearchManager();
+	~SearchManager() final;
 	
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
 	const unique_ptr<SearchTypes> searchTypes;
 	const unique_ptr<UDPServer> udpServer;
 
-	typedef map<SearchInstanceToken, SearchInstancePtr> SearchInstanceMap;
+	using SearchInstanceMap = map<SearchInstanceToken, SearchInstancePtr>;
 	SearchInstanceMap searchInstances;
 };
 

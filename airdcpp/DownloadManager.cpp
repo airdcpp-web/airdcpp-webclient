@@ -51,7 +51,7 @@ DownloadManager::~DownloadManager() {
 }
 
 struct DropInfo {
-	DropInfo(const string& aTarget, const BundlePtr& aBundle, const UserPtr& aUser) : bundle(aBundle), user(aUser), target(aTarget) { } 
+	DropInfo(const string& aTarget, const BundlePtr& aBundle, const UserPtr& aUser) : bundle(aBundle), target(aTarget), user(aUser) { } 
 
 	BundlePtr bundle;
 	string target;
@@ -66,7 +66,7 @@ bool DownloadManager::disconnectSlowSpeed(Download* d, uint64_t aTick) const noe
 		{
 			if (d->getAverageSpeed() < Util::convertSize(SETTING(DISCONNECT_SPEED), Util::KB))
 			{
-				if (aTick - d->getLastTick() > (uint32_t)SETTING(DISCONNECT_TIME) * 1000)
+				if (aTick - d->getLastTick() > static_cast<uint64_t>(SETTING(DISCONNECT_TIME) * 1000))
 				{
 					if (QueueManager::getInstance()->checkDropSlowSource(d))
 					{
@@ -82,7 +82,7 @@ bool DownloadManager::disconnectSlowSpeed(Download* d, uint64_t aTick) const noe
 	return false;
 }
 
-typedef unordered_map<UserPtr, int64_t, User::Hash> UserSpeedMap;
+using UserSpeedMap = unordered_map<UserPtr, int64_t, User::Hash>;
 void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept {
 	vector<DropInfo> dropTargets;
 	BundleList bundleTicks;
@@ -113,7 +113,7 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		int64_t totalDown = Socket::getTotalDown();
 		int64_t totalUp = Socket::getTotalUp();
 
-		int64_t diff = (int64_t)((lastUpdate == 0) ? aTick - 1000 : aTick - lastUpdate);
+		auto diff = (int64_t)((lastUpdate == 0) ? aTick - 1000 : aTick - lastUpdate);
 		int64_t updiff = totalUp - lastUpBytes;
 		int64_t downdiff = totalDown - lastDownBytes;
 
@@ -136,8 +136,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 		}
 	}
 
-	for (auto& usp: userSpeedMap)
-		usp.first->setSpeed(usp.second);
+	for (const auto& [user, speed] : userSpeedMap)
+		user->setSpeed(speed);
 
 	for (auto& dtp: dropTargets)
 		QueueManager::getInstance()->handleSlowDisconnect(dtp.user, dtp.target, dtp.bundle);
@@ -225,6 +225,26 @@ size_t DownloadManager::getRunningBundleCount() const noexcept {
 	return getRunningBundles(false).size();
 }
 
+string DownloadManager::updateConnectionHubUrl(UserConnection* aSource, const string& aNewHubUrl) const noexcept {
+	if (aSource->getUser()->isNMDC()) {
+		return Util::emptyString;
+	}
+
+	auto hubChanged = compare(aNewHubUrl, aSource->getHubUrl()) != 0;
+	if (!hubChanged) {
+		return Util::emptyString;
+	}
+
+	auto c = ClientManager::getInstance()->findClient(aNewHubUrl);
+	if (!c || !c->isConnected()) {
+		// No fallback, keep the old hint even if the hub is offline
+		return Util::emptyString;
+	}
+
+	aSource->setHubUrl(aNewHubUrl);
+	return c->getMyIdentity().getSIDString();
+}
+
 void DownloadManager::checkDownloads(UserConnection* aConn) {
 	//We may have download assigned for a connection if we are downloading in segments
 	//dcassert(!aConn->getDownload() || aConn->getDownload()->isSet(Download::FLAG_CHUNKED));
@@ -240,7 +260,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	// Nothing to download? Skip finished download connections as they should be added in idlers
 	if (!result.hasDownload) {
-		dcdebug("DownloadManager::checkDownloads: no downloads from user %s (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(aConn->getHintedUser()).c_str(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT) ? "true" : "false");
+		dcdebug("DownloadManager::checkDownloads: no downloads from user %s (small slot: %s)\n", ClientManager::getInstance()->getFormattedNicks(aConn->getHintedUser()).c_str(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT) ? "true" : "false");
 		if (aConn->getState() != UserConnection::STATE_RUNNING) {
 			failDownload(aConn, Util::emptyString, false);
 			return;
@@ -250,7 +270,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 	auto d = result.download;
 	if (!d) {
 		if (result.hasDownload) {
-			dcdebug("DownloadManager::checkDownloads: can't start download from user %s (%s)\n", ClientManager::getInstance()->getFormatedNicks(aConn->getHintedUser()).c_str(), result.lastError.c_str());
+			dcdebug("DownloadManager::checkDownloads: can't start download from user %s (%s)\n", ClientManager::getInstance()->getFormattedNicks(aConn->getHintedUser()).c_str(), result.lastError.c_str());
 		}
 
 		aConn->setState(UserConnection::STATE_IDLE);
@@ -262,17 +282,6 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		}
 
 		return;
-	}
-
-	/*
-	Find mySID, better ways to get the correct one transferred here?
-	the hinturl of the connection is updated to the hub where the connection request is coming from,
-	so we should be able to find our own SID by finding the hub where the user is at (if we have a hint).
-	*/
-
-	string mySID;
-	if (!aConn->getUser()->isNMDC()) {
-		mySID = ClientManager::getInstance()->findMySID(aConn->getUser(), result.hubHint, false); //no fallback, keep the old hint even if the hub is offline
 	}
 
 	aConn->setState(UserConnection::STATE_SND);
@@ -292,12 +301,9 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	dcdebug("DownloadManager::checkDownloads: requesting " I64_FMT "/" I64_FMT " (connection %s)\n", d->getStartPos(), d->getSegmentSize(), d->getConnectionToken().c_str());
 
-	//only update the hub if it has been changed
-	if (compare(result.hubHint, aConn->getHubUrl()) == 0) {
-		mySID.clear();
-	} else if (!result.hubHint.empty()) {
-		aConn->setHubUrl(result.hubHint);
-	}
+	// We need to let the other user know in case we want to download hub-specific
+	// items (such as file lists) via a different hub. Use the SID as there is no global hub ID
+	auto mySID = updateConnectionHubUrl(aConn, result.hubHint);
 
 	dcassert(aConn->getDownload());
 	fire(DownloadManagerListener::Requesting(), d, !mySID.empty());
@@ -442,7 +448,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 
 			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
 
-			dcdebug("DownloadManager::endData: invalid tree received from user %s (received %s while %s was excpected)\n", ClientManager::getInstance()->getFormatedNicks(d->getHintedUser()).c_str(), d->getTTH().toBase32().c_str(), d->getTigerTree().getRoot().toBase32().c_str());
+			dcdebug("DownloadManager::endData: invalid tree received from user %s (received %s while %s was excpected)\n", ClientManager::getInstance()->getFormattedNicks(d->getHintedUser()).c_str(), d->getTTH().toBase32().c_str(), d->getTigerTree().getRoot().toBase32().c_str());
 
 			removeDownload(d);
 			QueueManager::getInstance()->putDownloadHooked(d, false);
@@ -451,7 +457,7 @@ void DownloadManager::endData(UserConnection* aSource) {
 		}
 		d->setTreeValid(true);
 	} else {
-		aSource->setSpeed(static_cast<int64_t>(d->getAverageSpeed()));
+		aSource->setSpeed(d->getAverageSpeed());
 		aSource->updateChunkSize(d->getTigerTree().getBlockSize(), d->getSegmentSize(), GET_TICK() - d->getStart());
 		
 		dcdebug("DownloadManager::endData: %s (connection %s), size " I64_FMT ", downloaded " I64_FMT " in " U64_FMT " ms\n", d->getPath().c_str(), d->getConnectionToken().c_str(), d->getSegmentSize(), d->getPos(), GET_TICK() - d->getStart());
@@ -475,7 +481,7 @@ int64_t DownloadManager::getRunningAverage() const {
 	RLock l(cs);
 	int64_t avg = 0;
 	for(auto d: downloads)
-		avg += static_cast<int64_t>(d->getAverageSpeed());
+		avg += d->getAverageSpeed();
 
 	return avg;
 }
@@ -540,7 +546,7 @@ void DownloadManager::removeConnection(UserConnectionPtr aConn) {
 	aConn->disconnect();
 }
 
-void DownloadManager::disconnect(UserConnectionPtr aConn, bool aGraceless) {
+void DownloadManager::disconnect(UserConnectionPtr aConn, bool aGraceless) const noexcept {
 	dcdebug("DownloadManager::disconnect: %s (graceless: %s)\n", aConn->getToken().c_str(), aGraceless ? "true" : "false");
 	aConn->disconnect(aGraceless);
 }
@@ -552,8 +558,7 @@ void DownloadManager::removeDownload(Download* d) {
 	{
 		WLock l(cs);
 
-		BundlePtr bundle = d->getBundle();
-		if (bundle) {
+		if (auto& bundle = d->getBundle(); bundle) {
 			bundle->removeDownload(d);
 		}
 
@@ -618,6 +623,7 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 			dcdebug("DM::AdcCommand::STA: fatal error (%s)\n", aSource->getToken().c_str());
 			disconnect(aSource);
 			return;
+		[[fallthrough]];
 		case AdcCommand::SEV_RECOVERABLE:
 			switch(Util::toInt(errorCode.substr(1))) {
 				case AdcCommand::ERROR_FILE_NOT_AVAILABLE:
@@ -635,11 +641,17 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 				case AdcCommand::ERROR_UNKNOWN_USER:
 					failDownload(aSource, STRING(UNKNOWN_USER), !aSource->getDownload()->isFilelist());
 					return;
+				default: {
+					//..
+				}
 			}
 		case AdcCommand::SEV_SUCCESS:
 			// We don't know any messages that would give us these...
 			dcdebug("Unknown success message %s %s", errorCode.c_str(), errorMessage.c_str());
 			return;
+		// [[fallthrough]];
+		// default:
+			// ...
 	}
 
 	dcdebug("DM::AdcCommand::STA: disconnecting (%s)\n", aSource->getToken().c_str());

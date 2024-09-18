@@ -29,21 +29,19 @@ namespace dcpp {
 using std::string;
 using std::vector;
 
-class GeoIP : boost::noncopyable {
+class GeoIP : public boost::noncopyable {
 public:
 	explicit GeoIP(string&& path);
 	~GeoIP();
 
 	string getCountry(const string& ip) const;
 	void update();
-	//void rebuild();
 
 private:
 	bool decompress() const;
 	void open();
 	void close();
 
-	//mutable CriticalSection cs;
 	::MMDB_s* geo;
 
 	const string path;

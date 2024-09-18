@@ -62,18 +62,6 @@ SettingItem::SettingValue SettingItem::getDefaultValue() const noexcept {
 	return 0;
 }
 
-/*void useProfileValue() const {
-	if(key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-		SettingsManager::getInstance()->set(static_cast<SettingsManager::StrSetting>(key), boost::get<string>(profileValue));
-	} else if(key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-		return SettingsManager::getInstance()->set(static_cast<SettingsManager::IntSetting>(key), boost::get<int>(profileValue));
-	} else if(key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-		return SettingsManager::getInstance()->set(static_cast<SettingsManager::BoolSetting>(key), boost::get<bool>(profileValue));
-	} else {
-		dcassert(0);
-	}
-}*/
-
 const string& SettingItem::getDescription() const noexcept {
 	return STRING_I(desc);
 }
@@ -105,7 +93,7 @@ string SettingItem::ToString::operator()(bool b) const noexcept {
 }
 
 ProfileSettingItem::ProfileSettingItem(int aKey, const SettingValue& aProfileValue, ResourceManager::Strings aName) :
-profileValue(aProfileValue), SettingItem({ aKey, aName }) {
+	SettingItem({ aKey, aName }), profileValue(aProfileValue) {
 
 }
 
@@ -118,8 +106,8 @@ string ProfileSettingItem::profileToString() const noexcept {
 	return boost::apply_visitor(ToString(key), profileValue);
 }
 
-void ProfileSettingItem::setProfileToDefault(bool reset) const noexcept {
-	if (reset)
+void ProfileSettingItem::setProfileToDefault(bool aReset) const noexcept {
+	if (aReset)
 		SettingsManager::getInstance()->unsetKey(key);
 
 	if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {

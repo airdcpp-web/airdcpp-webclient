@@ -29,7 +29,7 @@
 
 
 namespace dcpp {
-	typedef uint32_t TransferInfoToken;
+	using TransferInfoToken = uint32_t;
 	class TransferInfo {
 	public:
 
@@ -59,9 +59,9 @@ namespace dcpp {
 			STATE_LAST,
 		};
 
-		typedef shared_ptr<TransferInfo> Ptr;
-		typedef vector<Ptr> List;
-		typedef unordered_map<string, Ptr> Map;
+		using Ptr = shared_ptr<TransferInfo>;
+		using List = vector<Ptr>;
+		using Map = unordered_map<string, Ptr>;
 
 		TransferInfo(const HintedUser& aUser, bool aIsDownload, const std::string& aStringToken) :
 			user(aUser), download(aIsDownload), stringToken(aStringToken)
@@ -87,7 +87,7 @@ namespace dcpp {
 
 		IGETSET(QueueToken, queueToken, QueueToken, 0);
 
-		const TransferInfoToken getToken() const noexcept {
+		TransferInfoToken getToken() const noexcept {
 			return token;
 		}
 
@@ -115,7 +115,7 @@ namespace dcpp {
 			user.hint = aHubUrl;
 		}
 
-		string getName() {
+		string getName() const noexcept {
 			switch (type) {
 			case Transfer::TYPE_TREE: return "TTH: " + PathUtil::getFileName(target);
 			case Transfer::TYPE_FULL_LIST: return STRING(TYPE_FILE_LIST);
@@ -130,11 +130,9 @@ namespace dcpp {
 
 		const TransferInfoToken token = ValueGenerator::rand();
 		const std::string stringToken;
-
-		bool transferFailed = false;
 	};
 
-	typedef TransferInfo::Ptr TransferInfoPtr;
+	using TransferInfoPtr = TransferInfo::Ptr;
 }
 
 #endif

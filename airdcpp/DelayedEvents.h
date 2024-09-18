@@ -25,9 +25,9 @@
 
 namespace dcpp {
 
-typedef std::function<void ()> DelayedF;
+using DelayedF = std::function<void ()>;
 struct DelayTask {
-	DelayTask(DelayedF aF, uint64_t aRunTick) : runTick(aRunTick), f(aF) { }
+	DelayTask(const DelayedF& aF, uint64_t aRunTick) : runTick(aRunTick), f(aF) { }
 	uint64_t runTick;
 	DelayedF f;
 };
@@ -35,13 +35,13 @@ struct DelayTask {
 template<class T>
 class DelayedEvents : private TimerManagerListener {
 public:
-	typedef unordered_map<T, unique_ptr<DelayTask>> List;
+	using List = unordered_map<T, unique_ptr<DelayTask>>;
 
 	DelayedEvents() { 
 		TimerManager::getInstance()->addListener(this);
 	}
 
-	~DelayedEvents() {
+	~DelayedEvents() final {
 		TimerManager::getInstance()->removeListener(this);
 		clear();
 	}
@@ -64,7 +64,7 @@ public:
 		return true;
 	}
 
-	void on(TimerManagerListener::Second, uint64_t aTick) noexcept {
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override {
 		vector<T> taskKeys;
 
 		{
@@ -84,8 +84,7 @@ public:
 	void addEvent(const T& aKey, DelayedF f, uint64_t aDelayTicks) {
 		Lock l(cs);
 
-		auto i = eventList.find(aKey);
-		if (i != eventList.end()) {
+		if (auto i = eventList.find(aKey); i != eventList.end()) {
 			i->second.get()->runTick = GET_TICK() + aDelayTicks;
 			return;
 		}
@@ -100,8 +99,7 @@ public:
 
 	bool removeEvent(const T& aKey) {
 		Lock l(cs);
-		auto i = eventList.find(aKey);
-		if (i != eventList.end()) {
+		if (auto i = eventList.find(aKey); i != eventList.end()) {
 			eventList.erase(i);
 			return true;
 		}

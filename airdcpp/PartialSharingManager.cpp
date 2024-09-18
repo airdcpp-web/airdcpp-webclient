@@ -40,7 +40,7 @@ PartialSharingManager::PartialSharingManager() {
 	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(providerName, "Partial sharing", nullptr), HOOK_HANDLER(PartialSharingManager::onSlotType));
 }
 
-ActionHookResult<OptionalUploadSlot> PartialSharingManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload& aUpload, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept {
+ActionHookResult<OptionalUploadSlot> PartialSharingManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload& aUpload, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept {
 	if (aUpload.provider == providerName) {
 		auto partialFree = aUserConnection.hasSlotSource(providerName) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS));
 		if (partialFree) {

@@ -26,10 +26,10 @@
 namespace dcpp {
 
 struct OutgoingChatMessage {
-	OutgoingChatMessage(const string& aMessage, const void* aOwner, const string& aOwnerId, bool aThirdPerson) noexcept : text(aMessage), owner(aOwner), ownerId(aOwnerId), thirdPerson(aThirdPerson) {}
+	OutgoingChatMessage(const string& aMessage, CallerPtr aOwner, const string& aOwnerId, bool aThirdPerson) noexcept : text(aMessage), owner(aOwner), ownerId(aOwnerId), thirdPerson(aThirdPerson) {}
 
 	const string text;
-	const void* owner;
+	CallerPtr owner;
 	const string ownerId;
 	const bool thirdPerson;
 };
@@ -150,9 +150,11 @@ private:
 	const Type type;
 };
 
+using LogMessageF = std::function<void(const string&, LogMessage::Severity)>;
+
 struct Message {
-	Message(const ChatMessagePtr& aMessage) noexcept : type(TYPE_CHAT), chatMessage(aMessage) {}
-	Message(const LogMessagePtr& aMessage) noexcept : type(TYPE_LOG), logMessage(aMessage) {}
+	explicit Message(const ChatMessagePtr& aMessage) noexcept : chatMessage(aMessage), type(TYPE_CHAT) {}
+	explicit Message(const LogMessagePtr& aMessage) noexcept : logMessage(aMessage), type(TYPE_LOG) {}
 	static Message fromText(const string& aMessage, int aInitFlags = LogMessage::InitFlags::INIT_NORMAL) noexcept;
 
 	enum Type {
@@ -183,7 +185,7 @@ struct Message {
 	static string unifyLineEndings(const string& aText);
 };
 
-typedef std::function<void(const string&, LogMessage::Severity)> ModuleLogger;
+using ModuleLogger = std::function<void (const string &, LogMessage::Severity)>;
 
 } // namespace dcpp
 

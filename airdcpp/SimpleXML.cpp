@@ -28,6 +28,10 @@ namespace dcpp {
 
 const string SimpleXML::utf8Header = "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n";
 
+SimpleXML::SimpleXML() : root("BOGUSROOT", Util::emptyString, nullptr), current(&root) {
+	resetCurrentChild();
+}
+
 string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = false */) {
 	string::size_type i = 0;
 	const char* chars = aAttrib ? "<&>'\"" : "<&>";
@@ -79,16 +83,16 @@ string& SimpleXML::escape(string& aString, bool aAttrib, bool aLoading /* = fals
 	return aString;
 }
 
-void SimpleXML::Tag::appendAttribString(string& tmp) {
-	for(auto& i: attribs) {
-		tmp.append(i.first);
+void SimpleXML::Tag::appendAttribString(string& tmp) const {
+	for (const auto& [attribName, value] : attribs) {
+		tmp.append(attribName);
 		tmp.append("=\"", 2);
-		if(needsEscape(i.second, true)) {
-			string tmp2(i.second);
+		if(needsEscape(value, true)) {
+			string tmp2(value);
 			escape(tmp2, true);
 			tmp.append(tmp2);
 		} else {
-			tmp.append(i.second);
+			tmp.append(value);
 		}
 		tmp.append("\" ", 2);
 	}
@@ -100,7 +104,7 @@ void SimpleXML::Tag::appendAttribString(string& tmp) {
  * with streams and only one code set but streams are slow...the file f should be a buffered
  * file, otherwise things will be very slow (I assume write is not expensive and call it a lot
  */
-void SimpleXML::Tag::toXML(int indent, OutputStream* f, bool /*noIndent*/ /*false*/) {
+void SimpleXML::Tag::toXML(int indent, OutputStream* f, bool /*noIndent*/ /*false*/) const {
 	if(children.empty() && data.empty() && !forceEndTag) {
 		string tmp;
 		tmp.reserve(indent + name.length() + 30);
@@ -144,7 +148,7 @@ void SimpleXML::Tag::toXML(int indent, OutputStream* f, bool /*noIndent*/ /*fals
 }
 
 bool SimpleXML::findChild(const string& aName) noexcept {
-	dcassert(current != NULL);
+	dcassert(current);
 	if (!current)
 		return false;
 
@@ -181,13 +185,13 @@ void SimpleXML::addAttrib(const string& aName, const string& aData) {
 	current->attribs.emplace_back(aName, aData);
 }
 
-void SimpleXML::addChildAttrib(const string& aName, const string& aData) {
+void SimpleXML::addChildAttrib(const string& aName, const string& aData) const {
 	checkChildSelected();
 
 	(*currentChild)->attribs.emplace_back(aName, aData);
 }
 
-void SimpleXML::replaceChildAttrib(const string& aName, const string& aData) {
+void SimpleXML::replaceChildAttrib(const string& aName, const string& aData) const {
 	checkChildSelected();
 
 	auto i = find_if((*currentChild)->attribs.begin(), (*currentChild)->attribs.end(), CompareFirst<string,string>(aName));
@@ -210,7 +214,7 @@ void SimpleXML::toXML(OutputStream* f) {
 		root.children[0]->toXML(0, f); 
 }
 
-string SimpleXML::childToXML() {
+string SimpleXML::childToXML() const {
 	string tmp; 
 	StringOutputStream os(tmp); 
 	(*currentChild)->toXML(0, &os, true); 
@@ -245,7 +249,7 @@ void SimpleXML::stepOut() {
 	if (current == &root)
 		throw SimpleXMLException("Already at lowest level");
 
-	dcassert(current->parent != NULL);
+	dcassert(current->parent);
 
 	currentChild = find(current->parent->children.begin(), current->parent->children.end(), current);
 
@@ -255,7 +259,7 @@ void SimpleXML::stepOut() {
 
 void SimpleXML::resetCurrentChild() noexcept {
 	found = false;
-	dcassert(current != NULL);
+	dcassert(current);
 	currentChild = current->children.begin();
 }
 
@@ -266,7 +270,7 @@ void SimpleXML::TagReader::startTag(const string& name, StringPairList& attribs,
 }
 
 void SimpleXML::TagReader::endTag(const string&) {
-	if (cur->parent == NULL)
+	if (!cur->parent)
 		throw SimpleXMLException("Invalid end tag");
 	cur = cur->parent;
 }

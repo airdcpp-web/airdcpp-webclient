@@ -42,7 +42,7 @@ SharedMutex Hasher::hcs;
 const int64_t Hasher::MIN_BLOCK_SIZE = 64 * 1024;
 
 
-Hasher::Hasher(bool aIsPaused, int aHasherID, HasherManager* aManager) : paused(aIsPaused), hasherID(aHasherID), manager(aManager) {
+Hasher::Hasher(bool aIsPaused, int aHasherID, HasherManager* aManager) : hasherID(aHasherID), manager(aManager), paused(aIsPaused) {
 	start();
 }
 
@@ -133,9 +133,9 @@ void Hasher::logFailedFile(const string& aPath, const string& aError) const noex
 
 bool Hasher::hashFile(const string& fileName, const string& filePathLower, int64_t size, devid aDeviceId) noexcept {
 	// always locked
-	auto ret = w.emplace_sorted(filePathLower, fileName, size, aDeviceId);
-	if (ret.second) {
-		devices[(*ret.first).deviceId]++;
+	auto [wi, added] = w.emplace_sorted(filePathLower, fileName, size, aDeviceId);
+	if (added) {
+		devices[wi->deviceId]++;
 		totalBytesLeft += size;
 		totalBytesAdded += size;
 		totalFilesAdded++;
@@ -183,7 +183,7 @@ bool Hasher::hasFile(const string& aPath) const noexcept {
 }
 
 bool Hasher::hasDevice(int64_t aDeviceId) const noexcept {
-	return devices.find(aDeviceId) != devices.end();
+	return devices.contains(aDeviceId);
 }
 
 bool Hasher::hasDevices() const noexcept {
@@ -252,7 +252,7 @@ optional<HashedFile> Hasher::hashFile(const WorkItem& aItem, HasherStats& stats_
 		uint64_t lastRead = GET_TICK();
 
 		FileReader fr(FileReader::ASYNC);
-		fr.read(aItem.filePath, [&](const void* buf, size_t n) -> bool {
+		fr.read(aItem.filePath, [&](const void* buf, size_t n) {
 			if (SETTING(MAX_HASH_SPEED) > 0) {
 				uint64_t now = GET_TICK();
 				uint64_t minTime = n * 1000LL / Util::convertSize(SETTING(MAX_HASH_SPEED), Util::MB);
@@ -356,7 +356,7 @@ void Hasher::processQueue() noexcept {
 
 		auto fi = hashFile(wi, dirStats, sfv);
 
-		auto onDirHashed = [&]() -> void {
+		auto onDirHashed = [&]() {
 			manager->onDirectoryHashed(initialDir, dirStats, hasherID);
 			logHashedDirectory(initialDir, wi.filePath, dirStats);
 

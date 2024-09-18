@@ -52,7 +52,7 @@ namespace dcpp {
 		// Check the current flood status for a requester (call addAttempt separately if flood control needs to be applied)
 		FloodResult getFloodStatus(const string& aRequester, const FloodLimits& aLimits) noexcept;
 
-		void addRequst(const string& aRequester) noexcept;
+		void addRequest(const string& aRequester) noexcept;
 	protected:
 		typedef multimap<string, time_t> IpMap;
 

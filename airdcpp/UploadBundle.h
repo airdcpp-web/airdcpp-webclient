@@ -34,10 +34,10 @@ using std::string;
 
 class UploadBundle : public intrusive_ptr_base<UploadBundle> {
 public:
-	typedef set<TransferToken> BundleUploadList;
+	using BundleUploadList = set<TransferToken>;
 
 	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
-	~UploadBundle();
+	~UploadBundle() final;
 
 	GETSET(int64_t, size, Size);
 
@@ -46,7 +46,6 @@ public:
 	IGETSET(int64_t, actual, Actual, 0);
 	IGETSET(int64_t, uploadedSegments, UploadedSegments, 0);
 	GETSET(string, target, Target);
-	int delayTime = 0;
 
 	const BundleUploadList& getUploads() const noexcept;
 	
@@ -73,7 +72,11 @@ public:
 
 	uint64_t countSpeed(const UploadList& aUploads) noexcept;
 
+	// Should be called on every second
+	// Returns true if the bundle should be removed
+	bool checkDelaySecond() noexcept;
 private:
+	int delayTime = 0;
 	uint64_t currentUploaded = 0;
 	bool singleUser = true;
 	time_t start = GET_TICK();
@@ -83,10 +86,10 @@ private:
 	const string token;
 };
 
-typedef boost::intrusive_ptr<UploadBundle> UploadBundlePtr;
-typedef std::vector<UploadBundlePtr> UploadBundleList;
+using UploadBundlePtr = boost::intrusive_ptr<UploadBundle>;
+using UploadBundleList = std::vector<UploadBundlePtr>;
 
-typedef std::vector<pair<UploadBundlePtr, OrderedStringSet>> TickUploadBundleList;
+using TickUploadBundleList = std::vector<pair<UploadBundlePtr, OrderedStringSet>>;
 
 }
 

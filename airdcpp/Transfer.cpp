@@ -34,8 +34,8 @@ const string Transfer::names[] = {
 const string Transfer::USER_LIST_NAME_EXTRACTED = "files.xml";
 const string Transfer::USER_LIST_NAME_BZ = "files.xml.bz2";
 
-Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : segment(0, -1),
-	path(path_), tth(tth_), userConnection(conn), token(ValueGenerator::rand()) { }
+Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : path(path_),
+	segment(0, -1), tth(tth_), userConnection(conn), token(ValueGenerator::rand()) { }
 
 void Transfer::tick() noexcept {
 	WLock l(cs);
@@ -76,41 +76,37 @@ int64_t Transfer::getAverageSpeed() const noexcept {
 
 int64_t Transfer::getSecondsLeft(bool wholeFile) const noexcept {
 	auto avg = getAverageSpeed();
-	int64_t bytesLeft =  (wholeFile ? ((Upload*)this)->getFileSize() : getSegmentSize()) - getPos();
+	int64_t bytesLeft =  (wholeFile ? (static_cast<const Upload*>(this))->getFileSize() : getSegmentSize()) - getPos();
 	return (avg > 0) ? bytesLeft / avg : 0;
 }
 
 void Transfer::getParams(const UserConnection& aSource, ParamMap& params) const noexcept {
-	params["userCID"] = [&] { return  aSource.getUser()->getCID().toBase32(); };
-	params["userNI"] = [&] { return ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser());  };
-	params["userI4"] = [&] { return aSource.getRemoteIp(); };
+	params["userCID"] = [&aSource] { return  aSource.getUser()->getCID().toBase32(); };
+	params["userNI"] = [&aSource] { return ClientManager::getInstance()->getFormattedNicks(aSource.getHintedUser());  };
+	params["userI4"] = [&aSource] { return aSource.getRemoteIp(); };
 
-	params["hub"] = [&] { return ClientManager::getInstance()->getFormatedHubNames(aSource.getHintedUser()); };
-	params["hubNI"] = [&] { return ClientManager::getInstance()->getFormatedHubNames(aSource.getHintedUser()); };
+	params["hub"] = [&aSource] { return ClientManager::getInstance()->getFormattedHubNames(aSource.getHintedUser()); };
+	params["hubNI"] = [&aSource] { return ClientManager::getInstance()->getFormattedHubNames(aSource.getHintedUser()); };
 
-	params["hubURL"] = [&] { 
+	params["hubURL"] = [&aSource] { 
 		StringList hubs = ClientManager::getInstance()->getHubUrls(aSource.getUser()->getCID());
 		if(hubs.empty())
 			hubs.push_back(STRING(OFFLINE));
 		return Util::listToString(hubs); 
 	};
 
-	params["fileSI"] = [&] { return Util::toString(getSegmentSize()); };
-	params["fileSIshort"] = [&] { return Util::formatBytes(getSegmentSize()); };
-	params["fileSIchunk"] = [&] { return Util::toString(getPos()); };
-	params["fileSIchunkshort"] = [&] { return Util::formatBytes(getPos()); };
-	params["fileSIactual"] = [&] { return Util::toString(getActual()); };
-	params["fileSIactualshort"] = [&] { return Util::formatBytes(getActual()); };
-	params["speed"] = [&] { return Util::formatBytes(static_cast<int64_t>(getAverageSpeed())) + "/s"; };
-	params["time"] = [&] { return Util::formatSeconds((GET_TICK() - getStart()) / 1000); };
-	params["fileTR"] = [&] { return getTTH().toBase32(); };
+	params["fileSI"] = [this] { return Util::toString(getSegmentSize()); };
+	params["fileSIshort"] = [this] { return Util::formatBytes(getSegmentSize()); };
+	params["fileSIchunk"] = [this] { return Util::toString(getPos()); };
+	params["fileSIchunkshort"] = [this] { return Util::formatBytes(getPos()); };
+	params["fileSIactual"] = [this] { return Util::toString(getActual()); };
+	params["fileSIactualshort"] = [this] { return Util::formatBytes(getActual()); };
+	params["speed"] = [this] { return Util::formatBytes(getAverageSpeed()) + "/s"; };
+	params["time"] = [this] { return Util::formatSeconds((GET_TICK() - getStart()) / 1000); };
+	params["fileTR"] = [this] { return getTTH().toBase32(); };
 }
 
-UserPtr Transfer::getUser() noexcept {
-	return getUserConnection().getUser();
-}
-
-const UserPtr Transfer::getUser() const noexcept {
+UserPtr Transfer::getUser() const noexcept {
 	return getUserConnection().getUser();
 }
 
@@ -128,14 +124,14 @@ bool Transfer::isFilelist() const noexcept {
 
 void Transfer::appendFlags(OrderedStringSet& flags_) const noexcept {
 	if (getUserConnection().isMCN()) {
-		flags_.insert("M");
+		flags_.emplace("M");
 	}
 
 	if (getUserConnection().isSecure()) {
 		if (getUserConnection().isSet(UserConnection::FLAG_TRUSTED)) {
-			flags_.insert("S");
+			flags_.emplace("S");
 		} else {
-			flags_.insert("U");
+			flags_.emplace("U");
 		}
 	}
 }

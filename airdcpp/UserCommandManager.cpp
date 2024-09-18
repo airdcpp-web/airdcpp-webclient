@@ -30,10 +30,12 @@ namespace dcpp {
 using ranges::find_if;
 
 UserCommandManager::UserCommandManager() {
+	ClientManager::getInstance()->addListener(this);
 	FavoriteManager::getInstance()->addListener(this);
 }
 
 UserCommandManager::~UserCommandManager() {
+	ClientManager::getInstance()->removeListener(this);
 	FavoriteManager::getInstance()->removeListener(this);
 }
 
@@ -96,7 +98,7 @@ UserCommand UserCommandManager::addUserCommand(int type, int ctx, Flags::MaskTyp
 
 bool UserCommandManager::getUserCommand(int cid, UserCommand& uc) noexcept {
 	WLock l(cs);
-	for(auto& u: userCommands) {
+	for (const auto& u: userCommands) {
 		if(u.getId() == cid) {
 			uc = u;
 			return true;
@@ -108,7 +110,7 @@ bool UserCommandManager::getUserCommand(int cid, UserCommand& uc) noexcept {
 bool UserCommandManager::moveUserCommand(int cid, int pos) noexcept {
 	dcassert(pos == -1 || pos == 1);
 	WLock l(cs);
-	for(auto i = userCommands.begin(); i != userCommands.end(); ++i) {
+	for (auto i = userCommands.begin(); i != userCommands.end(); ++i) {
 		if(i->getId() == cid) {
 			swap(*i, *(i + pos));
 			return true;
@@ -179,6 +181,43 @@ void UserCommandManager::removeHubUserCommands(int ctx, const string& hub) noexc
 	}
 }
 
+void UserCommandManager::userCommand(const HintedUser& user, const UserCommand& uc, ParamMap& params_, bool aCompatibility) const noexcept {
+	auto hubUrl = (!uc.getHub().empty() && ClientManager::getInstance()->findClient(uc.getHub())) ? uc.getHub() : user.hint;
+	auto ou = ClientManager::getInstance()->findOnlineUser(user.user->getCID(), hubUrl);
+	if (!ou) {
+		return;
+	}
+
+	ou->getIdentity().getParams(params_, "user", aCompatibility);
+	ou->getClient()->getHubIdentity().getParams(params_, "hub", false);
+	ou->getClient()->getMyIdentity().getParams(params_, "my", aCompatibility);
+	ou->getClient()->sendUserCmd(uc, params_);
+}
+
+void UserCommandManager::on(ClientManagerListener::ClientUserCommand, const Client* client, int aType, int ctx, const string& name, const string& command) noexcept {
+	if (!SETTING(HUB_USER_COMMANDS)) {
+		return;
+	}
+
+	if(aType == UserCommand::TYPE_REMOVE) {
+		int cmd = findUserCommand(name, client->getHubUrl());
+		if(cmd != -1)
+			removeUserCommand(cmd);
+	} else if (aType == UserCommand::TYPE_CLEAR) {
+		removeHubUserCommands(ctx, client->getHubUrl());
+ 	} else {
+		addUserCommand(aType, ctx, UserCommand::FLAG_NOSAVE, name, command, "", client->getHubUrl());
+	}
+}
+
+void UserCommandManager::on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr&) noexcept {
+	removeUserCommand(aOldClient->getHubUrl());
+}
+
+void UserCommandManager::on(ClientManagerListener::ClientDisconnected, const string& aHubUrl) noexcept {
+	removeUserCommand(aHubUrl);
+}
+
 void UserCommandManager::saveUserCommands(SimpleXML& aXml) const noexcept {
 	aXml.addTag("UserCommands");
 	aXml.stepIn();
@@ -244,7 +283,8 @@ UserCommand::List UserCommandManager::getUserCommands(int ctx, const StringList&
 	vector<bool> isOp(hubs.size());
 
 	for(size_t i = 0; i < hubs.size(); ++i) {
-		if(ClientManager::getInstance()->isOp(ClientManager::getInstance()->getMe(), hubs[i])) {
+		auto c = ClientManager::getInstance()->findClient(hubs[i]);
+		if (c && c->isOp()) {
 			isOp[i] = true;
 			op = true; // ugly hack
 		}

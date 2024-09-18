@@ -33,7 +33,7 @@ namespace dcpp {
 class CryptoManager : public Singleton<CryptoManager>
 {
 public:
-	typedef pair<bool, string> SSLVerifyData;
+	using SSLVerifyData = pair<bool, string>;
 
 	enum TLSTmpKeys {
 		KEY_FIRST = 0,
@@ -48,16 +48,16 @@ public:
 		SSL_SERVER
 	};
 
-	string makeKey(const string& aLock);
-	const string& getLock() { return lock; }
-	const string& getPk() { return pk; }
-	bool isExtended(const string& aLock) { return strncmp(aLock.c_str(), "EXTENDEDPROTOCOL", 16) == 0; }
+	static string makeKey(const string& aLock);
+	const string& getLock() const noexcept { return lock; }
+	const string& getPk() const noexcept { return pk; }
+	bool isExtended(const string& aLock) const noexcept { return strncmp(aLock.c_str(), "EXTENDEDPROTOCOL", 16) == 0; }
 
 	SSL_CTX* getSSLContext(SSLContext wanted);
 
 	void loadCertificates() noexcept;
 	void generateCertificate();
-	bool checkCertificate(int minValidityDays) noexcept;
+	static bool checkCertificate(int minValidityDays) noexcept;
 	const ByteVector& getKeyprint() const noexcept;
 
 	bool TLSOk() const noexcept;
@@ -77,7 +77,7 @@ public:
 	static string encryptSUDP(const uint8_t* aKey, const string& aCmd);
 	static bool decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_);
 
-	typedef std::unique_ptr<uint8_t[]> SUDPKey;
+	using SUDPKey = std::unique_ptr<uint8_t[]>;
 	static SUDPKey generateSUDPKey();
 private:
 #ifdef _DEBUG
@@ -87,7 +87,7 @@ private:
 	friend class Singleton<CryptoManager>;
 
 	CryptoManager();
-	virtual ~CryptoManager();
+	~CryptoManager() final;
 
 	ssl::SSL_CTX clientContext;
 	ssl::SSL_CTX clientVerContext;
@@ -95,9 +95,9 @@ private:
 	ssl::SSL_CTX serverVerContext;
 
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
-	void sslRandCheck();
+	static void sslRandCheck() noexcept;
 
-	int getKeyLength(TLSTmpKeys key);
+	static int getKeyLength(TLSTmpKeys key) noexcept;
 
 	bool certsLoaded;
 
@@ -108,8 +108,8 @@ private:
 	const string lock;
 	const string pk;
 
-	string keySubst(const uint8_t* aKey, size_t len, size_t n);
-	bool isExtra(uint8_t b) {
+	static string keySubst(const uint8_t* aKey, size_t len, size_t n) noexcept;
+	static constexpr bool isExtra(uint8_t b) noexcept {
 		return (b == 0 || b==5 || b==124 || b==96 || b==126 || b==36);
 	}
 

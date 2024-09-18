@@ -41,7 +41,7 @@ public:
 			const string& operator()(const PathInfo* a) const { return a->path; }
 		};
 
-		typedef SortedVector<PathInfo*, std::vector, string, Compare, Path> List;
+		using List = SortedVector<PathInfo *, std::vector, string, Compare, Path>;
 
 		bool operator==(const PathInfo& aInfo) const noexcept { return bundle == aInfo.bundle && path == aInfo.path; }
 
@@ -56,9 +56,9 @@ public:
 		DupeType toDupeType(int64_t aSize) const noexcept;
 	};
 
-	typedef vector<const PathInfo*> PathInfoPtrList;
-	typedef unordered_multimap<string, PathInfo, noCaseStringHash, noCaseStringEq> DirectoryNameMap;
-	typedef unordered_map<string*, PathInfo::List, noCaseStringHash, noCaseStringEq> PathInfoMap;
+	using PathInfoPtrList = vector<const PathInfo *>;
+	using DirectoryNameMap = unordered_multimap<string, PathInfo, noCaseStringHash, noCaseStringEq>;
+	using PathInfoMap = unordered_map<string *, PathInfo::List, noCaseStringHash, noCaseStringEq>;
 
 	BundleQueue();
 	~BundleQueue();
@@ -103,10 +103,10 @@ private:
 	// Get path infos by bundle path
 	const PathInfo::List* getPathInfos(const string& aBundlePath) const noexcept;
 
-	typedef function<void(PathInfo&)> PathInfoHandler;
+	using PathInfoHandler = function<void (PathInfo &)>;
 
 	// Goes through each directory and stops after the bundle target was handled
-	void forEachPath(const BundlePtr& aBundle, const string& aPath, PathInfoHandler&& aHandler) noexcept;
+	void forEachPath(const BundlePtr& aBundle, const string& aPath, const PathInfoHandler& aHandler) noexcept;
 
 	PathInfo* addPathInfo(const string& aPath, const BundlePtr& aBundle) noexcept;
 	void removePathInfo(const PathInfo* aPathInfo) noexcept;

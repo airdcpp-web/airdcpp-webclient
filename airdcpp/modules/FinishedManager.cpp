@@ -39,10 +39,10 @@ const tstring FinishedItem::getText(uint8_t col) const {
 		case COLUMN_FILE: return Text::toT(PathUtil::getFileName(getTarget()));
 		case COLUMN_DONE: return Text::toT(Util::formatTime("%Y-%m-%d %H:%M:%S", getTime()));
 		case COLUMN_PATH: return Text::toT(PathUtil::getFilePath(getTarget()));
-		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormatedNicks(getUser()));
+		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormattedNicks(getUser()));
 		case COLUMN_HUB: {
 			if (getUser().user->isOnline()) {
-				return Text::toT(ClientManager::getInstance()->getFormatedHubNames(getUser()));
+				return Text::toT(ClientManager::getInstance()->getFormattedHubNames(getUser()));
 			} else {
 				auto ofu = ClientManager::getInstance()->getOfflineUser(getUser().user->getCID());
 				return TSTRING(OFFLINE) + (ofu ? _T(" ( ") + Text::toT(ofu->getUrl()) + _T(" ) ") : _T(""));
@@ -108,7 +108,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 		fire(FinishedManagerListener::AddedUl(), item);
 		if(SETTING(SYSTEM_SHOW_UPLOADS)) {
 			LogManager::getInstance()->message(
-				STRING_F(FINISHED_UPLOAD, u->getPath() % ClientManager::getInstance()->getFormatedNicks(u->getHintedUser())), 
+				STRING_F(FINISHED_UPLOAD, u->getPath() % ClientManager::getInstance()->getFormattedNicks(u->getHintedUser())), 
 				LogMessage::SEV_INFO, 
 				STRING(MENU_TRANSFERS)
 			);		

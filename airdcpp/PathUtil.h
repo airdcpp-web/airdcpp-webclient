@@ -58,6 +58,8 @@ public:
 
 	static string joinDirectory(const string& aPath, const string& aDirectoryName, const char separator = PATH_SEPARATOR) noexcept;
 
+	static string joinAdcDirectory(const string& aPath, const string& aDirectoryName) noexcept { return joinDirectory(aPath, aDirectoryName, ADC_SEPARATOR); }
+
 	static string getFileExt(const string& aPath) noexcept;
 
 	static wstring getFilePath(const wstring& aPath) noexcept;
@@ -65,8 +67,8 @@ public:
 	static wstring getFileExt(const wstring& aPath) noexcept;
 	static wstring getLastDir(const wstring& aPath) noexcept;
 
-	static bool isAdcDirectoryPath(const string& aPath) noexcept;
-	static bool isAdcRoot(const string& aPath) noexcept;
+	static bool isAdcDirectoryPath(const string_view aPath) noexcept;
+	static bool isAdcRoot(const string_view aPath) noexcept;
 
 	static string validatePath(const string& aPath, bool aRequireEndSeparator = false) noexcept;
 	static inline string validateFileName(const string& aFileName) noexcept { return cleanPathChars(aFileName, true); }
@@ -74,7 +76,7 @@ public:
 	static bool checkExtension(const string& tmp) noexcept;
 
 	static string toAdcFile(const string& file) noexcept;
-	static string toNmdcFile(const string& file) noexcept;
+	static string toNmdcFile(const string_view file) noexcept;
 	
 	static int pathSort(const string& a, const string& b) noexcept;
 
@@ -104,7 +106,7 @@ public:
 
 	// Removes common path section from the beginning of toSubtract
 	// Path separators are ignored when comparing
-	static string subtractCommonParents(const string& toCompare, const StringList& toSubtract) noexcept;
+	static string subtractCommonParents(const string_view toCompare, const StringList& toSubtract) noexcept;
 
 	// Returns the position from the end of aSubPath from where the paths start to differ
 	// Path separators are ignored when comparing
@@ -176,7 +178,7 @@ class IsParentOrExact {
 public:
 	// Returns true for items matching the predicate that are parent directories of compareTo (or exact matches)
 	IsParentOrExact(const string& aCompareTo, const char aSeparator) : compareTo(aCompareTo), separator(aSeparator) {}
-	bool operator()(const string& p) noexcept { return PathUtil::isParentOrExact(p, compareTo, separator); }
+	bool operator()(const string& p) const noexcept { return PathUtil::isParentOrExact(p, compareTo, separator); }
 
 	IsParentOrExact& operator=(const IsParentOrExact&) = delete;
 private:
@@ -187,7 +189,7 @@ private:
 class IsParentOrExactOrSub {
 public:
 	IsParentOrExactOrSub(const string& aCompareTo, const char aSeparator) : compareTo(aCompareTo), separator(aSeparator) {}
-	bool operator()(const string& p) noexcept { return PathUtil::isParentOrExact(p, compareTo, separator) || PathUtil::isSub(p, compareTo, separator); }
+	bool operator()(const string& p) const noexcept { return PathUtil::isParentOrExact(p, compareTo, separator) || PathUtil::isSub(p, compareTo, separator); }
 
 	IsParentOrExactOrSub& operator=(const IsParentOrExactOrSub&) = delete;
 private:
@@ -199,7 +201,7 @@ class IsSub {
 public:
 	// Returns true for items matching the predicate that are subdirectories of compareTo
 	IsSub(const string& aCompareTo, const char aSeparator) : compareTo(aCompareTo), separator(aSeparator) {}
-	bool operator()(const string& p) noexcept { return PathUtil::isSub(p, compareTo, separator); }
+	bool operator()(const string& p) const noexcept { return PathUtil::isSub(p, compareTo, separator); }
 
 	IsSub& operator=(const IsSub&) = delete;
 private:

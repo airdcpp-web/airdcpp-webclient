@@ -44,9 +44,9 @@ string TokenManager::createToken(ConnectionType aConnType) noexcept {
 
 	{
 		FastLock l(cs);
-		do { token = Util::toString(ValueGenerator::rand()); } while (tokens.find(token) != tokens.end());
+		do { token = Util::toString(ValueGenerator::rand()); } while (tokens.contains(token));
 
-		tokens.emplace(token, aConnType);
+		tokens.try_emplace(token, aConnType);
 	}
 
 	return token;
@@ -54,8 +54,8 @@ string TokenManager::createToken(ConnectionType aConnType) noexcept {
 
 bool TokenManager::addToken(const string& aToken, ConnectionType aConnType) noexcept{
 	FastLock l(cs);
-	const auto res = tokens.emplace(aToken, aConnType);
-	return res.second;
+	const auto [_, added] = tokens.try_emplace(aToken, aConnType);
+	return added;
 }
 
 bool TokenManager::hasToken(const string& aToken, ConnectionType aConnType) const noexcept{
@@ -77,12 +77,12 @@ void TokenManager::removeToken(const string& aToken) noexcept {
 #endif
 }
 
-#define CONNECT_FLOOD_COUNT_NORMAL_MINOR 30
-#define CONNECT_FLOOD_COUNT_NORMAL_SEVERE 45
-#define CONNECT_FLOOD_COUNT_MCN 100
-#define CONNECT_FLOOD_PERIOD 30
+constexpr auto CONNECT_FLOOD_COUNT_NORMAL_MINOR = 30;
+constexpr auto CONNECT_FLOOD_COUNT_NORMAL_SEVERE = 45;
+constexpr auto CONNECT_FLOOD_COUNT_MCN = 100;
+constexpr auto CONNECT_FLOOD_PERIOD = 30;
 
-ConnectionManager::ConnectionManager() : downloads(cqis[CONNECTION_TYPE_DOWNLOAD]), floodCounter(CONNECT_FLOOD_PERIOD) {
+ConnectionManager::ConnectionManager() : floodCounter(CONNECT_FLOOD_PERIOD), downloads(cqis[CONNECTION_TYPE_DOWNLOAD]) {
 	TimerManager::getInstance()->addListener(this);
 	ClientManager::getInstance()->addListener(this);
 
@@ -197,11 +197,11 @@ void ConnectionManager::getDownloadConnection(const HintedUser& aUser, bool aSma
 			cqi->setDownloadType(QueueDownloadType::SMALL);
 		}
 
-		dcdebug("DownloadManager::getDownloadConnection: created new item %s for user %s (small slot: %s)\n", cqi->getToken().c_str(), ClientManager::getInstance()->getFormatedNicks(aUser).c_str(), aSmallSlot ? "true" : "false");
+		dcdebug("DownloadManager::getDownloadConnection: created new item %s for user %s (small slot: %s)\n", cqi->getToken().c_str(), ClientManager::getInstance()->getFormattedNicks(aUser).c_str(), aSmallSlot ? "true" : "false");
 	}
 }
 
-bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot, ConnectionQueueItemCallback&& aWaitingCallback) noexcept {
+bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot, const ConnectionQueueItemCallback& aWaitingCallback) const noexcept {
 	// We need to check if we have queued something also while the small file connection was being established
 	ConnectionQueueItem* cqi = nullptr;
 	int runningNormal = 0;
@@ -270,7 +270,7 @@ void ConnectionManager::putCQIUnsafe(ConnectionQueueItem* cqi) noexcept {
 	
 	auto& container = cqis[cqi->getConnType()];
 	dcassert(find(container.begin(), container.end(), cqi) != container.end());
-	container.erase(remove(container.begin(), container.end(), cqi), container.end());
+	std::erase(container, cqi);
 
 	if (cqi->getConnType() == CONNECTION_TYPE_DOWNLOAD && !cqi->isActive()) {
 		removedDownloadTokens[cqi->getToken()] = GET_TICK();
@@ -280,8 +280,8 @@ void ConnectionManager::putCQIUnsafe(ConnectionQueueItem* cqi) noexcept {
 	delete cqi;
 }
 
-UserConnection* ConnectionManager::getConnection(bool aNmdc, bool aSecure) noexcept {
-	auto uc = new UserConnection(aSecure);
+UserConnection* ConnectionManager::getConnection(bool aNmdc) noexcept {
+	auto uc = new UserConnection();
 	uc->addListener(this);
 	{
 		WLock l(cs);
@@ -295,10 +295,9 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc, bool aSecure) noexc
 	return uc;
 }
 
-bool ConnectionManager::findUserConnection(const string& aToken, UserConnectionCallback&& aCallback) const noexcept {
+bool ConnectionManager::findUserConnection(const string& aToken, const UserConnectionCallback& aCallback) const noexcept {
 	RLock l(cs);
-	auto i = find(userConnections.begin(), userConnections.end(), aToken);
-	if (i != userConnections.end()) {
+	if (auto i = find(userConnections.begin(), userConnections.end(), aToken); i != userConnections.end()) {
 		aCallback(*i);
 		return true;
 	}
@@ -345,7 +344,7 @@ void ConnectionManager::on(TimerManagerListener::Second, uint64_t aTick) noexcep
 	attemptDownloads(aTick, removedTokens);
 	if (!removedTokens.empty()) {
 		WLock l (cs);
-		for(auto& m: removedTokens) {
+		for (const auto& m: removedTokens) {
 			auto s = find(downloads.begin(), downloads.end(), m);
 			if (s != downloads.end()) {
 				putCQIUnsafe(*s);
@@ -418,7 +417,7 @@ bool ConnectionManager::attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringLi
 
 	// No files to download from this user?
 	if (!startResult.hasDownload) {
-		dcdebug("ConnectionManager::attemptDownload: no downloads from user %s (conn %s), removing (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(cqi->getUser()).c_str(), cqi->getToken().c_str(), cqi->isSmallSlot() ? "true" : "false");
+		dcdebug("ConnectionManager::attemptDownload: no downloads from user %s (conn %s), removing (small slot: %s)\n", ClientManager::getInstance()->getFormattedNicks(cqi->getUser()).c_str(), cqi->getToken().c_str(), cqi->isSmallSlot() ? "true" : "false");
 		removedTokens_.push_back(cqi->getToken());
 		return false;
 	}
@@ -434,7 +433,7 @@ bool ConnectionManager::attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringLi
 			return connectUnsafe(cqi, startResult.allowUrlChange);
 		} else {
 			// Download limits full or similar temporary error
-			dcdebug("ConnectionManager::attemptDownload: can't start download from user %s (connection %s): %s (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(cqi->getUser()).c_str(), cqi->getToken().c_str(), startResult.lastError.c_str(), cqi->isSmallSlot() ? "true" : "false");
+			dcdebug("ConnectionManager::attemptDownload: can't start download from user %s (connection %s): %s (small slot: %s)\n", ClientManager::getInstance()->getFormattedNicks(cqi->getUser()).c_str(), cqi->getToken().c_str(), startResult.lastError.c_str(), cqi->isSmallSlot() ? "true" : "false");
 			fire(ConnectionManagerListener::Failed(), cqi, startResult.lastError);
 		}
 	}
@@ -474,7 +473,7 @@ void ConnectionManager::onDownloadRunning(const UserConnection *aSource) noexcep
 		}
 
 		if (!allowNewMCNUnsafe(cqi->getUser(), false)) {
-			dcdebug("ConnectionManager::addRunningMCN: can't add new connections for user %s, conn %s (small slot: %s)\n", ClientManager::getInstance()->getFormatedNicks(aSource->getHintedUser()).c_str(), cqi->getToken().c_str(), cqi->isSmallSlot() ? "true" : "false");
+			dcdebug("ConnectionManager::addRunningMCN: can't add new connections for user %s, conn %s (small slot: %s)\n", ClientManager::getInstance()->getFormattedNicks(aSource->getHintedUser()).c_str(), cqi->getToken().c_str(), cqi->isSmallSlot() ? "true" : "false");
 			return;
 		}
 	}
@@ -485,7 +484,7 @@ void ConnectionManager::onDownloadRunning(const UserConnection *aSource) noexcep
 void ConnectionManager::createNewMCN(const HintedUser& aUser) noexcept {
 	auto result = QueueManager::getInstance()->startDownload(aUser, QueueDownloadType::MCN_NORMAL);
 	if (!result.hasDownload) {
-		dcdebug("ConnectionManager::createNewMCN: no downloads from user %s (type normal)\n", ClientManager::getInstance()->getFormatedNicks(aUser).c_str());
+		dcdebug("ConnectionManager::createNewMCN: no downloads from user %s (type normal)\n", ClientManager::getInstance()->getFormattedNicks(aUser).c_str());
 		return;
 	}
 
@@ -494,11 +493,11 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) noexcept {
 		auto cqiNew = getCQIUnsafe(aUser, CONNECTION_TYPE_DOWNLOAD);
 		cqiNew->setDownloadType(QueueDownloadType::MCN_NORMAL);
 
-		dcdebug("ConnectionManager::createNewMCN: creating new connection for user %s\n", ClientManager::getInstance()->getFormatedNicks(aUser).c_str());
+		dcdebug("ConnectionManager::createNewMCN: creating new connection for user %s\n", ClientManager::getInstance()->getFormattedNicks(aUser).c_str());
 	}
 }
 
-#define MAX_UC_INACTIVITY_SECONDS 180
+constexpr auto MAX_UC_INACTIVITY_SECONDS = 180;
 void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	WLock l(cs);
 	for (auto i = removedDownloadTokens.begin(); i != removedDownloadTokens.end();) {
@@ -518,7 +517,7 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 				j->send(c);
 			}
 		} else if ((j->getLastActivity() + MAX_UC_INACTIVITY_SECONDS * 1000) < aTick) {
-			dcdebug("ConnectionManager::timer: disconnecting an inactive connection %s for user %s\n", j->getToken().c_str(), ClientManager::getInstance()->getFormatedNicks(j->getHintedUser()).c_str());
+			dcdebug("ConnectionManager::timer: disconnecting an inactive connection %s for user %s\n", j->getToken().c_str(), ClientManager::getInstance()->getFormattedNicks(j->getHintedUser()).c_str());
 			j->disconnect(true);
 		}
 	}
@@ -548,8 +547,8 @@ int ConnectionManager::Server::run() noexcept {
 	while(!die) {
 		try {
 			while(!die) {
-				auto ret = sock.wait(POLL_TIMEOUT, true, false);
-				if(ret.first) {
+				auto [read, _] = sock.wait(POLL_TIMEOUT, true, false);
+				if (read) {
 					ConnectionManager::getInstance()->accept(sock, secure);
 					
 				}
@@ -612,13 +611,13 @@ FloodCounter::FloodLimits ConnectionManager::getIncomingConnectionLimits(const s
  * It's always the other fellow that starts sending if he made the connection.
  */
 void ConnectionManager::accept(const Socket& sock, bool aSecure) noexcept {
-	auto uc = getConnection(false, aSecure);
+	auto uc = getConnection(false);
 	uc->setFlag(UserConnection::FLAG_INCOMING);
 	uc->setState(UserConnection::STATE_SUPNICK);
 	uc->setLastActivity(GET_TICK());
 
 	try {
-		uc->accept(sock, [&](const string& aIP) {
+		uc->accept(sock, aSecure, [&](const string& aIP) {
 			auto floodResult = floodCounter.handleRequest(aIP, getIncomingConnectionLimits(aIP));
 			if (floodResult.type == FloodCounter::FloodType::OK) {
 				return true;
@@ -636,44 +635,44 @@ void ConnectionManager::accept(const Socket& sock, bool aSecure) noexcept {
 	}
 }
 	
-void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, const string& aNick, const string& aHubUrl, const string& aEncoding, bool aSecure) noexcept {
-	nmdcConnect(aServer, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aNick, aHubUrl, aEncoding, aSecure);
+void ConnectionManager::nmdcConnect(const string& aServer, const SocketConnectOptions& aOptions, const string& aNick, const string& aHubUrl, const string& aEncoding) noexcept {
+	nmdcConnect(aServer, aOptions, Util::emptyString, aNick, aHubUrl, aEncoding);
 }
 
-void ConnectionManager::nmdcConnect(const string& aServer, const string& aPort, const string& aLocalPort, BufferedSocket::NatRoles aNatRole, const string& aNick, const string& aHubUrl, const string& aEncoding, bool aSecure) noexcept {
+void ConnectionManager::nmdcConnect(const string& aServer, const SocketConnectOptions& aOptions, const string& aLocalPort, const string& aNick, const string& aHubUrl, const string& aEncoding) noexcept {
 	if(shuttingDown)
 		return;
 
-	auto uc = getConnection(true, aSecure);
+	auto uc = getConnection(true);
 	uc->setToken(aNick);
 	uc->setHubUrl(aHubUrl);
 	uc->setEncoding(aEncoding);
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setFlag(UserConnection::FLAG_NMDC);
 	try {
-		uc->connect(AddressInfo(aServer, AddressInfo::TYPE_V4), aPort, aLocalPort, aNatRole);
+		uc->connect(AddressInfo(aServer, AddressInfo::TYPE_V4), aOptions, aLocalPort);
 	} catch(const Exception&) {
 		putConnection(uc);
 		delete uc;
 	}
 }
 
-void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool aSecure) noexcept {
-	adcConnect(aUser, aPort, Util::emptyString, BufferedSocket::NAT_NONE, aToken, aSecure);
+void ConnectionManager::adcConnect(const OnlineUser& aUser, const SocketConnectOptions& aOptions, const string& aToken) noexcept {
+	adcConnect(aUser, aOptions, Util::emptyString, aToken);
 }
 
-void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort, const string& aLocalPort, BufferedSocket::NatRoles aNatRole, const string& aToken, bool aSecure) noexcept {
+void ConnectionManager::adcConnect(const OnlineUser& aUser, const SocketConnectOptions& aOptions, const string& aLocalPort, const string& aToken) noexcept {
 	if(shuttingDown)
 		return;
 
-	auto uc = getConnection(false, aSecure);
+	auto uc = getConnection(false);
 	uc->setEncoding(Text::utf8);
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient()->getHubUrl());
 	uc->setToken(aToken);
-	if(aUser.getIdentity().isOp()) {
+	/*if (aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
-	}
+	}*/
 	
 	if (tokens.hasToken(aToken, CONNECTION_TYPE_PM)) {
 		uc->setFlag(UserConnection::FLAG_PM);
@@ -681,10 +680,10 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const string& aPort,
 
 	try {
 		if (aUser.getIdentity().getTcpConnectMode() == Identity::MODE_ACTIVE_DUAL) {
-			uc->connect(AddressInfo(aUser.getIdentity().getIp4(), aUser.getIdentity().getIp6()), aPort, aLocalPort, aNatRole, aUser);
+			uc->connect(AddressInfo(aUser.getIdentity().getIp4(), aUser.getIdentity().getIp6()), aOptions, aLocalPort, aUser);
 		} else {
 			auto ai = AddressInfo(aUser.getIdentity().getTcpConnectIp(), Identity::allowV6Connections(aUser.getIdentity().getTcpConnectMode()) ? AddressInfo::TYPE_V6 : AddressInfo::TYPE_V4);
-			uc->connect(std::move(ai), aPort, aLocalPort, aNatRole, aUser);
+			uc->connect(ai, aOptions, aLocalPort, aUser);
 		}
 	} catch(const Exception&) {
 		putConnection(uc);
@@ -801,20 +800,20 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 
 	if(aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		// Try to guess where this came from...
-		pair<string, string> i = expectedConnections.remove(aNick);
-		if(i.second.empty()) {
-			dcassert(i.first.empty());
+		auto [myNick, hubUrl] = expectedConnections.remove(aNick);
+		if(hubUrl.empty()) {
+			dcassert(myNick.empty());
 			dcdebug("Unknown incoming connection from %s\n", aNick.c_str());
 			putConnection(aSource);
 			return;
 		}
-        aSource->setToken(i.first);	
-		aSource->setHubUrl(i.second);
-		aSource->setEncoding(ClientManager::getInstance()->findHubEncoding(i.second));
+        aSource->setToken(myNick);
+		aSource->setHubUrl(hubUrl);
+		aSource->setEncoding(ClientManager::getInstance()->findNmdcEncoding(hubUrl));
 	}
 
 	string nick = Text::toUtf8(aNick, aSource->getEncoding());
-	CID cid = ClientManager::getInstance()->makeCid(nick, aSource->getHubUrl());
+	CID cid = ClientManager::getInstance()->makeNmdcCID(nick, aSource->getHubUrl());
 
 	// First, we try looking in the pending downloads...hopefully it's one of them...
 	{
@@ -845,10 +844,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 		aSource->setFlag(UserConnection::FLAG_UPLOAD);
 	}
 
-	ClientManager::getInstance()->setIPUser(aSource->getUser(), aSource->getRemoteIp());
-
-	if(ClientManager::getInstance()->isOp(aSource->getUser(), aSource->getHubUrl()))
-		aSource->setFlag(UserConnection::FLAG_OP);
+	ClientManager::getInstance()->setNmdcIPUser(aSource->getUser(), aSource->getRemoteIp());
 
 	if( aSource->isSet(UserConnection::FLAG_INCOMING) ) {
 		aSource->myNick(aSource->getToken()); 
@@ -1032,7 +1028,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	string token;
 
 	auto fail = [&, this](AdcCommand::Error aCode, const string& aStr) {
-		failDownload(token, aStr, true);
 		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, aCode, aStr));
 		aSource->disconnect(true);
 	};
@@ -1048,17 +1043,17 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 		// Incoming connections aren't associated with any user
 		// Are we expecting this connection? Use the saved CID and hubUrl
-		auto i = expectedConnections.remove(token);
-		if (i.second.empty()) {
+		auto [cid, hubUrl] = expectedConnections.remove(token);
+		if (hubUrl.empty()) {
 			fail(AdcCommand::ERROR_GENERIC, "Connection not expected");
 			return;
 		} 
 
 		// Hub URL
-		aSource->setHubUrl(i.second);
+		aSource->setHubUrl(hubUrl);
 
 		// User
-		auto user = ClientManager::getInstance()->findUser(CID(i.first));
+		auto user = ClientManager::getInstance()->findUser(CID(cid));
 		aSource->setUser(user);
 		if (!aSource->getUser()) {
 			dcdebug("CM::onINF: User not found");
@@ -1097,7 +1092,6 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 	dcassert(!token.empty());
 
-	bool isRemovedDownload = false;
 	{
 		RLock l(cs);
 		auto i = find(downloads.begin(), downloads.end(), token);
@@ -1111,8 +1105,9 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			}
 			cqi->setErrors(0);
 			aSource->setFlag(UserConnection::FLAG_DOWNLOAD);
-		} else {
-			isRemovedDownload = removedDownloadTokens.find(token) != removedDownloadTokens.end();
+		} else if (removedDownloadTokens.contains(token)) {
+			aSource->disconnect(true);
+			return;
 		}
 	}
 
@@ -1136,12 +1131,10 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 		}
 
 		addPMConnection(aSource);
-	} else if (!isRemovedDownload) {
+	} else {
 		if (!aSource->isSet(UserConnection::FLAG_UPLOAD))
 			aSource->setFlag(UserConnection::FLAG_UPLOAD);
 		addUploadConnection(aSource);
-	} else {
-		aSource->disconnect(true);
 	}
 }
 
@@ -1208,7 +1201,7 @@ void ConnectionManager::failDownload(const string& aToken, const string& aError,
 	}
 }
 
-void ConnectionManager::onIdle(UserConnection* aSource) noexcept {
+void ConnectionManager::onIdle(const UserConnection* aSource) noexcept {
 	WLock l(cs); //this may flag other user connections as removed which would possibly cause threading issues
 	auto cqi = findDownloadUnsafe(aSource);
 	if (!cqi || !cqi->isSet(ConnectionQueueItem::FLAG_RUNNING)) {
@@ -1259,6 +1252,18 @@ void ConnectionManager::on(UserConnectionListener::State, UserConnection* aSourc
 	}
 }
 
+ConnectionType toConnectionType(const UserConnection* aSource) {
+	if (aSource->isSet(UserConnection::FLAG_UPLOAD)) {
+		return CONNECTION_TYPE_UPLOAD;
+	}
+
+	if (aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
+		return CONNECTION_TYPE_DOWNLOAD;
+	}
+
+	return aSource->isSet(UserConnection::FLAG_PM) ? CONNECTION_TYPE_PM : CONNECTION_TYPE_LAST;
+}
+
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
@@ -1266,9 +1271,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 			dcdebug("ConnectionManager::failed: download %s failed\n", aSource->getToken().c_str());
 		} else {
 
-			auto type = aSource->isSet(UserConnection::FLAG_UPLOAD) ? CONNECTION_TYPE_UPLOAD :
-				aSource->isSet(UserConnection::FLAG_PM) ? CONNECTION_TYPE_PM : CONNECTION_TYPE_LAST;
-
+			auto type = toConnectionType(aSource);
 			if (type != CONNECTION_TYPE_LAST) {
 				WLock l(cs);
 				auto& container = cqis[type];
@@ -1304,16 +1307,16 @@ void ConnectionManager::disconnect(const string& aToken) const noexcept {
 	});
 }
 
-void ConnectionManager::shutdown(function<void (float)> progressF) noexcept {
+void ConnectionManager::shutdown(const ProgressFunction& progressF) noexcept {
 	TimerManager::getInstance()->removeListener(this);
 	ClientManager::getInstance()->removeListener(this);
 	shuttingDown = true;
 	disconnect();
 
-	int connections = 0;
+	size_t initialConnectionCount = 0;
 	{
 		RLock l(cs);
-		connections = userConnections.size();
+		initialConnectionCount = userConnections.size();
 		for(auto uc: userConnections) {
 			uc->disconnect(true);
 		}
@@ -1328,7 +1331,7 @@ void ConnectionManager::shutdown(function<void (float)> progressF) noexcept {
 			}
 
 			if (progressF)
-				progressF(static_cast<float>(userConnections.size()) / static_cast<float>(connections));
+				progressF(static_cast<float>(userConnections.size()) / static_cast<float>(initialConnectionCount));
 		}
 		Thread::sleep(50);
 	}

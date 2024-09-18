@@ -32,17 +32,13 @@ namespace dcpp {
 
 class QueueItem : public QueueItemBase {
 public:
-	typedef unordered_map<QueueToken, QueueItemPtr> TokenMap;
-	typedef unordered_map<string*, QueueItemPtr, noCaseStringHash, noCaseStringEq> StringMap;
-	typedef unordered_multimap<TTHValue*, QueueItemPtr> TTHMap;
-	typedef vector<pair<QueueItemPtr, bool>> ItemBoolList;
-
-	struct Hash {
-		size_t operator()(const QueueItemPtr& x) const noexcept { return hash<string>()(x->getTarget()); }
-	};
+	using TokenMap = unordered_map<QueueToken, QueueItemPtr>;
+	using StringMap = unordered_map<string *, QueueItemPtr, noCaseStringHash, noCaseStringEq>;
+	using TTHMap = unordered_multimap<TTHValue *, QueueItemPtr>;
+	using ItemBoolList = vector<pair<QueueItemPtr, bool>>;
 
 	struct HashComp {
-		HashComp(const TTHValue& s) : a(s) { }
+		explicit HashComp(const TTHValue& s) : a(s) { }
 		bool operator()(const QueueItemPtr& q) const noexcept { return a == q->getTTH(); }
 
 		HashComp& operator=(const HashComp&) = delete;
@@ -158,28 +154,28 @@ public:
 		OrderedStringSet blockedHubs;
 	};
 
-	typedef vector<Source> SourceList;
-	typedef SourceList::iterator SourceIter;
+	using SourceList = vector<Source>;
+	using SourceIter = SourceList::iterator;
 
-	typedef SourceList::const_iterator SourceConstIter;
+	using SourceConstIter = SourceList::const_iterator;
 
-	typedef set<Segment> SegmentSet;
-	typedef SegmentSet::const_iterator SegmentConstIter;
+	using SegmentSet = set<Segment>;
+	using SegmentConstIter = SegmentSet::const_iterator;
 	
 	QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag, time_t aAdded, const TTHValue& tth, const string& aTempTarget);
 
-	~QueueItem();
+	~QueueItem() final;
 
 	bool usesSmallSlot() const noexcept;
 
 	// Select a random item from the list to search for alternates
 	static QueueItemPtr pickSearchItem(const QueueItemList& aItems) noexcept;
 
-	void save(OutputStream &save, string tmp, string b32tmp);
+	void save(OutputStream &save, string tmp, string b32tmp) const;
 	int countOnlineUsers() const noexcept;
 	void getOnlineUsers(HintedUserList& l) const noexcept;
 	bool hasSegment(const QueueDownloadQuery& aQuery, string& lastError_, bool aAllowOverlap) noexcept;
-	bool isPausedPrio() const noexcept;
+	bool isPausedPrio() const noexcept override;
 
 	SourceList& getSources() noexcept { return sources; }
 	const SourceList& getSources() const noexcept { return sources; }

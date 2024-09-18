@@ -47,12 +47,6 @@ public:
 		MODE_DATA
 	};
 
-	enum NatRoles {
-		NAT_NONE,
-		NAT_CLIENT,
-		NAT_SERVER
-	};
-
 	/**
 	 * BufferedSocket factory, each BufferedSocket may only be used to create one connection
 	 * @param sep Line separator
@@ -62,7 +56,7 @@ public:
 		return new BufferedSocket(sep, v4only);
 	}
 
-	static void putSocket(BufferedSocket* aSock, function<void ()> f = nullptr) {
+	static void putSocket(BufferedSocket* aSock, const Callback& f = nullptr) {
 		if(aSock) {
 			aSock->removeListeners();
 			aSock->shutdown(f);
@@ -74,10 +68,10 @@ public:
 			Thread::sleep(100);
 	}
 
-	typedef std::function<bool(const string& aIP)> SocketAcceptFloodF;
+	using SocketAcceptFloodF = std::function<bool (const string &)>;
 	void accept(const Socket& srv, bool aSecure, bool aAllowUntrusted, const SocketAcceptFloodF& aFloodCheckF);
-	void connect(const AddressInfo& aAddress, const string& aPort, bool aSecure, bool aAllowUntrusted, bool aProxy, const string& expKP = Util::emptyString);
-	void connect(const AddressInfo& aAddress, const string& aPort, const string& aLocalPort, NatRoles aNatRole, bool aSecure, bool aAllowUntrusted, bool aProxy, const string& expKP = Util::emptyString);
+	void connect(const AddressInfo& aAddress, const SocketConnectOptions& aOptions, bool aAllowUntrusted, bool aProxy, const string& expKP = Util::emptyString);
+	void connect(const AddressInfo& aAddress, const SocketConnectOptions& aOptions, const string& aLocalPort, bool aAllowUntrusted, bool aProxy, const string& expKP = Util::emptyString);
 
 	/** Sets data mode for aBytes bytes. Must be called within onLine. */
 	void setDataMode(int64_t aBytes = -1) { mode = MODE_DATA; dataBytes = aBytes; }
@@ -101,15 +95,15 @@ public:
 	uint16_t getLocalPort() const { return sock ? sock->getLocalPort() : 0; }
 	bool isV6Valid() const { return sock ? sock->isV6Valid() : false; }
 
-	void write(const string& aData) { write(aData.data(), aData.length()); }
+	void write(const string_view& aData) { write(aData.data(), aData.length()); }
 	void write(const char* aBuf, size_t aLen) noexcept;
 	/** Send the file f over this socket. */
-	void transmitFile(InputStream* f) { Lock l(cs); addTask(SEND_FILE, new SendFileInfo(f)); }
+	void transmitFile(InputStream* f) { Lock l(cs); addTask(SEND_FILE, make_unique<SendFileInfo>(f)); }
 
 	/** Call a function from the socket's thread. */
-	void callAsync(function<void ()> f) { Lock l(cs); addTask(ASYNC_CALL, new CallData(f)); }
+	void callAsync(const Callback& f) { Lock l(cs); addTask(ASYNC_CALL, make_unique<CallData>(f)); }
 
-	void disconnect(bool graceless = false) noexcept { Lock l(cs); if(graceless) disconnecting = true; addTask(DISCONNECT, 0); }
+	void disconnect(bool graceless = false) noexcept;
 	bool isDisconnecting() const noexcept { return disconnecting; }
 
 	GETSET(char, separator, Separator);
@@ -132,33 +126,37 @@ private:
 	};
 
 	struct TaskData {
-		virtual ~TaskData() { }
+		virtual ~TaskData() = default;
 	};
 	struct ConnectInfo : public TaskData {
-		ConnectInfo(AddressInfo addr_, string port_, string localPort_, NatRoles natRole_, bool proxy_) : addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) {}
+		ConnectInfo(const AddressInfo& addr_, const string& port_, const string& localPort_, NatRole natRole_, bool proxy_) : 
+			addr(addr_), port(port_), localPort(localPort_), natRole(natRole_), proxy(proxy_) {}
+
 		AddressInfo addr;
 		string port;
 		string localPort;
-		NatRoles natRole;
+		NatRole natRole;
 		bool proxy;
 	};
 	struct SendFileInfo : public TaskData {
-		SendFileInfo(InputStream* stream_) : stream(stream_) { }
+		explicit SendFileInfo(InputStream* stream_) : stream(stream_) { }
 		InputStream* stream;
 	};
 	struct CallData : public TaskData {
-		CallData(function<void ()> f) : f(f) { }
+		explicit CallData(const Callback& f) : f(f) { }
 		function<void ()> f;
 	};
 
 	BufferedSocket(char aSeparator, bool v4only);
 
-	virtual ~BufferedSocket();
+	~BufferedSocket() final;
 
 	CriticalSection cs;
 
 	Semaphore taskSem;
-	deque<pair<Tasks, unique_ptr<TaskData> > > tasks;
+
+	using TaskPair = pair<Tasks, unique_ptr<TaskData>>;
+	deque<TaskPair> tasks;
 
 	Modes mode = MODE_LINE;
 	std::unique_ptr<UnZFilter> filterIn;
@@ -174,9 +172,9 @@ private:
 	bool disconnecting = false;
 	bool v4only;
 
-	virtual int run();
+	int run() override;
 
-	void threadConnect(const AddressInfo& aAddr, const string& aPort, const string& localPort, NatRoles natRole, bool proxy);
+	void threadConnect(const AddressInfo& aAddr, const string& aPort, const string& localPort, NatRole natRole, bool proxy);
 	void threadAccept();
 	void threadRead();
 	void threadSendFile(InputStream* is);
@@ -190,8 +188,8 @@ private:
 
 	void setSocket(std::unique_ptr<Socket>&& s);
 	void setOptions();
-	void shutdown(function<void ()> f);
-	void addTask(Tasks task, TaskData* data);
+	void shutdown(const Callback& f);
+	void addTask(Tasks task, unique_ptr<TaskData>&& data);
 };
 
 } // namespace dcpp

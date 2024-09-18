@@ -88,7 +88,7 @@ namespace dcpp {
 
 	ViewFilePtr ViewFileManager::createFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile) noexcept {
 		auto file = std::make_shared<ViewFile>(aFileName, aPath, aTTH, aIsText, aIsLocalFile,
-			std::bind(&ViewFileManager::onFileStateUpdated, this, std::placeholders::_1));
+			std::bind_front(&ViewFileManager::onFileStateUpdated, this));
 
 		{
 			WLock l(cs);
@@ -179,7 +179,7 @@ namespace dcpp {
 
 			log(STRING_F(FILE_ALREADY_VIEWED, aFileInfo.file), LogMessage::SEV_NOTIFY);
 		} catch (const Exception& e) {
-			log(STRING_F(ADD_FILE_ERROR, aFileInfo.file % ClientManager::getInstance()->getFormatedNicks(aFileInfo.user) % e.getError()), LogMessage::SEV_NOTIFY);
+			log(STRING_F(ADD_FILE_ERROR, aFileInfo.file % ClientManager::getInstance()->getFormattedNicks(aFileInfo.user) % e.getError()), LogMessage::SEV_NOTIFY);
 		}
 
 		return nullptr;

@@ -29,7 +29,7 @@ namespace dcpp {
 	FloodCounter::FloodResult FloodCounter::handleRequest(const string& aIp, const FloodLimits& aLimits) noexcept {
 		auto result = getFloodStatus(aIp, aLimits);
 
-		addRequst(aIp);
+		addRequest(aIp);
 
 		return result;
 	}
@@ -59,7 +59,7 @@ namespace dcpp {
 		};
 	}
 
-	void FloodCounter::addRequst(const string& aIp) noexcept {
+	void FloodCounter::addRequest(const string& aIp) noexcept {
 		Lock l(cs);
 		floodIps.emplace(aIp, GET_TICK());
 	}
@@ -71,13 +71,13 @@ namespace dcpp {
 			return;
 		}
 
-		for (auto i = floodIps.begin(); i != floodIps.end(); ) {
-			if (static_cast<uint64_t>(i->second + (floodPeriod * 1000)) < tick) {
-				dcdebug("Removing an expired flood attempt from IP %s\n", i->first.c_str());
-				i = floodIps.erase(i);
-			} else {
-				i++;
+		std::erase_if(floodIps, [this, tick](const auto& ipTimePair) {
+			if (static_cast<uint64_t>(ipTimePair.second + (floodPeriod * 1000)) < tick) {
+				dcdebug("Removing an expired flood attempt from IP %s\n", ipTimePair.first.c_str());
+				return true;
 			}
-		}
+
+			return false;
+		});
 	}
 }

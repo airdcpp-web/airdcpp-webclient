@@ -59,18 +59,16 @@ public:
 	string stating otherwise. */
 	string getStatus() const;
 
-	MappingManager(bool v6);
-	virtual ~MappingManager() { }
+	explicit MappingManager(bool v6);
+	~MappingManager() final = default;
 private:
-	//friend class Singleton<MappingManager>;
-
 	vector<pair<string, function<Mapper* (const string&, bool)>>> mappers;
 
 	atomic_flag busy;
 	unique_ptr<Mapper> working; /// currently working implementation.
 	uint64_t renewal = 0; /// when the next renewal should happen, if requested by the mapper.
 
-	int run();
+	int run() override;
 
 	void close(Mapper& mapper);
 	void log(const string& message, LogMessage::Severity sev);
@@ -78,7 +76,7 @@ private:
 	void renewLater(Mapper& mapper);
 
 	bool v6;
-	void on(TimerManagerListener::Minute, uint64_t tick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t tick) noexcept override;
 };
 
 } // namespace dcpp

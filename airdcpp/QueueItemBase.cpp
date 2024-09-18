@@ -25,7 +25,7 @@
 namespace dcpp {
 
 QueueItemBase::QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, QueueToken aToken, Flags::MaskType aFlags) :
-	target(aTarget), size(aSize), priority(aPriority), timeAdded(aAdded), autoPriority(false), Flags(aFlags), token(aToken) {
+	Flags(aFlags), priority(aPriority), autoPriority(false), timeAdded(aAdded), size(aSize), token(aToken), target(aTarget) {
 
 }
 
@@ -48,10 +48,5 @@ int QueueItemBase::SourceCount::compare(const SourceCount& a, const SourceCount&
 
 	return dcpp::compare(a.total, b.total);
 }
-
-//QueueItemBase::QueueItemBase(const QueueItemPtr qi) : target(qi->getTarget()), size(qi->getSize()), priority(qi->getPriority()), added(qi->getAdded()), autoPriority(qi->getAutoPriority()) {
-
-//}
-
 
 }

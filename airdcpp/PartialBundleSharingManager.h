@@ -50,7 +50,7 @@ private:
 	void sendFileCompletionNotifications(const QueueItemPtr& q) noexcept;
 	void sendRemovePBD(const HintedUser& aUser, const string& aRemoteToken) noexcept;
 
-	void handleGetReplyParams(const BundlePtr& aBundle, string& _bundleToken, bool& _notify, bool& _add) noexcept;
+	static void handleGetReplyParams(const BundlePtr& aBundle, string& _bundleToken, bool& _notify, bool& _add) noexcept;
 	void handleAddRemoteNotifyUser(const HintedUser& aUser, const BundlePtr& aBundle, const string& aRemoteBundle) noexcept;
 
 	// Remove user from a notify list of the local bundle
@@ -67,9 +67,9 @@ private:
 
 	void onIncomingSearch(const OnlineUserPtr& aUser, const SearchQuery& aQuery, bool aIsUdpActive) noexcept;
 
-	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) const noexcept;
 
-	bool matchIncomingSearch(const UserPtr& aUser, const TTHValue& tth, string& _bundle, bool& _reply, bool& _add) noexcept;
+	bool matchIncomingSearch(const UserPtr& aUser, const TTHValue& tth, string& _bundle, bool& _reply, bool& _add) const noexcept;
 
 	const FinishedNotifyList* getRemoteBundleNotificationsUnsafe(const BundlePtr& aBundle) const noexcept;
 

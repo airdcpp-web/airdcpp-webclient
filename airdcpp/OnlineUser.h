@@ -29,6 +29,7 @@
 #include "Flags.h"
 #include "FastAlloc.h"
 #include "GetSet.h"
+#include "HintedUser.h"
 #include "Pointer.h"
 #include "Util.h"
 #include "User.h"
@@ -72,7 +73,7 @@ public:
 	};
 
 	Identity();
-	Identity(const UserPtr& ptr, uint32_t aSID);
+	Identity(const UserPtr& ptr, dcpp::SID aSID);
 	Identity(const Identity& rhs);
 	Identity& operator=(const Identity& rhs);
 
@@ -147,7 +148,7 @@ public:
 	void getParams(ParamMap& map, const string& prefix, bool compatibility) const noexcept;
 	const UserPtr& getUser() const noexcept { return user; }
 	UserPtr& getUser() noexcept { return user; }
-	uint32_t getSID() const noexcept { return sid; }
+	dcpp::SID getSID() const noexcept { return sid; }
 
 	bool updateAdcConnectModes(const Identity& me, const Client* aClient) noexcept;
 
@@ -155,6 +156,7 @@ public:
 	static bool allowV4Connections(Mode aConnectMode) noexcept;
 	static bool allowV6Connections(Mode aConnectMode) noexcept;
 	static bool isActiveMode(Mode aConnectMode) noexcept;
+	static bool isConnectModeParam(const string_view& aParam) noexcept;
 
 	static Mode detectConnectModeTcp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept;
 	static Mode detectConnectModeUdp(const Identity& aMe, const Identity& aOther, const Client* aClient) noexcept;
@@ -172,18 +174,25 @@ private:
 	bool isUdp4Active() const noexcept;
 	bool isUdp6Active() const noexcept;
 
+	struct ActiveMode {
+		ActiveMode(bool aV4, bool aV6) : v4(aV4), v6(aV6) {}
+
+		bool v4;
+		bool v6;
+	};
+
 	// Get TCP/UDP connect mode with another user
-	static Mode detectConnectMode(const Identity& aMe, const Identity& aOther, bool aMeActive4, bool aMeActive6, bool aOtherActive4, bool aOtherActive6, bool aNatTravelsal, const Client* aClient) noexcept;
+	static Mode detectConnectMode(const Identity& aMe, const Identity& aOther, const ActiveMode& aActiveMe, const ActiveMode& aActiveOther, bool aNatTravelsal, const Client* aClient) noexcept;
 
 	UserPtr user;
-	uint32_t sid;
+	dcpp::SID sid;
 
-	typedef map<short, string> InfMap;
+	using InfMap = map<short, string>;
 	InfMap info;
 
 	static SharedMutex cs;
 
-	typedef vector<uint32_t> SupportList;
+	using SupportList = vector<uint32_t>;
 	SupportList supports;
 };
 
@@ -203,35 +212,35 @@ public:
 	static const string CCPM_FEATURE;
 
 	struct Hash {
-		size_t operator()(const OnlineUserPtr& x) const { return ((size_t)(&(*x)))/sizeof(OnlineUser); }
+		size_t operator()(const OnlineUserPtr& x) const noexcept { return ((size_t)(&(*x)))/sizeof(OnlineUser); }
 	};
 
 	struct NickSort {
-		bool operator()(const OnlineUserPtr& left, const OnlineUserPtr& right) const;
+		bool operator()(const OnlineUserPtr& left, const OnlineUserPtr& right) const noexcept;
 	};
 
 	struct Nick {
-		string operator()(const OnlineUserPtr& u) { return u->getIdentity().getNick(); }
+		string operator()(const OnlineUserPtr& u) const noexcept { return u->getIdentity().getNick(); }
 	};
 
 	struct HubName {
-		string operator()(const OnlineUserPtr& u);
+		string operator()(const OnlineUserPtr& u) const noexcept;
 	};
 
 	class UrlCompare {
 	public:
-		UrlCompare(const string& aUrl) : url(aUrl) { }
-		bool operator()(const OnlineUserPtr& ou) { return ou->getHubUrl() == url; }
+		explicit UrlCompare(const string& aUrl) : url(aUrl) { }
+		bool operator()(const OnlineUserPtr& ou) const noexcept { return ou->getHubUrl() == url; }
 
 		UrlCompare& operator=(const UrlCompare&) = delete;
 	private:
 		const string& url;
 	};
 
-	OnlineUser(const UserPtr& ptr, const ClientPtr& client_, uint32_t sid_);
-	~OnlineUser() noexcept;
+	OnlineUser(const UserPtr& ptr, const ClientPtr& client_, dcpp::SID sid_);
+	~OnlineUser() noexcept final;
 
-	uint32_t getToken() const noexcept {
+	dcpp::SID getToken() const noexcept {
 		return identity.getSID();
 	}
 
@@ -241,6 +250,7 @@ public:
 	UserPtr& getUser() noexcept { return getIdentity().getUser(); }
 	const UserPtr& getUser() const noexcept { return getIdentity().getUser(); }
 	const string& getHubUrl() const noexcept;
+	HintedUser getHintedUser() const noexcept { return HintedUser(getUser(), getHubUrl()); }
 	Identity& getIdentity() noexcept { return identity; }
 
 	/* UserInfo */

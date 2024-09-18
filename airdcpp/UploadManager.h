@@ -82,7 +82,7 @@ public:
 		return uploads;
 	}
 
-	typedef std::function<void(Upload*)>&& UploadCallback;
+	using UploadCallback = std::function<void (Upload *)> &&;
 	Callback getAsyncWrapper(TransferToken aToken, UploadCallback&& aCallback) const noexcept;
 
 	Upload* findUploadUnsafe(TransferToken aToken) const noexcept;
@@ -108,7 +108,7 @@ private:
 	mutable SharedMutex cs;
 	mutable CriticalSection slotCS;
 	
-	typedef unordered_map<UserPtr, uint16_t, User::Hash> MultiConnMap;
+	using MultiConnMap = unordered_map<UserPtr, uint16_t, User::Hash>;
 	MultiConnMap multiUploads;
 
 	bool isUploadingMCN(const UserPtr& aUser) const noexcept;
@@ -121,7 +121,7 @@ private:
 
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;
-	~UploadManager();
+	~UploadManager() final;
 
 	bool standardSlotsRemaining(const UserPtr& aUser) const noexcept;
 	bool lowSpeedSlotsRemaining() const noexcept;
@@ -161,6 +161,8 @@ private:
 	void disconnectOfflineUsers() noexcept;
 
 	void checkExpiredDelayUploads();
+
+	OptionalProfileToken findProfile(UserConnection& uc, const string& aUserSID) const noexcept;
 };
 
 } // namespace dcpp

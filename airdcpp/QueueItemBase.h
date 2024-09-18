@@ -34,6 +34,7 @@ using std::string;
 class QueueItemBase : public Flags {
 public:
 	QueueItemBase(const string& aTarget, int64_t aSize, Priority aPriority, time_t aAdded, QueueToken aToken, Flags::MaskType aFlags);
+	virtual ~QueueItemBase() = default;
 
 	const DownloadList& getDownloads() { return downloads; }
 

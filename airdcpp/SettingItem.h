@@ -29,8 +29,8 @@ namespace dcpp {
 
 
 struct SettingItem {
-	typedef boost::variant<string, bool, int, double> SettingValue;
-	typedef vector<SettingItem> List;
+	using SettingValue = boost::variant<string, bool, int, double>;
+	using List = vector<SettingItem>;
 
 	const int key;
 	const ResourceManager::Strings desc;
@@ -46,7 +46,7 @@ struct SettingItem {
 	string currentToString() const noexcept;
 
 	struct ToString : boost::static_visitor<string> {
-		ToString(int aKey) : key(aKey) { }
+		explicit ToString(int aKey) : key(aKey) { }
 
 		string operator()(const string& s) const noexcept;
 		string operator()(int s) const noexcept;
@@ -58,7 +58,7 @@ struct SettingItem {
 
 	class CompareKey {
 	public:
-		CompareKey(int aKey) : key(aKey) { }
+		explicit CompareKey(int aKey) : key(aKey) { }
 		bool operator()(const SettingItem& s) const noexcept { return s.key == key; }
 	private:
 		const int key;
@@ -73,7 +73,7 @@ struct SettingItem {
 struct ProfileSettingItem : public SettingItem {
 	ProfileSettingItem(int aKey, const SettingValue& aProfileValue, ResourceManager::Strings aName);
 
-	typedef vector<ProfileSettingItem> List;
+	using List = vector<ProfileSettingItem>;
 
 	const SettingValue profileValue;
 

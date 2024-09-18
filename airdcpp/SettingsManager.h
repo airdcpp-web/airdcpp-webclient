@@ -316,14 +316,14 @@ public:
 	static const ResourceManager::Strings dropStrings[QUEUE_LAST];
 	static const ResourceManager::Strings updateStrings[VERSION_LAST];
 
-	typedef boost::variant<bool, int, string> SettingValue;
-	typedef vector<SettingValue> SettingValueList;
+	using SettingValue = boost::variant<bool, int, string>;
+	using SettingValueList = vector<SettingValue>;
 
-	typedef vector<int> SettingKeyList;
+	using SettingKeyList = vector<int>;
 	struct SettingChangeHandler {
 
-		typedef vector<SettingChangeHandler> List;
-		typedef std::function<void(const MessageCallback& errorF, const SettingKeyList& aChangedSettings)> OnSettingChangedF;
+		using List = vector<SettingChangeHandler>;
+		using OnSettingChangedF = std::function<void (const MessageCallback &, const SettingKeyList &)>;
 
 		OnSettingChangedF onChanged;
 		SettingKeyList settingKeys;
@@ -333,7 +333,7 @@ public:
 
 	SettingValue getSettingValue(int aSetting, bool useDefault = true) const noexcept;
 
-	typedef map<int, ResourceManager::Strings> EnumStringMap;
+	using EnumStringMap = map<int, ResourceManager::Strings>;
 	static EnumStringMap getEnumStrings(int aKey, bool aValidateCurrentValue) noexcept;
 
 	const string& get(StrSetting key, bool useDefault = true) const noexcept {
@@ -377,7 +377,7 @@ public:
 		return int64Defaults[key - INT64_FIRST];
 	}
 
-	void setDefault(StrSetting key, string const& value) noexcept {
+	void setDefault(StrSetting key, const string_view& value) noexcept {
 		strDefaults[key - STR_FIRST] = value;
 	}
 
@@ -419,7 +419,7 @@ public:
 
 	HubSettings getHubSettings() const noexcept;
 
-	typedef vector<string> HistoryList;
+	using HistoryList = vector<string>;
 
 	enum HistoryType {
 		HISTORY_SEARCH,
@@ -443,8 +443,8 @@ public:
 
 	// Attempts to load the setting file and creates a backup after completion
 	// Settings are recovered automatically from the backup file in case the main setting file is malformed/corrupted
-	typedef std::function<void(SimpleXML&)> XMLParseCallback;
-	typedef std::function<bool(const string&)> PathParseCallback;
+	using XMLParseCallback = std::function<void (SimpleXML &)>;
+	using PathParseCallback = std::function<bool (const string &)>;
 	static bool loadSettingFile(AppUtil::Paths aPath, const string& aFileName, XMLParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF = nullptr) noexcept;
 	static bool loadSettingFile(AppUtil::Paths aPath, const string& aFileName, PathParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF = nullptr) noexcept;
 
@@ -457,7 +457,7 @@ private:
 
 	friend class Singleton<SettingsManager>;
 	SettingsManager();
-	~SettingsManager() { }
+	~SettingsManager() final = default;
 
 	static const string settingTags[SETTINGS_LAST+1];
 
@@ -480,6 +480,14 @@ private:
 
 	static string buildToolbarOrder(const vector<ToolbarIconEnum>& aIcons) noexcept;
 	static vector<ToolbarIconEnum> getDefaultToolbarOrder() noexcept;
+
+	void saveSettings(SimpleXML& xml) const;
+	void saveHistory(SimpleXML& xml) const;
+
+	void loadSettings(SimpleXML& xml);
+	void loadHistory(SimpleXML& xml);
+
+	void ensureValidBindAddresses(const StartupLoader& aLoader) noexcept;
 };
 
 // Shorthand accessor macros

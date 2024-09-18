@@ -30,7 +30,7 @@
 #include "Util.h"
 
 namespace dcpp {
-	typedef int64_t devid;
+	using devid = int64_t;
 	class DirSFVReader;
 	class HasherStats;
 	class Hasher : public Thread {
@@ -52,7 +52,7 @@ namespace dcpp {
 		void stop() noexcept;
 
 		void stopHashing(const string& baseDir) noexcept;
-		int run();
+		int run() override;
 		void getStats(string& curFile_, int64_t& bytesLeft_, size_t& filesLeft_, int64_t& speed_, size_t& filesAdded_, int64_t& bytesAdded_) const noexcept;
 		void shutdown();
 
@@ -78,7 +78,7 @@ namespace dcpp {
 				dcassert(aDeviceId >= 0);
 			}
 
-			WorkItem() {}
+			WorkItem() = default;
 
 			WorkItem(WorkItem&& rhs) = default;
 			WorkItem& operator=(WorkItem&&) = default;

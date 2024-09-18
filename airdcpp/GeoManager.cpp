@@ -46,7 +46,6 @@ void GeoManager::init() {
 void GeoManager::update() {
 	if (geo) {
 		geo->update();
-		//geo->rebuild();
 	}
 }
 

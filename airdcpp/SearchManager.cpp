@@ -36,8 +36,8 @@
 namespace dcpp {
 
 SearchManager::SearchManager() : 
-	udpServer(make_unique<UDPServer>()), 
-	searchTypes(make_unique<SearchTypes>([this]{ fire(SearchManagerListener::SearchTypesChanged()); })) 
+	searchTypes(make_unique<SearchTypes>([this]{ fire(SearchManagerListener::SearchTypesChanged()); })), 
+	udpServer(make_unique<UDPServer>()) 
 {
 	TimerManager::getInstance()->addListener(this);
 }
@@ -80,15 +80,15 @@ string SearchManager::generateSUDPKey() {
 	return keyStr;
 }
 
-SearchQueueInfo SearchManager::search(StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
+SearchQueueInfo SearchManager::search(const StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner /* NULL */) noexcept {
 	aSearch->owner = aOwner;
 	aSearch->key = generateSUDPKey();
 
 	StringSet queued;
 	uint64_t estimateSearchSpan = 0;
 	string lastError;
-	for(auto& hubUrl: aHubUrls) {
-		auto queueTime = ClientManager::getInstance()->search(hubUrl, aSearch, lastError);
+	for (const auto& hubUrl: aHubUrls) {
+		auto queueTime = ClientManager::getInstance()->hubSearch(hubUrl, aSearch, lastError);
 		if (queueTime) {
 			estimateSearchSpan = max(estimateSearchSpan, *queueTime);
 			queued.insert(hubUrl);
@@ -104,7 +104,7 @@ SearchInstancePtr SearchManager::createSearchInstance(const string& aOwnerId, ui
 
 	{
 		WLock l(cs);
-		searchInstances.emplace(searchInstance->getToken(), searchInstance);
+		searchInstances.try_emplace(searchInstance->getToken(), searchInstance);
 	}
 
 	fire(SearchManagerListener::SearchInstanceCreated(), searchInstance);
@@ -151,8 +151,8 @@ SearchInstanceList SearchManager::getSearchInstances() const noexcept {
 
 bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
 	RLock l (cs);
-	for (const auto& i: searchKeys | views::reverse) {
-		if (CryptoManager::decryptSUDP(i.first.get(), aBuf, aLen, x)) {
+	for (const auto& [key, _] : searchKeys | views::reverse) {
+		if (CryptoManager::decryptSUDP(key.get(), aBuf, aLen, x)) {
 			return true;
 		}
 	}
@@ -186,14 +186,14 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	// A file has 2 0x05, a directory only one
 	size_t cnt = count(x.begin() + j, x.end(), 0x05);
 
-	SearchResult::Types type = SearchResult::TYPE_FILE;
+	auto type = SearchResult::Type::FILE;
 	string file;
 	int64_t size = 0;
 
 	if(cnt == 1) {
 		// We have a directory...find the first space beyond the first 0x05 from the back
 		// (dirs might contain spaces as well...clever protocol, eh?)
-		type = SearchResult::TYPE_DIRECTORY;
+		type = SearchResult::Type::DIRECTORY;
 		// Get past the hubname that might contain spaces
 		if((j = x.rfind(0x05)) == string::npos) {
 			return;
@@ -222,12 +222,12 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	if( (j = x.find('/', i)) == string::npos) {
 		return;
 	}
-	uint8_t freeSlots = (uint8_t)Util::toInt(x.substr(i, j-i));
+	auto freeSlots = (uint8_t)Util::toInt(x.substr(i, j-i));
 	i = j + 1;
 	if( (j = x.find((char)5, i)) == string::npos) {
 		return;
 	}
-	uint8_t slots = (uint8_t)Util::toInt(x.substr(i, j-i));
+	auto slots = (uint8_t)Util::toInt(x.substr(i, j-i));
 	i = j + 1;
 	if( (j = x.rfind(" (")) == string::npos) {
 		return;
@@ -250,7 +250,7 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 		tth = hubName.substr(4);
 	}
 
-	if (tth.empty() && type == SearchResult::TYPE_FILE) {
+	if (tth.empty() && type == SearchResult::Type::FILE) {
 		return;
 	}
 
@@ -297,8 +297,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& aFrom, const str
 		return;
 	}
 
-	auto type = adcPath.back() == ADC_SEPARATOR ? SearchResult::TYPE_DIRECTORY : SearchResult::TYPE_FILE;
-	if (type == SearchResult::TYPE_FILE && tth.empty()) {
+	auto type = adcPath.back() == ADC_SEPARATOR ? SearchResult::Type::DIRECTORY : SearchResult::Type::FILE;
+	if (type == SearchResult::Type::FILE && tth.empty()) {
 		return;
 	}
 
@@ -311,9 +311,9 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& aFrom, const str
 
 	// Parse TTH
 	TTHValue th;
-	if (type == SearchResult::TYPE_DIRECTORY) {
+	if (type == SearchResult::Type::DIRECTORY) {
 		// Generate TTH from the directory name and size
-		th = ValueGenerator::generateDirectoryTTH(type == SearchResult::TYPE_FILE ? PathUtil::getAdcFileName(adcPath) : PathUtil::getAdcLastDir(adcPath), size);
+		th = ValueGenerator::generateDirectoryTTH(type == SearchResult::Type::FILE ? PathUtil::getAdcFileName(adcPath) : PathUtil::getAdcLastDir(adcPath), size);
 	} else {
 		th = TTHValue(tth);
 	}
@@ -322,9 +322,8 @@ void SearchManager::onRES(const AdcCommand& cmd, const UserPtr& aFrom, const str
 		adcPath, aRemoteIp, th, token, date, connection, DirectoryContentInfo(folders, files));
 
 	// Hooks
-	auto error = incomingSearchResultHook.runHooksError(this, sr);
-	if (error) {
-		dcdebug("Hook rejection for search result %s from user %s (%s)\n", sr->getAdcPath().c_str(), ClientManager::getInstance()->getFormatedNicks(sr->getUser()).c_str(), ActionHookRejection::formatError(error).c_str());
+	if (auto error = incomingSearchResultHook.runHooksError(this, sr); error) {
+		dcdebug("Hook rejection for search result %s from user %s (%s)\n", sr->getAdcPath().c_str(), ClientManager::getInstance()->getFormattedNicks(sr->getUser()).c_str(), ActionHookRejection::formatError(error).c_str());
 		return;
 	}
 
@@ -465,7 +464,7 @@ void SearchManager::respond(Client* aClient, const string& aSeeker, int aSearchT
 
 				for (const auto& sr : results) {
 					auto data = sr->toSR(*aClient);
-					ClientManager::getInstance()->sendUDP(data, ip, port);
+					ClientManager::getInstance()->sendNmdcUDP(data, ip, port);
 				}
 			} catch (...) {
 				dcdebug("Search caught error\n");

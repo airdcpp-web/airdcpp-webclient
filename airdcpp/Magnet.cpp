@@ -62,7 +62,7 @@ Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
 	//  xl = exact length
 	StringTokenizer<string> mag(aLink.substr(8), '&');
 	map<string, string> hashes;
-	for(auto& idx: mag.getTokens()) {
+	for(const auto& idx: mag.getTokens()) {
 		// break into pairs
 		auto pos = idx.find('=');
 		if(pos != string::npos) {
@@ -89,11 +89,11 @@ Magnet::Magnet(const string& aLink, const UserPtr& aTo) : to(aTo) {
 	}
 
 	// pick the most authoritative hash out of all of them.
-	if(hashes.find("xt") != hashes.end()) {
+	if(hashes.contains("xt")) {
 		hash = hashes["xt"];
-	} else if(hashes.find("xs") != hashes.end()) {
+	} else if(hashes.contains("xs")) {
 		hash = hashes["xs"];
-	} else if(hashes.find("as") != hashes.end()) {
+	} else if(hashes.contains("as")) {
 		hash = hashes["as"];
 	}
 

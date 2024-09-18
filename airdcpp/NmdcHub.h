@@ -63,7 +63,7 @@ public:
 	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept override;
 
 	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
-	~NmdcHub();
+	~NmdcHub() final;
 	
 	NmdcHub(const NmdcHub&) = delete;
 	NmdcHub& operator=(const NmdcHub&) = delete;
@@ -75,25 +75,23 @@ private:
 		SUPPORTS_USERIP2		= 0x04
 	};
 
-	mutable SharedMutex cs;
-
-	typedef unordered_map<string, OnlineUser*, noCaseStringHash, noCaseStringEq> NickMap;
-	typedef NickMap::const_iterator NickIter;
+	using NickMap = unordered_map<string, OnlineUser *, noCaseStringHash, noCaseStringEq>;
+	using NickIter = NickMap::const_iterator;
 
 	NickMap users;
 
 	string localIp;
 	string lastMyInfo;
-	uint64_t lastUpdate;	
-	int64_t lastBytesShared;
-	int supportFlags;
+	uint64_t lastUpdate = 0;	
+	int64_t lastBytesShared = 0;
+	int supportFlags = 0;
 
 	void clearUsers() noexcept override;
 	void onLine(const string& aLine) noexcept;
 
 	OnlineUser& getUser(const string& aNick) noexcept;
 	OnlineUserPtr findUser(const string& aNick) const noexcept override;
-	OnlineUser* findUser(const uint32_t aSID) const noexcept override;
+	OnlineUser* findUser(dcpp::SID aSID) const noexcept override;
 	void putUser(const string& aNick) noexcept;
 	
 	// don't convert to UTF-8 if string is already in this encoding
@@ -114,14 +112,14 @@ private:
 	void refreshLocalIp() noexcept;
 
 	string checkNick(const string& aNick) noexcept override;
-	virtual bool v4only() const noexcept override { return true; }
+	bool v4only() const noexcept override { return true; }
 
 	// TimerManagerListener
-	virtual void on(Second, uint64_t aTick) noexcept override;
-	virtual void on(Minute, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 
-	void on(Connected) noexcept override;
-	void on(Line, const string& l) noexcept override;
+	void on(BufferedSocketListener::Connected) noexcept override;
+	void on(BufferedSocketListener::Line, const string& l) noexcept override;
 };
 
 } // namespace dcpp

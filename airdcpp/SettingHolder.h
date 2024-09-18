@@ -26,10 +26,10 @@ namespace dcpp {
 
 class SettingHolder {
 public:
-	SettingHolder(MessageCallback errorF);
+	SettingHolder(MessageCallback&& errorF);
 	~SettingHolder();
 
-	void apply();
+	void apply() const;
 private:
 	struct SettingValueListHolder {
 		const SettingsManager::SettingChangeHandler& handler;
@@ -42,7 +42,7 @@ private:
 	
 	void showError(const string& aError) const noexcept;
 
-	MessageCallback errorF;
+	const MessageCallback errorF;
 };
 
 }

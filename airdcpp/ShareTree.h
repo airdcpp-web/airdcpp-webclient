@@ -117,10 +117,10 @@ public:
 	// Safe to call with non-root directories
 	ShareRoot::Ptr setRefreshState(const string& aPath, ShareRootRefreshState aState, bool aUpdateRefreshTime, const optional<ShareRefreshTaskToken>& aRefreshTaskToken) const noexcept;
 
-	typedef ShareDirectory::File::TTHMap HashFileMap;
+	using HashFileMap = ShareDirectory::File::TTHMap;
 
-	typedef std::function<string(const ProfileTokenSet&)> ProfileFormatter;
-	void validateRootPath(const string& aRealPath, ProfileFormatter&& aProfileFormatter) const;
+	using ProfileFormatter = std::function<string (const ProfileTokenSet &)>;
+	void validateRootPath(const string& aRealPath, const ProfileFormatter& aProfileFormatter) const;
 
 #ifdef _DEBUG
 	// Go through the whole tree and check that the global maps have been filled properly
@@ -128,7 +128,7 @@ public:
 	void validateDirectoryRecursiveDebugUnsafe(const ShareDirectory::Ptr& dir, OrderedStringSet& directoryPaths_, OrderedStringSet& filePaths_) const noexcept;
 #endif
 
-	void countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t uniqueFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
+	void countStats(time_t& totalAge_, size_t& totalDirs_, int64_t& totalSize_, size_t& totalFiles, size_t& uniqueFiles, size_t& lowerCaseFiles, size_t& totalStrLen_, size_t& roots_) const noexcept;
 
 	// Returns the dupe directories by directory name/ADC path
 	void getDirectoriesByAdcNameUnsafe(const string& aAdcPath, ShareDirectory::List& dirs_) const noexcept;
@@ -181,7 +181,7 @@ private:
 
 	ShareDirectoryInfoPtr getRootInfoUnsafe(const ShareDirectory::Ptr& aDir) const noexcept;
 
-	bool addDirectoryResultUnsafe(const ShareDirectory* aDir, SearchResultList& aResults, const OptionalProfileToken& aProfile, SearchQuery& srch) const noexcept;
+	bool addDirectoryResultUnsafe(const ShareDirectory* aDir, SearchResultList& aResults, const OptionalProfileToken& aProfile, const SearchQuery& srch) const noexcept;
 
 	// Get root directories matching the provided token
 	// Unsafe
@@ -213,7 +213,7 @@ private:
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 
-		ShareDirectory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtualnames
+		ShareDirectory::List virtuals; //since we are mapping by realpath, we can have more than 1 same virtual names
 		{
 			getRootsByVirtualUnsafe(aVirtualPath.substr(1, start - 1), aProfile, virtuals);
 			if (virtuals.empty()) {
@@ -246,7 +246,7 @@ private:
 		}
 	}
 #if defined(_DEBUG) && defined(_WIN32)
-	void testDualString();
+	static void testDualString();
 #endif
 
 };

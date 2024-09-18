@@ -30,7 +30,7 @@
 namespace dcpp {
 
 TempShareInfo::TempShareInfo(const string& aName, const string& aPath, int64_t aSize, const TTHValue& aTTH, const UserPtr& aUser) noexcept :
-	id(ValueGenerator::rand()), user(aUser), name(aName), realPath(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
+	id(ValueGenerator::rand()), name(aName), user(aUser), realPath(aPath), size(aSize), tth(aTTH), timeAdded(GET_TIME()) { }
 
 bool TempShareInfo::hasAccess(const UserPtr& aUser) const noexcept {
 	return !user || user == aUser;
@@ -80,7 +80,7 @@ void TempShareManager::search(SearchResultList& results, const TTHValue& aTTH, c
 	const auto items = getTempShares(aTTH);
 	for (const auto& item : items) {
 		if (item.hasAccess(aSearchInfo.optionalUser)) {
-			auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE, item.size, item.getVirtualPath(), aTTH, item.timeAdded, DirectoryContentInfo::uninitialized());
+			auto sr = make_shared<SearchResult>(SearchResult::Type::FILE, item.size, item.getVirtualPath(), aTTH, item.timeAdded, DirectoryContentInfo::uninitialized());
 			results.push_back(sr);
 		}
 	}
@@ -153,7 +153,7 @@ pair<TempShareInfo, bool> TempShareManager::addTempShareImpl(const TTHValue& aTT
 		}
 	}
 
-	//didnt exist.. fine, add it.
+	// Didn't exist.. fine, add it.
 	const auto item = TempShareInfo(aName, aFilePath, aSize, aTTH, aUser);
 	tempShares.emplace(aTTH, item);
 

@@ -31,14 +31,14 @@ public:
 	HashedFile(const TTHValue& aRoot, uint64_t aTimeStamp, int64_t aSize) :
 		root(aRoot), timeStamp(aTimeStamp), size(aSize) { }
 
-	~HashedFile() { }
+	~HashedFile() = default;
 
 	GETSET(TTHValue, root, Root);
 	GETSET(uint64_t, timeStamp, TimeStamp);
 	GETSET(int64_t, size, Size);
 };
 
-typedef std::vector<pair<std::string, HashedFile>> RenameList;
+using RenameList = std::vector<pair<std::string, HashedFile>>;
 
 }
 

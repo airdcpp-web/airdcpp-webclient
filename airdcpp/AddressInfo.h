@@ -74,6 +74,21 @@ private:
 	string ip[TYPE_DUAL];
 };
 
+enum class NatRole {
+	NONE,
+	CLIENT,
+	SERVER
+};
+
+struct SocketConnectOptions {
+	SocketConnectOptions(const string& aPort, bool aSecure, NatRole aNatRole = NatRole::NONE) : port(aPort), natRole(aNatRole), secure(aSecure) {}
+
+	string port;
+	NatRole natRole;
+	bool secure;
+};
+
+
 } // namespace dcpp
 
 #endif // !defined(SOCKET_H)

@@ -80,9 +80,30 @@ int UploadManager::getFreeExtraSlots() const noexcept {
 	return max(SETTING(EXTRA_SLOTS) - getExtra(), 0); 
 }
 
+OptionalProfileToken UploadManager::findProfile(UserConnection& uc, const string& aUserSID) const noexcept {
+	if (aUserSID.empty()) {
+		// no SID specified, find with hint
+		auto c = ClientManager::getInstance()->findClient(uc.getHubUrl());
+		if (c) {
+			return c->get(HubSettings::ShareProfile);
+		}
+	} else {
+		auto ouList = ClientManager::getInstance()->getOnlineUsers(uc.getUser());
+		for (const auto& ou : ouList) {
+			if (compare(ou->getIdentity().getSIDString(), aUserSID) == 0) {
+				uc.setHubUrl(ou->getClient()->getHubUrl());
+				return ou->getClient()->get(HubSettings::ShareProfile);
+			}
+		}
+	}
+
+	// Don't accept invalid SIDs/offline hubs
+	return nullopt;
+}
+
 bool UploadManager::prepareFile(UserConnection& aSource, const UploadRequest& aRequest) {
 	dcdebug("Preparing %s %s " I64_FMT " " I64_FMT " %d" " " "%s %s\n", aRequest.type.c_str(), aRequest.file.c_str(), aRequest.segment.getStart(), aRequest.segment.getEnd(), aRequest.listRecursive,
-		aSource.getHubUrl().c_str(), ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser()).c_str());
+		aSource.getHubUrl().c_str(), ClientManager::getInstance()->getFormattedNicks(aSource.getHintedUser()).c_str());
 
 	if (!aRequest.validate()) {
 		aSource.sendError("Invalid request");
@@ -90,7 +111,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const UploadRequest& aR
 	}
 
 	// Make sure that we have an user
-	auto profile = ClientManager::getInstance()->findProfile(aSource, aRequest.userSID);
+	auto profile = findProfile(aSource, aRequest.userSID);
 	if (!profile) {
 		aSource.sendError("Unknown user", AdcCommand::ERROR_UNKNOWN_USER);
 		return false;
@@ -150,7 +171,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const UploadRequest& aR
 			return false;
 		} catch (const Exception& e) {
 			if (!e.getError().empty()) {
-				log(STRING(UNABLE_TO_SEND_FILE) + " " + creator.sourceFile + ": " + e.getError() + " (" + (ClientManager::getInstance()->getFormatedNicks(aSource.getHintedUser()) + ")"), LogMessage::SEV_ERROR);
+				log(STRING(UNABLE_TO_SEND_FILE) + " " + creator.sourceFile + ": " + e.getError() + " (" + (ClientManager::getInstance()->getFormattedNicks(aSource.getHintedUser()) + ")"), LogMessage::SEV_ERROR);
 			}
 
 			aSource.sendError();
@@ -205,7 +226,7 @@ OptionalUploadSlot UploadManager::parseAutoGrantHookedThrow(const UserConnection
 
 bool UploadManager::isUploadingMCN(const UserPtr& aUser) const noexcept {
 	RLock l(cs);
-	return multiUploads.find(aUser) != multiUploads.end(); 
+	return multiUploads.contains(aUser); 
 }
 
 #define SLOT_SOURCE_STANDARD "standard"
@@ -255,8 +276,17 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 	if (!newSlot) {
 		// Mini slots?
 		if (aParser.miniSlot) {
+			auto isOP = [&aSource] {
+				auto ou = ClientManager::getInstance()->findOnlineUser(aSource.getHintedUser(), false);
+				if (ou && ou->getIdentity().isOp()) {
+					return true;
+				}
+
+				return false;
+			};
+
 			auto supportsFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_MINISLOTS);
-			auto allowedFree = aSource.hasSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT) || aSource.isSet(UserConnection::FLAG_OP) || getFreeExtraSlots() > 0;
+			auto allowedFree = aSource.hasSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT) || isOP() || getFreeExtraSlots() > 0;
 			if (supportsFree && allowedFree) {
 				dcdebug("UploadManager::parseSlotType: assign minislot for %s\n", aSource.getToken().c_str());
 				return UploadSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT);
@@ -386,7 +416,7 @@ void UploadManager::changeMultiConnSlot(const UserPtr& aUser, bool aRemove) noex
 }
 
 int UploadManager::getFreeMultiConnUnsafe() const noexcept {
-	return static_cast<int>(getSlots() - runningUsers - mcnConnections) + static_cast<int>(multiUploads.size());
+	return getSlots() - runningUsers - mcnConnections + static_cast<int>(multiUploads.size());
 }
 
 bool UploadManager::allowNewMultiConn(const UserConnection& aSource) const noexcept {
@@ -399,12 +429,12 @@ bool UploadManager::allowNewMultiConn(const UserConnection& aSource) const noexc
 		RLock l(cs);
 		if (!multiUploads.empty()) {
 			uint16_t highest = 0;
-			for (const auto& i: multiUploads) {
-				if (i.first == u) {
+			for (const auto& [mcnUser, connectionCount] : multiUploads) {
+				if (mcnUser == u) {
 					continue;
 				}
-				if (i.second > highest) {
-					highest = i.second;
+				if (connectionCount > highest) {
+					highest = connectionCount;
 				}
 			}
 
@@ -452,7 +482,7 @@ void UploadManager::disconnectExtraMultiConn() noexcept {
 	}
 
 	// Find the correct upload to kill
-	auto toDisconnect = ranges::find_if(uploads, [&](Upload* up) { 
+	auto toDisconnect = ranges::find_if(uploads, [&](const Upload* up) { 
 		return up->getUser() == highestConnCount.base()->first && up->getUserConnection().getSlotType() == UploadSlot::USERSLOT;
 	});
 
@@ -462,14 +492,12 @@ void UploadManager::disconnectExtraMultiConn() noexcept {
 }
 
 Upload* UploadManager::findUploadUnsafe(TransferToken aToken) const noexcept {
-	auto u = ranges::find_if(uploads, [&](Upload* up) { return compare(up->getToken(), aToken) == 0; });
-	if (u != uploads.end()) {
+	if (auto u = ranges::find_if(uploads, [&](const Upload* up) { return compare(up->getToken(), aToken) == 0; }); u != uploads.end()) {
 		return *u;
 	}
 
-	auto s = ranges::find_if(delayUploads, [&](Upload* up) { return compare(up->getToken(), aToken) == 0; });
-	if (s != delayUploads.end()) {
-		return *s;
+	if (auto u = ranges::find_if(delayUploads, [&](const Upload* up) { return compare(up->getToken(), aToken) == 0; }); u != delayUploads.end()) {
+		return *u;
 	}
 
 	return nullptr;
@@ -494,7 +522,7 @@ Callback UploadManager::getAsyncWrapper(TransferToken aToken, UploadCallback&& a
 int64_t UploadManager::getRunningAverageUnsafe() const noexcept {
 	int64_t avg = 0;
 	for (auto u: uploads) {
-		avg += static_cast<int64_t>(u->getAverageSpeed());
+		avg += u->getAverageSpeed();
 	}
 
 	return avg;
@@ -750,8 +778,7 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 		return;
 	}
 
-	auto shareProfile = ClientManager::getInstance()->findProfile(*aSource, Util::emptyString);
-	if (shareProfile) {
+	if (auto shareProfile = findProfile(*aSource, Util::emptyString); shareProfile) {
 		const string& type = c.getParam(0);
 		const string& ident = c.getParam(1);
 
@@ -759,7 +786,7 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 			try {
 				aSource->send(ShareManager::getInstance()->getFileInfo(ident, *shareProfile));
 				return;
-			} catch(const ShareException&) { }
+			} catch (const ShareException&) { }
 		}
 	}
 
@@ -787,7 +814,7 @@ void UploadManager::deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept 
 void UploadManager::checkExpiredDelayUploads() {
 	RLock l(cs);
 	for (const auto& u : delayUploads) {
-		if (u->delayTime != -1 && ++u->delayTime > 10) {
+		if (u->checkDelaySecond()) {
 			dcdebug("UploadManager::checkExpiredDelayUploads: adding delay upload %s for removal (conn %s)\n", u->getPath().c_str(), u->getConnectionToken().c_str());
 
 			// Delete uploads in their own thread
@@ -801,7 +828,7 @@ void UploadManager::checkExpiredDelayUploads() {
 				deleteDelayUpload(aUpload, false);
 			}));
 
-			u->delayTime = -1;
+			u->disableDelayCheck();
 		}
 	}
 }

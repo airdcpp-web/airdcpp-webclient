@@ -33,8 +33,7 @@ void ErrorCollector::add(const string& aError, const string& aFile, bool aIsMino
 }
 
 void ErrorCollector::clearMinor() noexcept {
-	auto [first, last] = ranges::remove_if(errors | views::values, [](const Error& e) { return e.isMinor; });
-	errors.erase(first.base(), last.base());
+	std::erase_if(errors, [](const auto& errorPair) { return errorPair.second.isMinor; });
 }
 
 string ErrorCollector::getMessage() const noexcept {
@@ -50,21 +49,21 @@ string ErrorCollector::getMessage() const noexcept {
 		errorNames.insert(p);
 	}
 
-	for (const auto& e : errorNames) {
-		auto errorCount = errors.count(e);
+	for (const auto& errorName: errorNames) {
+		auto errorCount = errors.count(errorName);
 		if (errorCount <= 3) {
 			// Report each file
 			StringList paths;
-			auto k = errors.equal_range(e);
-			for (auto i = k.first; i != k.second; ++i) {
-				paths.push_back(i->second.file);
+			auto k = errors.equal_range(errorName);
+			for (const auto& errorDetails: k | pair_to_range | views::values) {
+				paths.push_back(errorDetails.file);
 			}
 
 			auto pathStr = Util::toString(", ", paths);
-			msg.push_back(STRING_F(X_FILE_NAMES, e % pathStr));
+			msg.push_back(STRING_F(X_FILE_NAMES, errorName % pathStr));
 		} else {
 			// Too many errors, report the total failed count
-			msg.push_back(STRING_F(X_FILE_COUNT, e % errorCount % totalFileCount));
+			msg.push_back(STRING_F(X_FILE_COUNT, errorName % errorCount % totalFileCount));
 		}
 	}
 

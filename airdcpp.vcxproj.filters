@@ -303,6 +303,12 @@
     <Filter Include="Header Files\core\header">
       <UniqueIdentifier>{a8cec994-514e-45f4-a45d-7bc5054d234f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\core\update\updater">
+      <UniqueIdentifier>{3f6a0a1d-cf77-45d9-a5f5-f13fee83eb83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core\update\updater">
+      <UniqueIdentifier>{f9b8e40b-c17c-4590-a1ea-54d0f2c71611}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="airdcpp\DCPlusPlus.cpp">
@@ -614,9 +620,6 @@
     <ClCompile Include="airdcpp\Localization.cpp">
       <Filter>Source Files\core\localization</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Updater.cpp">
-      <Filter>Source Files\core\update</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\UpdateManager.cpp">
       <Filter>Source Files\core\update</Filter>
     </ClCompile>
@@ -724,6 +727,18 @@
     </ClCompile>
     <ClCompile Include="airdcpp\version.cpp">
       <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\HBRIValidation.cpp">
+      <Filter>Source Files\hub</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\updater\Updater.cpp">
+      <Filter>Source Files\core\update\updater</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\updater\UpdaterCreator.cpp">
+      <Filter>Source Files\core\update\updater</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\UpdateDownloader.cpp">
+      <Filter>Source Files\core\update</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1204,9 +1219,6 @@
     <ClInclude Include="airdcpp\ResourceManager.h">
       <Filter>Header Files\core\localization</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Updater.h">
-      <Filter>Header Files\core\update</Filter>
-    </ClInclude>
     <ClInclude Include="airdcpp\UpdateManagerListener.h">
       <Filter>Header Files\core\update</Filter>
     </ClInclude>
@@ -1470,6 +1482,24 @@
     </ClInclude>
     <ClInclude Include="airdcpp\StartupParams.h">
       <Filter>Header Files\core\classes</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\HBRIValidation.h">
+      <Filter>Header Files\hub</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\updater\UpdateVersion.h">
+      <Filter>Header Files\core\update</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\updater\Updater.h">
+      <Filter>Header Files\core\update\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\updater\UpdaterCreator.h">
+      <Filter>Header Files\core\update\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\UpdateDownloader.h">
+      <Filter>Header Files\core\update</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\UpdateConstants.h">
+      <Filter>Header Files\core\update</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

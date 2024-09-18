@@ -33,7 +33,7 @@ struct AdapterInfo {
 	uint8_t prefix;
 };
 
-typedef vector<AdapterInfo> AdapterInfoList;
+using AdapterInfoList = vector<AdapterInfo>;
 
 
 class NetworkUtil  

@@ -81,13 +81,10 @@ ShareProfile::~ShareProfile() {
 }
 
 bool ShareProfile::hasCommonProfiles(const ProfileTokenSet& a, const ProfileTokenSet& b) noexcept {
-	for (auto profileToken : a) {
-		if (b.find(profileToken) != b.end()) {
-			return true;
-		}
-	}
-
-	return false;
+	auto found = ranges::any_of(a, [&b](auto profileToken) {
+		return b.contains(profileToken);
+	});
+	return found;
 }
 
 StringList ShareProfile::getProfileNames(const ProfileTokenSet& aTokens, const ShareProfileList& aProfiles) noexcept {

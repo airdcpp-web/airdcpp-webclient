@@ -57,8 +57,8 @@ MappingManager::MappingManager(bool v6) : renewal(0), v6(v6) {
 
 StringList MappingManager::getMappers() const {
 	StringList ret;
-	for(auto& i: mappers)
-		ret.push_back(i.first);
+	for(auto& [name, _] : mappers)
+		ret.push_back(name);
 	return ret;
 }
 
@@ -155,10 +155,10 @@ int MappingManager::run() {
 		}
 	}
 
-	for(auto& i: mappers) {
+	for(auto const& [_, initF] : mappers) {
 		auto setting = v6 ? SettingsManager::BIND_ADDRESS6 : SettingsManager::BIND_ADDRESS;
 		auto bindAddress = SettingsManager::getInstance()->isDefault(setting) ? Util::emptyString : SettingsManager::getInstance()->get(setting);
-		unique_ptr<Mapper> pMapper(i.second(bindAddress, v6));
+		unique_ptr<Mapper> pMapper(initF(bindAddress, v6));
 		Mapper& mapper = *pMapper;
 
 		ScopedFunctor([&mapper] { mapper.uninit(); });
@@ -167,7 +167,7 @@ int MappingManager::run() {
 			continue;
 		}
 
-		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) -> bool {
+		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) {
 			if (!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
 				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogMessage::SEV_WARNING);
 				mapper.close();

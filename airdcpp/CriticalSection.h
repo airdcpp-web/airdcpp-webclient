@@ -76,12 +76,12 @@ typedef LockBase<CriticalSection> Lock;
 
 #else
 
-typedef std::recursive_mutex	CriticalSection;
-typedef std::lock_guard<std::recursive_mutex> Lock;
+using CriticalSection = std::recursive_mutex;
+using Lock = std::lock_guard<std::recursive_mutex>;
 
-typedef std::shared_mutex	SharedMutex;
-typedef std::shared_lock<std::shared_mutex> RLock;
-typedef std::unique_lock<std::shared_mutex> WLock;
+using SharedMutex = std::shared_mutex;
+using RLock = std::shared_lock<std::shared_mutex>;
+using WLock = std::unique_lock<std::shared_mutex>;
 
 #endif
 

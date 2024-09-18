@@ -33,14 +33,24 @@
 
 namespace dcpp {
 
+
+ProfileTokenSet UploadParser::getShareProfiles(const HintedUser& aUser) const noexcept {
+	ProfileTokenSet profiles;
+
+	const auto ouList = ClientManager::getInstance()->getOnlineUsers(aUser);
+	for (const auto& ou : ouList) {
+		profiles.insert(ou->getClient()->get(HubSettings::ShareProfile));
+	}
+
+	return profiles;
+}
+
 void UploadParser::toRealWithSize(const UploadRequest& aRequest, ProfileToken aProfile, const HintedUser& aUser) {
 	// Get all hubs with file transfers
-	ProfileTokenSet profiles;
-	ClientManager::getInstance()->listProfiles(aUser, profiles);
-	if (profiles.empty()) {
-		//the user managed to go offline already?
-		profiles.insert(aProfile);
-	}
+	auto profiles = getShareProfiles(aUser);
+
+	// Ensure that the request profile exists
+	profiles.insert(aProfile);
 
 	auto result = ShareManager::getInstance()->toRealWithSize(aRequest.file, profiles, aUser, aRequest.segment);
 	if (!result.found) {
@@ -61,9 +71,7 @@ void UploadParser::parseFileInfo(const UploadRequest& aRequest, ProfileToken aPr
 
 		//check that we have a file
 		if (fullFilelist) {
-			auto info = std::move(ShareManager::getInstance()->getFileListInfo(aRequest.file, aProfile));
-			sourceFile = std::move(info.second);
-			fileSize = info.first;
+			tie(fileSize, sourceFile) = std::move(ShareManager::getInstance()->getFileListInfo(aRequest.file, aProfile));
 			miniSlot = true;
 		} else {
 			toRealWithSize(aRequest, aProfile, aUser);

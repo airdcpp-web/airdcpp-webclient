@@ -20,7 +20,7 @@
 #include "MessageCache.h"
 
 namespace dcpp {
-	MessageCache::MessageCache(const MessageCache& aCache) noexcept : messages(aCache.getMessages()), setting(aCache.setting) {
+	MessageCache::MessageCache(const MessageCache& aCache) noexcept : setting(aCache.setting), messages(aCache.getMessages()) {
 
 	}
 
@@ -94,7 +94,7 @@ namespace dcpp {
 		return ret;
 	}
 
-	int MessageCache::countUnreadChatMessages(ChatMessageFilterF filterF) const noexcept {
+	int MessageCache::countUnreadChatMessages(const ChatMessageFilterF& filterF) const noexcept {
 		RLock l(cs);
 		return std::accumulate(messages.begin(), messages.end(), 0, [&](int aOld, const Message& aMessage) {
 			if (aMessage.type != Message::TYPE_CHAT || (filterF && !filterF(aMessage.chatMessage))) {
@@ -136,7 +136,7 @@ namespace dcpp {
 		WLock l(cs);
 		messages.push_back(std::move(aMessage));
 		for (const auto& hl : aMessage.getHighlights()) {
-			highlights.emplace(hl->getToken(), hl);
+			highlights.try_emplace(hl->getToken(), hl);
 		}
 
 		if (static_cast<int>(messages.size()) > SettingsManager::getInstance()->get(setting)) {

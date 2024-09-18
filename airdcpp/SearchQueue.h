@@ -39,7 +39,7 @@ public:
 	SearchPtr maybePop() noexcept;
 	
 	void clear() noexcept;
-	bool cancelSearch(const void* aOwner) noexcept;
+	bool cancelSearch(CallerPtr aOwner) noexcept;
 
 	// Interval defined by the client (settings or fav hub interval)
 	IGETSET(int, minInterval, MinInterval, 5000);

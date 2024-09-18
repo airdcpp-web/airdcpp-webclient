@@ -29,7 +29,7 @@ namespace dcpp {
 
 using ranges::find_if;
 
-UploadQueueManager::UploadQueueManager(FreeSlotF aFreeSlotF) noexcept : freeSlotF(aFreeSlotF) {
+UploadQueueManager::UploadQueueManager(FreeSlotF&& aFreeSlotF) noexcept : freeSlotF(std::move(aFreeSlotF)) {
 	ClientManager::getInstance()->addListener(this);
 	TimerManager::getInstance()->addListener(this);
 }
@@ -39,7 +39,7 @@ UploadQueueManager::~UploadQueueManager() {
 	ClientManager::getInstance()->removeListener(this);
 	{
 		WLock l(cs);
-		for (const auto ii: uploadQueue) {
+		for (const auto& ii: uploadQueue) {
 			for (const auto& f: ii.files) {
 				f->dec();
 			}
@@ -50,7 +50,7 @@ UploadQueueManager::~UploadQueueManager() {
 }
 
 UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
-	user(_user), file(_file), pos(_pos), size(_size), time(GET_TIME()) {
+	pos(_pos), user(_user), file(_file), size(_size), time(GET_TIME()) {
 
 	inc();
 }
@@ -64,10 +64,10 @@ void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
 	bool connect = false;
 	string token;
 
-	// find user in uploadqueue to connect with correct token
+	// find user in upload queue to connect with correct token
 	{
 		RLock l(cs);
-		auto it = find_if(uploadQueue.cbegin(), uploadQueue.cend(), [&](const UserPtr& u) { return u == aUser.user; });
+		auto it = ranges::find_if(uploadQueue, [&](const UserPtr& u) { return u == aUser.user; });
 		if (it != uploadQueue.cend()) {
 			token = it->token;
 			connect = true;
@@ -82,7 +82,7 @@ void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
 size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const string& aFile, int64_t aPos, int64_t aSize) noexcept {
 	size_t queue_position = 0;
 	WLock l(cs);
-	auto it = find_if(uploadQueue.begin(), uploadQueue.end(), [&](const UserPtr& u) -> bool { ++queue_position; return u == aSource.getUser(); });
+	auto it = ranges::find_if(uploadQueue, [&](const UserPtr& u) { ++queue_position; return u == aSource.getUser(); });
 	if (it != uploadQueue.end()) {
 		it->token = aSource.getToken();
 		for (const auto f: it->files) {
@@ -176,7 +176,7 @@ void UploadQueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexce
 }
 
 bool UploadQueueManager::isNotifiedUserUnsafe(const UserPtr& aUser) const noexcept {
-	return notifiedUsers.find(aUser) != notifiedUsers.end(); 
+	return notifiedUsers.contains(aUser); 
 }
 
 UploadQueueManager::SlotQueue UploadQueueManager::getUploadQueue() const noexcept {

@@ -28,10 +28,10 @@
 namespace dcpp {
 	class ViewFile : public TrackableDownloadItem {
 
-	typedef std::function<void(const TTHValue&)> UpdateF;
+	using UpdateF = std::function<void (const TTHValue &)>;
 	public:
 		ViewFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept;
-		~ViewFile() noexcept;
+		~ViewFile() noexcept final;
 
 		const string& getPath() const noexcept {
 			return path;
@@ -59,7 +59,7 @@ namespace dcpp {
 
 		IGETSET(bool, read, Read, false);
 	protected:
-		void onStateChanged() noexcept;
+		void onStateChanged() noexcept override;
 	private:
 		const string fileName;
 		const string path;

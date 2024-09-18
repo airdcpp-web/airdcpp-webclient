@@ -28,7 +28,7 @@ namespace dcpp {
 
 struct SharedFileHandle : File {
 	SharedFileHandle(const string& aPath, int access, int mode);
-	~SharedFileHandle() noexcept { }
+	~SharedFileHandle() noexcept = default;
 
 	CriticalSection cs;
 	int	ref_cnt;
@@ -40,10 +40,10 @@ class SharedFileStream : public IOStream
 {
 
 public:
-	typedef unordered_map<string, unique_ptr<SharedFileHandle>, noCaseStringHash, noCaseStringEq> SharedFileHandleMap;
+	using SharedFileHandleMap = unordered_map<string, unique_ptr<SharedFileHandle>, noCaseStringHash, noCaseStringEq>;
 
     SharedFileStream(const string& aFileName, int access, int mode);
-    ~SharedFileStream();
+    ~SharedFileStream() final;
 
 	size_t write(const void* buf, size_t len) override;
 	size_t read(void* buf, size_t& len) override;

@@ -36,7 +36,7 @@ namespace dcpp {
 	public:
 
 		DirectSearch(const HintedUser& aUser, const SearchPtr& aSearch, uint64_t aNoResultTimeout = 5000);
-		~DirectSearch();
+		~DirectSearch() final;
 
 		size_t getResultCount() const noexcept { return results.size(); }
 

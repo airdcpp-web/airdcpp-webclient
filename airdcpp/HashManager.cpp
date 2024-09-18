@@ -76,7 +76,7 @@ void HashManager::onHasherFinished(int aDirectoriesHashed, const HasherStats& aS
 
 void HashManager::removeHasher(int aHasherId) noexcept {
 	dcdebug("Hash: removing hasher #%d\n", aHasherId);
-	hashers.erase(remove_if(hashers.begin(), hashers.end(), [aHasherId](const Hasher* aHasher) { return aHasher->hasherID == aHasherId; }), hashers.end());
+	std::erase_if(hashers, [aHasherId](const Hasher* aHasher) { return aHasher->hasherID == aHasherId; });
 }
 
 void HashManager::logHasher(const string& aMessage, int aHasherID, LogMessage::Severity aSeverity, bool aLock) const noexcept {
@@ -151,73 +151,90 @@ int64_t HashManager::getMinBlockSize() noexcept {
 	return Hasher::MIN_BLOCK_SIZE;
 }
 
+bool HashManager::isPathQueued(const string& aPathLower) const noexcept {
+	auto p = find_if(hashers, [&aPathLower](const Hasher* aHasher) { return aHasher->hasFile(aPathLower); });
+	if (p != hashers.end()) {
+		dcdebug("Hash: ignoring file %s (queued already for hasher %d)\n", aPathLower.c_str(), (*p)->hasherID);
+		return true;
+	}
+
+	return false;
+}
+
+Hasher* HashManager::createHasher() noexcept {
+	int id = 0;
+	for (auto i : hashers) {
+		if (i->hasherID != id)
+			break;
+		id++;
+	}
+
+	log(STRING_F(HASHER_X_CREATED, id), LogMessage::SEV_INFO);
+	auto h = new Hasher(pausers > 0, id, this);
+	hashers.push_back(h);
+
+	dcdebug("Hash: creating hasher #%d\n", id);
+	return h;
+}
+
+Hasher* HashManager::getFileHasher(int64_t aDeviceId, int64_t aSize) const noexcept {
+	Hasher* h = nullptr;
+	auto getLeastLoaded = [](const HasherList& hl) {
+		return ranges::min_element(hl, [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
+	};
+
+	auto totalHashersExceeded = static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS);
+
+	// Get the hashers with this volume
+	HasherList volHashers;
+	ranges::copy_if(hashers, back_inserter(volHashers), [aDeviceId](const Hasher* aHasher) { return aHasher->hasDevice(aDeviceId); });
+
+	if (volHashers.empty() && totalHashersExceeded) {
+		// We just need choose from all hashers
+		h = *getLeastLoaded(hashers);
+		// dcdebug("Hash: using least loaded hasher #%d for file %s (total hashers exceeded)\n", h->hasherID, aPath.c_str());
+	} else if (!volHashers.empty()) {
+		auto minLoaded = getLeastLoaded(volHashers);
+
+		auto volumeHashersExceeded = static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && SETTING(HASHERS_PER_VOLUME) > 0;
+		auto reuseExisting = aSize <= Util::convertSize(10, Util::MB) && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= Util::convertSize(200, Util::MB);
+		if (totalHashersExceeded || volumeHashersExceeded || reuseExisting) {
+
+			// Use the least loaded hasher that already has this volume
+			h = *minLoaded;
+			// dcdebug("Hash: using volume hasher #%d for file %s\n", h->hasherID, aPath.c_str());
+		}
+	}
+
+	return h;
+}
+
 bool HashManager::hashFile(const string& aPath, const string& aPathLower, int64_t aSize) {
 	if (isShutdown) { //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
 		return false;
 	}
 
-	Hasher* h = nullptr;
-
 	WLock l(Hasher::hcs);
+	if (isPathQueued(aPathLower)) {
+		return false;
+	}
 
 	auto deviceId = File::getDeviceId(aPath);
+
+	Hasher* h = nullptr;
 	if (hashers.size() == 1 && !hashers.front()->hasDevices()) {
 		// Always use the main hasher if it's idle
 		h = hashers.front();
-		dcdebug("Using empty main hasher for file %s\n", aPath.c_str());
+		// dcdebug("Using empty main hasher for file %s\n", aPath.c_str());
 	} else {
-		auto getLeastLoaded = [](const HasherList& hl) {
-			return min_element(hl.begin(), hl.end(), [](const Hasher* h1, const Hasher* h2) { return h1->getBytesLeft() < h2->getBytesLeft(); });
-		};
-
-		auto totalHashersExceeded = static_cast<int>(hashers.size()) >= SETTING(MAX_HASHING_THREADS);
-
-		// Get the hashers with this volume
-		HasherList volHashers;
-		copy_if(hashers.begin(), hashers.end(), back_inserter(volHashers), [deviceId](const Hasher* aHasher) { return aHasher->hasDevice(deviceId); });
-
-		if (volHashers.empty() && totalHashersExceeded) {
-			// We just need choose from all hashers
-			h = *getLeastLoaded(hashers);
-			// dcdebug("Hash: using least loaded hasher #%d for file %s (total hashers exceeded)\n", h->hasherID, aPath.c_str());
-		} else if (!volHashers.empty()) {
-			// Check that the file isn't queued already
-			auto p = find_if(volHashers, [&aPathLower](const Hasher* aHasher) { return aHasher->hasFile(aPathLower); });
-			if (p != volHashers.end()) {
-				// dcdebug("Hash: ignoring file %s (queued already)\n", h->hasherID, aPath.c_str());
-				return false;
-			}
-
-			auto minLoaded = getLeastLoaded(volHashers);
-
-			auto volumeHashersExceeded = static_cast<int>(volHashers.size()) >= SETTING(HASHERS_PER_VOLUME) && SETTING(HASHERS_PER_VOLUME) > 0;
-			auto reuseExisting = aSize <= Util::convertSize(10, Util::MB) && !volHashers.empty() && (*minLoaded)->getBytesLeft() <= Util::convertSize(200, Util::MB);
-			if (totalHashersExceeded || volumeHashersExceeded || reuseExisting) {
-
-				// Use the least loaded hasher that already has this volume
-				h = *minLoaded;
-				// dcdebug("Hash: using volume hasher #%d for file %s\n", h->hasherID, aPath.c_str());
-			}
-		}
-
+		h = getFileHasher(deviceId, aSize);
 		if (!h) {
 			// Create new one
-			int id = 0;
-			for (auto i: hashers) {
-				if (i->hasherID != id)
-					break;
-				id++;
-			}
-
-			log(STRING_F(HASHER_X_CREATED, id), LogMessage::SEV_INFO);
-			h = new Hasher(pausers > 0, id, this);
-			hashers.push_back(h);
-
-			dcdebug("Hash: creating hasher #%d\n", id);
+			h = createHasher();
 		}
 	}
 
-	//queue the file for hashing
+	// Queue the file for hashing
 	dcdebug("Hash: choosing hasher #%d for file %s\n", h->hasherID, aPath.c_str());
 	return h->hashFile(aPath, aPathLower, aSize, deviceId);
 }

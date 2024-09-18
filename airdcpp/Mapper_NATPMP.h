@@ -31,19 +31,19 @@ public:
 	static const string name;
 
 private:
-	bool init();
-	void uninit();
+	bool init() override;
+	void uninit() override;
 
-	bool add(const string& port, const Protocol protocol, const string& description);
-	bool remove(const string& port, const Protocol protocol);
-	bool supportsProtocol(bool aV6) const;
+	bool add(const string& port, const Protocol protocol, const string& description) override;
+	bool remove(const string& port, const Protocol protocol) override;
+	bool supportsProtocol(bool aV6) const override;
 
-	uint32_t renewal() const { return lifetime / 2; }
+	uint32_t renewal() const override { return lifetime / 2; }
 
-	string getDeviceName();
-	string getExternalIP();
+	string getDeviceName() override;
+	string getExternalIP() override;
 
-	const string& getName() const { return name; }
+	const string& getName() const override { return name; }
 
 	string gateway;
 	uint32_t lifetime; // in minutes

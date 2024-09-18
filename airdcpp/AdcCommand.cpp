@@ -25,7 +25,7 @@
 namespace dcpp {
 
 AdcCommand::AdcCommand(uint32_t aCmd, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(aCmd), type(aType) { }
-AdcCommand::AdcCommand(uint32_t aCmd, const uint32_t aTarget, char aType) noexcept : cmdInt(aCmd), to(aTarget), type(aType) { }
+AdcCommand::AdcCommand(uint32_t aCmd, dcpp::SID aTarget, char aType) noexcept : cmdInt(aCmd), to(aTarget), type(aType) { }
 AdcCommand::AdcCommand(Severity sev, Error err, const string& desc, char aType /* = TYPE_CLIENT */) noexcept : cmdInt(CMD_STA), type(aType) {
 	addParam((sev == SEV_SUCCESS && err == SUCCESS) ? "000" : Util::toString(sev * 100 + err));
 	addParam(desc);
@@ -182,7 +182,7 @@ string AdcCommand::toString() const noexcept {
 	return getHeaderString() + getParamString(false);
 }
 
-string AdcCommand::toString(uint32_t sid /* = 0 */, bool nmdc /* = false */) const noexcept {
+string AdcCommand::toString(dcpp::SID sid /* = 0 */, bool nmdc /* = false */) const noexcept {
 	return getHeaderString(sid, nmdc) + getParamString(nmdc);
 }
 
@@ -204,7 +204,7 @@ string AdcCommand::escape(const string& str, bool old) noexcept {
 	return tmp;
 }
 
-string AdcCommand::getHeaderString(uint32_t sid, bool nmdc) const noexcept {
+string AdcCommand::getHeaderString(dcpp::SID sid, bool nmdc) const noexcept {
 	string tmp;
 	if(nmdc) {
 		tmp += "$ADC";
@@ -252,8 +252,8 @@ string AdcCommand::getHeaderString() const noexcept {
 }
 
 AdcCommand& AdcCommand::addParams(const ParamMap& aParams) noexcept {
-	for (const auto& param : aParams) {
-		addParam(param.first, param.second);
+	for (const auto& [name, value] : aParams) {
+		addParam(name, value);
 	}
 	return *this;
 }

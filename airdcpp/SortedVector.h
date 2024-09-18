@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_SORTEDVECTOR
-#define DCPLUSPLUS_SORTEDVECTOR
+#ifndef DCPLUSPLUS_DCPP_SORTEDVECTOR
+#define DCPLUSPLUS_DCPP_SORTEDVECTOR
 
 #include "typedefs.h"
 

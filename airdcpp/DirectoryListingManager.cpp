@@ -35,7 +35,7 @@ using ranges::find_if;
 atomic<DirectoryDownloadId> directoryDownloadIdCounter { 0 };
 
 DirectoryDownload::DirectoryDownload(const FilelistAddData& aListData, const string& aBundleName, const string& aTarget, Priority p, ErrorMethod aErrorMethod) :
-	id(directoryDownloadIdCounter++), listData(aListData), target(aTarget), priority(p), bundleName(aBundleName), created(GET_TIME()), errorMethod(aErrorMethod) { }
+	id(directoryDownloadIdCounter++), priority(p), target(aTarget), bundleName(aBundleName), created(GET_TIME()), listData(aListData), errorMethod(aErrorMethod) { }
 
 bool DirectoryDownload::HasOwner::operator()(const DirectoryDownloadPtr& ddi) const noexcept {
 	return owner == ddi->getOwner() && Util::stricmp(a, ddi->getBundleName()) != 0;
@@ -249,7 +249,7 @@ void DirectoryListingManager::log(const string& aMsg, LogMessage::Severity aSeve
 
 void DirectoryListingManager::maybeReportDownloadError(const DirectoryDownloadPtr& aDownloadInfo, const string& aError, LogMessage::Severity aSeverity) noexcept {
 	if (aDownloadInfo->getErrorMethod() == DirectoryDownload::ErrorMethod::LOG && !aError.empty()) {
-		auto nick = ClientManager::getInstance()->getFormatedNicks(aDownloadInfo->getUser());
+		auto nick = ClientManager::getInstance()->getFormattedNicks(aDownloadInfo->getUser());
 		auto fullTarget = PathUtil::joinDirectory(aDownloadInfo->getTarget(), aDownloadInfo->getBundleName());
 		log(STRING_F(ADD_BUNDLE_ERRORS_OCC, fullTarget % nick % aError), aSeverity);
 	}
@@ -499,12 +499,22 @@ void DirectoryListingManager::on(QueueManagerListener::ItemAdded, const QueueIte
 
 DirectoryListingPtr DirectoryListingManager::findList(const UserPtr& aUser) noexcept {
 	RLock l (cs);
-	auto p = viewedLists.find(aUser);
-	if (p != viewedLists.end()) {
+	if (auto p = viewedLists.find(aUser); p != viewedLists.end()) {
 		return p->second;
 	}
 
 	return nullptr;
+}
+
+HintedUser DirectoryListingManager::checkDownloadUrl(const HintedUser& aUser) const noexcept {
+	auto userInfoList = ClientManager::getInstance()->getUserInfoList(aUser);
+	if (!userInfoList.empty() && ranges::find(userInfoList, aUser.hint, &User::UserHubInfo::hubUrl) == userInfoList.end()) {
+		sort(userInfoList.begin(), userInfoList.end(), User::UserHubInfo::ShareSort());
+
+		return { aUser.user, userInfoList.back().hubUrl };
+	}
+
+	return aUser;
 }
 
 DirectoryListingPtr DirectoryListingManager::openRemoteFileListHookedThrow(const FilelistAddData& aListData, Flags::MaskType aFlags) {
@@ -515,7 +525,7 @@ DirectoryListingPtr DirectoryListingManager::openRemoteFileListHookedThrow(const
 		}
 	}
 
-	auto user = ClientManager::getInstance()->checkDownloadUrl(aListData.user);
+	auto user = checkDownloadUrl(aListData.user);
 	auto qi = QueueManager::getInstance()->addListHooked(aListData, aFlags);
 	if (!qi) {
 		return nullptr;

@@ -45,7 +45,7 @@ public:
 	static const string USER_LIST_NAME_BZ;
 
 	Transfer(UserConnection& conn, const string& path, const TTHValue& tth);
-	virtual ~Transfer() { };
+	virtual ~Transfer() = default;;
 
 	int64_t getPos() const noexcept { return pos; }
 
@@ -71,13 +71,11 @@ public:
 
 	int64_t getSecondsLeft(bool wholeFile = false) const noexcept;
 
-	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept;
+	virtual void getParams(const UserConnection& aSource, ParamMap& params) const noexcept;
 
-	UserPtr getUser() noexcept;
-	const UserPtr getUser() const noexcept;
+	UserPtr getUser() const noexcept;
 	HintedUser getHintedUser() const noexcept;
-	
-	//const string& getPath() const { return path; }
+
 	const TTHValue& getTTH() const noexcept { return tth; }
 
 	UserConnection& getUserConnection() noexcept { return userConnection; }
@@ -94,14 +92,12 @@ public:
 
 	bool isFilelist() const noexcept;
 private:
-	typedef std::pair<uint64_t, int64_t> Sample;
-	typedef deque<Sample> SampleList;
+	using Sample = std::pair<uint64_t, int64_t>;
+	using SampleList = deque<Sample>;
 	
 	SampleList samples;
 	mutable SharedMutex cs;
-	
-	/** The file being transferred */
-	//string path;
+
 	/** TTH of the file being transferred */
 	TTHValue tth;
 	/** Bytes transferred over socket */

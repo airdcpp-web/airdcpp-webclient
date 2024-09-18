@@ -133,11 +133,11 @@ bool SSLSocket::waitWant(int ret, uint64_t millis) {
 	return true;
 }
 
-int SSLSocket::read(void* aBuffer, int aBufLen) {
+int SSLSocket::read(void* aBuffer, size_t aBufLen) {
 	if(!ssl) {
 		return -1;
 	}
-	int len = checkSSL(SSL_read(ssl, aBuffer, aBufLen));
+	int len = checkSSL(SSL_read(ssl, aBuffer, static_cast<int>(aBufLen)));
 
 	if(len > 0) {
 		stats.totalDown += len;
@@ -146,11 +146,11 @@ int SSLSocket::read(void* aBuffer, int aBufLen) {
 	return len;
 }
 
-int SSLSocket::write(const void* aBuffer, int aLen) {
+int SSLSocket::write(const void* aBuffer, size_t aLen) {
 	if(!ssl) {
 		return -1;
 	}
-	int ret = checkSSL(SSL_write(ssl, aBuffer, aLen));
+	int ret = checkSSL(SSL_write(ssl, aBuffer, static_cast<int>(aLen)));
 	if(ret > 0) {
 		stats.totalUp += ret;
 		//dcdebug("Out(s): %.*s\n", ret, (char*)aBuffer);

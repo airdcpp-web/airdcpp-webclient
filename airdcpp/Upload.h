@@ -36,22 +36,22 @@ public:
 		FLAG_PARTIAL = 0x10
 	};
 
-	// bool operator==(const Upload* u) const noexcept;
-
 	Upload(UserConnection& aSource, const string& aPath, const TTHValue& aTTH, unique_ptr<InputStream> aIS);
-	~Upload();
+	~Upload() final;
 
-	void getParams(const UserConnection& aSource, ParamMap& params) const;
+	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept override;
 
 	IGETSET(int64_t, fileSize, FileSize, -1);
 
-	int8_t delayTime = 0;
 	InputStream* getStream();
 	void setFiltered();
 
-	void appendFlags(OrderedStringSet& flags_) const noexcept;
+	void appendFlags(OrderedStringSet& flags_) const noexcept override;
+	bool checkDelaySecond() noexcept;
+	void disableDelayCheck() noexcept;
 private:
 	unique_ptr<InputStream> stream;
+	int8_t delayTime = 0;
 };
 
 } // namespace dcpp

@@ -49,11 +49,10 @@ private:
 	static FastCriticalSection cs;
 };
 
-class ConnectionQueueItem : boost::noncopyable, public Flags {
+class ConnectionQueueItem : public boost::noncopyable, public Flags {
 public:
-	typedef ConnectionQueueItem* Ptr;
-	typedef vector<Ptr> List;
-	typedef List::const_iterator Iter;
+	using Ptr = ConnectionQueueItem *;
+	using List = vector<Ptr>;
 	
 	enum class State {
 		CONNECTING,					// Recently sent request to connect
@@ -98,7 +97,7 @@ class ExpectedMap {
 public:
 	void add(const string& aKey, const string& aMyNick, const string& aHubUrl) noexcept {
 		Lock l(cs);
-		expectedConnections.emplace(aKey, make_pair(aMyNick, aHubUrl));
+		expectedConnections.try_emplace(aKey, aMyNick, aHubUrl);
 	}
 
 	StringPair remove(const string& aKey) {
@@ -116,7 +115,7 @@ public:
 private:
 	/** Nick -> myNick, hubUrl for expected NMDC incoming connections */
 	/** Token, hubUrl for expected ADC incoming connections */
-	typedef unordered_map<string, StringPair> ExpectMap;
+	using ExpectMap = unordered_map<string, StringPair>;
 	ExpectMap expectedConnections;
 
 	CriticalSection cs;
@@ -128,7 +127,7 @@ inline bool operator==(ConnectionQueueItem::Ptr ptr, const UserPtr& aUser) noexc
 inline bool operator==(ConnectionQueueItem::Ptr ptr, const string& aToken) noexcept { return compare(ptr->getToken(), aToken) == 0; }
 
 class ConnectionManager : public Speaker<ConnectionManagerListener>, public ClientManagerListener,
-	public UserConnectionListener, TimerManagerListener, 
+	public UserConnectionListener, public TimerManagerListener, 
 	public Singleton<ConnectionManager>
 {
 public:
@@ -143,10 +142,10 @@ public:
 		expectedConnections.add(aToken, aCID.toBase32(), aHubUrl);
 	}
 
-	void nmdcConnect(const string& aServer, const string& aPort, const string& aMyNick, const string& aHubUrl, const string& aEncoding, bool aSecure) noexcept;
-	void nmdcConnect(const string& aServer, const string& aPort, const string& aLocalPort, BufferedSocket::NatRoles aNatRole, const string& aNick, const string& aHubUrl, const string& aEncoding, bool aSecure) noexcept;
-	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aToken, bool aSecure) noexcept;
-	void adcConnect(const OnlineUser& aUser, const string& aPort, const string& aLocalPort, BufferedSocket::NatRoles aNatRole, const string& aToken, bool aSecure) noexcept;
+	void nmdcConnect(const string& aServer, const SocketConnectOptions& aOptions, const string& aMyNick, const string& aHubUrl, const string& aEncoding) noexcept;
+	void nmdcConnect(const string& aServer, const SocketConnectOptions& aOptions, const string& aLocalPort, const string& aNick, const string& aHubUrl, const string& aEncoding) noexcept;
+	void adcConnect(const OnlineUser& aUser, const SocketConnectOptions& aOptions, const string& aToken) noexcept;
+	void adcConnect(const OnlineUser& aUser, const SocketConnectOptions& aOptions, const string& aLocalPort, const string& aToken) noexcept;
 
 	void getDownloadConnection(const HintedUser& aUser, bool aSmallSlot = false) noexcept;
 	void force(const string& aToken) noexcept;
@@ -154,7 +153,7 @@ public:
 	void disconnect(const UserPtr& aUser) noexcept; // disconnect all connections to the user
 	void disconnect(const string& aToken) const noexcept;
 
-	void shutdown(function<void (float)> progressF) noexcept;
+	void shutdown(const ProgressFunction& progressF) noexcept;
 	bool isShuttingDown() const noexcept { return shuttingDown; }
 
 	/** Find a suitable port to listen on, and start doing it, throws in case of errors (e.g. port taken) */
@@ -177,15 +176,15 @@ public:
 	bool isMCNUser(const UserPtr& aUser) const noexcept;
 
 
-	typedef std::function<void(UserConnection*)> UserConnectionCallback;
-	bool findUserConnection(const string& aToken, UserConnectionCallback&& aCallback) const noexcept;
+	using UserConnectionCallback = std::function<void (UserConnection *)>;
+	bool findUserConnection(const string& aToken, const UserConnectionCallback& aCallback) const noexcept;
 private:
 	FloodCounter floodCounter;
 
-	typedef std::function<void(ConnectionQueueItem*)> ConnectionQueueItemCallback;
+	using ConnectionQueueItemCallback = std::function<void (ConnectionQueueItem *)>;
 
 	// Can we create a new regular MCN connection?
-	bool allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot, ConnectionQueueItemCallback&& aWaitingCallback = nullptr) noexcept;
+	bool allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot, const ConnectionQueueItemCallback& aWaitingCallback = nullptr) const noexcept;
 
 	// Create a new regular MCN connection
 	void createNewMCN(const HintedUser& aUser) noexcept;
@@ -198,12 +197,12 @@ private:
 	class Server : public Thread {
 	public:
 		Server(bool secure, const string& port_, const string& ipv4, const string& ipv6);
-		virtual ~Server() { die = true; join(); }
+		~Server() final { die = true; join(); }
 
 		const string& getPort() const { return port; }
 
 	private:
-		virtual int run() noexcept;
+		int run() noexcept override;
 
 		Socket sock;
 		string port;
@@ -226,7 +225,7 @@ private:
 	StringList adcFeatures;
 
 	ExpectedMap expectedConnections;
-	typedef unordered_map<string, uint64_t> DelayMap;
+	using DelayMap = unordered_map<string, uint64_t>;
 
 	// Keep track own our own downloads if they are removed before the handshake is finished
 	// (unknown tokens would be shown as uploads)
@@ -240,9 +239,9 @@ private:
 	friend class Singleton<ConnectionManager>;
 	ConnectionManager();
 
-	~ConnectionManager() { }
+	~ConnectionManager() final = default;
 	
-	UserConnection* getConnection(bool aNmdc, bool aSecure) noexcept;
+	UserConnection* getConnection(bool aNmdc) noexcept;
 	void putConnection(UserConnection* aConn) noexcept;
 
 	void addUploadConnection(UserConnection* uc) noexcept;
@@ -256,7 +255,7 @@ private:
 
 	FloodCounter::FloodLimits getIncomingConnectionLimits(const string& aIP) const noexcept;
 
-	bool checkKeyprint(UserConnection *aSource) noexcept;
+	static bool checkKeyprint(UserConnection *aSource) noexcept;
 
 	void failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept;
 	
@@ -270,7 +269,6 @@ private:
 	void on(UserConnectionListener::MyNick, UserConnection*, const string&) noexcept override;
 	void on(UserConnectionListener::Supports, UserConnection*, const StringList&) noexcept override;
 	void on(UserConnectionListener::UserSet, UserConnection*) noexcept override;
-	// void on(UserConnectionListener::Idle, UserConnection*) noexcept override;
 	void on(UserConnectionListener::State, UserConnection*) noexcept override;
 
 	void on(AdcCommand::SUP, UserConnection*, const AdcCommand&) noexcept override;
@@ -286,7 +284,7 @@ private:
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept override { onUserUpdated(aUser); }
 
 	void onUserUpdated(const UserPtr& aUser) noexcept;
-	void onIdle(UserConnection* aSource) noexcept;
+	void onIdle(const UserConnection* aSource) noexcept;
 	void attemptDownloads(uint64_t aTick, StringList& removedTokens_) noexcept;
 
 	bool attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringList& removedTokens_) noexcept;

@@ -35,7 +35,7 @@ namespace dcpp {
 using ranges::find_if;
 using ranges::for_each;
 
-ShareProfileManager::ShareProfileManager(ProfileCallback&& aOnRemoveProfile) : onRemoveProfile(aOnRemoveProfile) {
+ShareProfileManager::ShareProfileManager(ProfileCallback&& aOnRemoveProfile) : onRemoveProfile(std::move(aOnRemoveProfile)) {
 }
 
 ShareProfileManager::~ShareProfileManager() {
@@ -45,7 +45,7 @@ void ShareProfileManager::log(const string& aMsg, LogMessage::Severity aSeverity
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(SHARE));
 }
 
-void ShareProfileManager::shutdown(function<void(float)> progressF) noexcept {
+void ShareProfileManager::shutdown(const ProgressFunction&) noexcept {
 	removeCachedFilelists();
 }
 
@@ -54,7 +54,7 @@ void ShareProfileManager::removeCachedFilelists() noexcept {
 		RLock l(cs);
 		//clear refs so we can delete filelists.
 		auto lists = File::findFiles(AppUtil::getPath(AppUtil::PATH_USER_CONFIG), "files?*.xml.bz2", File::TYPE_FILE);
-		for (auto& profile: shareProfiles) {
+		for (const auto& profile: shareProfiles) {
 			if (profile->getProfileList() && profile->getProfileList()->bzXmlRef.get()) {
 				profile->getProfileList()->bzXmlRef.reset();
 			}
@@ -122,8 +122,7 @@ void ShareProfileManager::ensureDefaultProfiles() noexcept {
 
 ShareProfilePtr ShareProfileManager::getShareProfile(ProfileToken aProfile, bool aAllowFallback /*false*/) const noexcept {
 	RLock l (cs);
-	const auto p = find(shareProfiles.begin(), shareProfiles.end(), aProfile);
-	if (p != shareProfiles.end()) {
+	if (const auto p = find(shareProfiles.begin(), shareProfiles.end(), aProfile); p != shareProfiles.end()) {
 		return *p;
 	} else if (aAllowFallback) {
 		dcassert(aProfile != SETTING(DEFAULT_SP));
@@ -149,7 +148,7 @@ OptionalProfileToken ShareProfileManager::getProfileByName(const string& aName) 
 	return (*p)->getToken();
 }
 
-void ShareProfileManager::saveProfile(const ShareProfilePtr& aProfile, SimpleXML& aXml) {
+void ShareProfileManager::saveProfile(const ShareProfilePtr& aProfile, SimpleXML& aXml) const {
 	auto isDefault = aProfile->getToken() == SETTING(DEFAULT_SP);
 
 	aXml.addTag(isDefault ? "Share" : "ShareProfile"); // Keep the old Share tag around for compatibility with other clients

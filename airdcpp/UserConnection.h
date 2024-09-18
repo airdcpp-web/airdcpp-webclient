@@ -61,8 +61,7 @@ public:
 
 	enum Flags {
 		FLAG_NMDC					= 0x01,
-		FLAG_OP						= FLAG_NMDC << 1,
-		FLAG_UPLOAD					= FLAG_OP << 1,
+		FLAG_UPLOAD					= FLAG_NMDC << 1,
 		FLAG_DOWNLOAD				= FLAG_UPLOAD << 1,
 		FLAG_PM						= FLAG_DOWNLOAD << 1,
 		FLAG_INCOMING				= FLAG_PM << 1,
@@ -130,8 +129,8 @@ public:
 	void setDataMode(int64_t aBytes = -1) noexcept { dcassert(socket); socket->setDataMode(aBytes); }
 	void setLineMode(size_t rollback) noexcept { dcassert(socket); socket->setLineMode(rollback); }
 
-	void connect(const AddressInfo& aServer, const string& aPort, const string& localPort, BufferedSocket::NatRoles natRole, const UserPtr& aUser = nullptr);
-	void accept(const Socket& aServer, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF);
+	void connect(const AddressInfo& aServer, const SocketConnectOptions& aOptions, const string& localPort, const UserPtr& aUser = nullptr);
+	void accept(const Socket& aServer, bool aSecure, const BufferedSocket::SocketAcceptFloodF& aFloodCheckF);
 
 	void handlePM(const AdcCommand& c, bool echo) noexcept;
 	bool sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_);
@@ -139,7 +138,7 @@ public:
 	template<typename F>
 	void callAsync(F f) { if(socket) socket->callAsync(f); }
 
-	void disconnect(bool graceless = false) { if(socket) socket->disconnect(graceless); }
+	void disconnect(bool graceless = false) noexcept { if(socket) socket->disconnect(graceless); }
 	void transmitFile(InputStream* f) { socket->transmitFile(f); }
 
 	const string& getDirectionString() const noexcept {
@@ -147,9 +146,9 @@ public:
 		return isSet(FLAG_UPLOAD) ? UPLOAD : DOWNLOAD;
 	}
 
-	const UserPtr& getUser() const { return user; }
-	UserPtr& getUser() { return user; }
-	HintedUser getHintedUser() const { return HintedUser(user, hubUrl); }
+	const UserPtr& getUser() const noexcept { return user; }
+	UserPtr& getUser() noexcept { return user; }
+	HintedUser getHintedUser() const noexcept { return HintedUser(user, hubUrl); }
 
 	bool isSecure() const noexcept { return socket && socket->isSecure(); }
 	bool isTrusted() const noexcept { return socket && socket->isTrusted(); }
@@ -158,7 +157,7 @@ public:
 	bool verifyKeyprint(const string& expKeyp, bool allowUntrusted) noexcept { return socket ? socket->verifyKeyprint(expKeyp, allowUntrusted) : true; }
 
 	const string& getRemoteIp() const noexcept { if(socket) return socket->getIp(); else return Util::emptyString; }
-	Download* getDownload() noexcept { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
+	Download* getDownload() const noexcept { dcassert(isSet(FLAG_DOWNLOAD)); return download; }
 	void setDownload(Download* d) noexcept { dcassert(isSet(FLAG_DOWNLOAD)); download = d; }
 	Upload* getUpload() const noexcept { dcassert(isSet(FLAG_UPLOAD)); return upload; }
 	void setUpload(Upload* u) noexcept { dcassert(isSet(FLAG_UPLOAD)); upload = u; }
@@ -193,10 +192,10 @@ public:
 		return UploadSlot::toType(slot);
 	}
 
-	bool hasSlot(UploadSlot::Type aType, const string& aSource) const noexcept {
+	bool hasSlot(UploadSlot::Type aType, const string_view& aSource) const noexcept {
 		return slot && (*slot).type == aType && (*slot).source == aSource;
 	}
-	bool hasSlotSource(const string& aSource) const noexcept {
+	bool hasSlotSource(const string_view& aSource) const noexcept {
 		return slot && (*slot).source == aSource;
 	}
 	
@@ -221,7 +220,6 @@ private:
 
 	int64_t chunkSize = 0;
 	BufferedSocket* socket = nullptr;
-	const bool secure;
 	UserPtr user;
 
 	static const string UPLOAD, DOWNLOAD;
@@ -232,8 +230,8 @@ private:
 	};
 
 	// We only want ConnectionManager to create this...
-	UserConnection(bool secure_) noexcept;
-	virtual ~UserConnection();
+	explicit UserConnection(/*bool secure_*/) noexcept;
+	~UserConnection() final;
 
 	friend struct DeleteFunction;
 
@@ -249,10 +247,12 @@ private:
 	void on(BufferedSocketListener::TransmitDone) noexcept override;
 	void on(BufferedSocketListener::Failed, const string&) noexcept override;
 
+	void onNmdcLine(const string& aLine) noexcept;
+
 	AdcSupports supports;
 };
 
-inline bool operator==(UserConnection* ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
+inline bool operator==(const UserConnection* ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
 
 } // namespace dcpp
 

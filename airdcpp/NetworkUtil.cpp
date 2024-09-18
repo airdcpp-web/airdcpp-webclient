@@ -49,7 +49,7 @@ namespace dcpp {
 
 bool NetworkUtil::isLocalIp(const string& ip, bool v6) noexcept {
 	if (v6) {
-		return (ip.length() > 4 && ip.substr(0, 4) == "fe80") || ip == "::1";
+		return (ip.length() > 4 && ip.starts_with("fe80")) || ip == "::1";
 	}
 
 	return (ip.length() > 3 && strncmp(ip.c_str(), "169", 3) == 0) || ip == "127.0.0.1";
@@ -58,7 +58,7 @@ bool NetworkUtil::isLocalIp(const string& ip, bool v6) noexcept {
 bool NetworkUtil::isPrivateIp(const string& ip, bool v6) noexcept {
 	if (v6) {
 		// https://en.wikipedia.org/wiki/Unique_local_address
-		return ip.length() > 2 && ip.substr(0, 2) == "fd";
+		return ip.length() > 2 && ip.starts_with("fd");
 	} else {
 		dcassert(ip.length() <= INET_ADDRSTRLEN);
 		struct in_addr addr;

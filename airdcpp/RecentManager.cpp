@@ -249,7 +249,7 @@ void RecentManager::loadRecents(SimpleXML& aXml, RecentEntry::Type aType) {
 
 			const string& description = aXml.getChildAttrib("Description");
 			const string& hubUrl = aXml.getChildAttrib("Server");
-			const time_t& lastOpened = aXml.getLongLongChildAttrib("LastOpened");
+			const time_t& lastOpened = aXml.getTimeChildAttrib("LastOpened");
 
 			UserPtr user = nullptr;
 			const string& cid = aXml.getChildAttrib("CID");

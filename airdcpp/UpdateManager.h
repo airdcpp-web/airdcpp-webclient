@@ -30,14 +30,14 @@
 namespace dcpp {
 
 struct HttpDownload;
-class Updater;
+class UpdateDownloader;
 
 class UpdateManager : public Singleton<UpdateManager>, public Speaker<UpdateManagerListener>, private TimerManagerListener
 {
 
 public:
 	UpdateManager();
-	~UpdateManager();
+	~UpdateManager() final;
 
 	struct {
 		string geoip;
@@ -75,11 +75,11 @@ public:
 	void checkAdditionalUpdates(bool aManualCheck);
 	string getVersionUrl() const;
 
-	Updater& getUpdater() const noexcept {
+	UpdateDownloader& getUpdater() const noexcept {
 		return *updater.get();
 	}
 private:
-	unique_ptr<Updater> updater;
+	unique_ptr<UpdateDownloader> updater;
 
 	void failVersionDownload(const string& aError, bool aManualCheck);
 
@@ -99,7 +99,9 @@ private:
 	void completeLanguageDownload();
 	void completeIPCheck(bool aManualCheck, bool v6);
 
-	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept;
+	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
+
+	static string parseIP(const string& aText, bool v6);
 };
 
 } // namespace dcpp

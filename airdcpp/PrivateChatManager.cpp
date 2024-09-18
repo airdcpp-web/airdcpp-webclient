@@ -54,13 +54,18 @@ PrivateChatManager::~PrivateChatManager() noexcept {
 pair<PrivateChatPtr, bool> PrivateChatManager::addChat(const HintedUser& aUser, bool aReceivedMessage) noexcept {
 	PrivateChatPtr chat;
 
-	auto user = ClientManager::getInstance()->checkOnlineUrl(aUser);
+	// In case we need to update the hub address (the user is online in a different hub)
+	auto ou = ClientManager::getInstance()->findOnlineUser(aUser, true);
 
 	{
 		WLock l(cs);
-		auto res = chats.emplace(user.user, std::make_shared<PrivateChat>(user, getPMConn(user.user)));
-		chat = res.first->second;
-		if (!res.second) {
+		auto [chatPair, added] = chats.try_emplace(
+			aUser.user, 
+			std::make_shared<PrivateChat>(ou ? ou->getHintedUser() : aUser, getPMConn(aUser.user))
+		);
+
+		chat = chatPair->second;
+		if (!added) {
 			return { chat, false };
 		}
 	}
@@ -112,11 +117,11 @@ void PrivateChatManager::closeAll(bool aOfflineOnly) {
 
 	{
 		RLock l(cs);
-		for (const auto& i : chats) {
-			if (aOfflineOnly && i.first->isOnline())
+		for (const auto& [user, _] : chats) {
+			if (aOfflineOnly && user->isOnline())
 				continue;
 
-			toRemove.push_back(i.first);
+			toRemove.push_back(user);
 		}
 	}
 

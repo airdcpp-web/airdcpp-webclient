@@ -45,7 +45,6 @@ public:
 	void getBloom(ProfileToken aToken, HashBloom& bloom_) const noexcept override;
 	void getBloomFileCount(ProfileToken aToken, size_t& fileCount_) const noexcept override;
 
-	// void search(SearchResultList& results, const TTHValue& aTTH, const ShareSearch& aSearchInfo) const noexcept override;
 	const string& getProviderName() const noexcept override {
 		return providerName;
 	}
@@ -53,7 +52,7 @@ public:
 	const string providerName = "partial_sharing";
 private:
 	uint8_t extraPartial = 0;
-	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) noexcept;
+	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept;
 
 	void on(UploadManagerListener::Created, Upload*, const UploadSlot& aNewSlot) noexcept override;
 	void on(UploadManagerListener::Failed, const Upload*, const string&) noexcept override;

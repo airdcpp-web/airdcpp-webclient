@@ -34,10 +34,6 @@ Upload::Upload(UserConnection& conn, const string& path, const TTHValue& tth, un
 	conn.setUpload(this);
 }
 
-/*bool Upload::operator==(const Upload* u) const noexcept {
-	return compare(getToken(), u->getToken()) == 0;
-}*/
-
 InputStream* Upload::getStream() { 
 	return stream.get(); 
 }
@@ -51,26 +47,39 @@ Upload::~Upload() {
 	getUserConnection().setUpload(nullptr);
 }
 
-void Upload::getParams(const UserConnection& aSource, ParamMap& params) const {
+void Upload::getParams(const UserConnection& aSource, ParamMap& params) const noexcept {
 	Transfer::getParams(aSource, params);
 	params["source"] = (getType() == TYPE_PARTIAL_LIST ? STRING(PARTIAL_FILELIST) + " (" + getPath() + ")" : getPath());
 }
 
 void Upload::appendFlags(OrderedStringSet& flags_) const noexcept {
 	if (isSet(Upload::FLAG_PARTIAL)) {
-		flags_.insert("P");
+		flags_.emplace("P");
 	}
 
 	if (isSet(Upload::FLAG_ZUPLOAD)) {
-		flags_.insert("Z");
+		flags_.emplace("Z");
 	}
 
 	if (isSet(Upload::FLAG_CHUNKED)) {
-		flags_.insert("C");
+		flags_.emplace("C");
 	}
 
 	Transfer::appendFlags(flags_);
 }
 
+constexpr int8_t DELAY_SECONDS = 10;
+bool Upload::checkDelaySecond() noexcept {
+	if (delayTime == -1) {
+		return false;
+	}
+	
+	delayTime++;
+	return delayTime > DELAY_SECONDS;
+}
+
+void Upload::disableDelayCheck() noexcept {
+	delayTime = -1;
+}
 
 } // namespace dcpp

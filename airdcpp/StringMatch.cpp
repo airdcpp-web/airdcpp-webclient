@@ -65,7 +65,7 @@ struct Prepare : boost::static_visitor<bool> {
 		s.clear();
 
 		StringTokenizer<string> st(pattern, ' ');
-		for(auto& i: st.getTokens()) {
+		for(auto const& i: st.getTokens()) {
 			s.addString(i);
 		}
 		return true;
@@ -104,7 +104,7 @@ bool StringMatch::prepare() {
 }
 
 struct Match : boost::static_visitor<bool> {
-	Match(const string& aStr) : str(aStr) { }
+	explicit Match(const string& aStr) : str(aStr) { }
 	Match& operator=(const Match&) = delete;
 
 	bool operator()(const StringSearch& s) const {

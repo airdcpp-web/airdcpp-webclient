@@ -167,7 +167,7 @@ ActionHookResult<MessageHighlightList> IgnoreManager::isIgnoredOrFiltered(const 
 	if (msg->getFrom()->getUser() == ClientManager::getInstance()->getMe())
 		return { nullptr, nullptr };
 
-	auto logIgnored = [&](bool filter) -> void {
+	auto logIgnored = [&](bool filter) {
 		if (SETTING(LOG_IGNORED)) {
 			string tmp;
 			if (aPM) {
@@ -213,12 +213,12 @@ void IgnoreManager::save() {
 
 	{
 		RLock l(cs);
-		for (const auto& u : ignoredUsers) {
+		for (const auto& [user, ignoreCount] : ignoredUsers) {
 			xml.addTag("User");
-			xml.addChildAttrib("CID", u.first->getCID().toBase32());
-			xml.addChildAttrib("IgnoredMessages", u.second);
+			xml.addChildAttrib("CID", user->getCID().toBase32());
+			xml.addChildAttrib("IgnoredMessages", ignoreCount);
 
-			FavoriteUserManager::getInstance()->addSavedUser(u.first);
+			FavoriteUserManager::getInstance()->addSavedUser(user);
 		}
 	}
 

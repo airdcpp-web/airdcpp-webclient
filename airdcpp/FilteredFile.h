@@ -28,8 +28,8 @@ template<bool managed>
 class CountOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
-	CountOutputStream(OutputStream* aStream) : s(aStream), count(0) { }
-	~CountOutputStream() { if(managed) delete s; }
+	explicit CountOutputStream(OutputStream* aStream) : s(aStream) { }
+	~CountOutputStream() final { if(managed) delete s; }
 
 	size_t flushBuffers(bool aForce) override {
 		size_t n = s->flushBuffers(aForce);
@@ -45,7 +45,7 @@ public:
 	int64_t getCount() const { return count; }
 private:
 	OutputStream* s;
-	int64_t count;
+	int64_t count = 0;
 };
 
 template<class Filter, bool managed>
@@ -53,8 +53,8 @@ class CalcOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 
-	CalcOutputStream(OutputStream* aStream) : s(aStream) { }
-	~CalcOutputStream() { if(managed) delete s; }
+	explicit CalcOutputStream(OutputStream* aStream) : s(aStream) { }
+	~CalcOutputStream() final { if(managed) delete s; }
 
 	size_t flushBuffers(bool aForce) override {
 		return s->flushBuffers(aForce);
@@ -75,8 +75,8 @@ private:
 template<class Filter, bool managed>
 class CalcInputStream : public InputStream {
 public:
-	CalcInputStream(InputStream* aStream) : s(aStream) { }
-	~CalcInputStream() { if(managed) delete s; }
+	explicit CalcInputStream(InputStream* aStream) : s(aStream) { }
+	~CalcInputStream() final { if(managed) delete s; }
 
 	size_t read(void* buf, size_t& len) override {
 		size_t x = s->read(buf, len);
@@ -95,11 +95,11 @@ class FilteredOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 
-	FilteredOutputStream(OutputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
+	explicit FilteredOutputStream(OutputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
 		f.reset(aFile);
 	}
 
-	~FilteredOutputStream() { 
+	~FilteredOutputStream() final { 
 		if(!manage) 
 			f.release(); 
 	}
@@ -128,7 +128,7 @@ public:
 		if(flushed)
 			throw Exception("No filtered writes after flush");
 
-		uint8_t* wb = (uint8_t*)wbuf;
+		auto wb = (uint8_t*)wbuf;
 		size_t written = 0;
 		while(len > 0) {
 			size_t n = BUF_SIZE;
@@ -155,7 +155,7 @@ public:
 		return as->releaseRootStream();
 	}
 
-	virtual bool eof() noexcept override { return !more; }
+	bool eof() noexcept override { return !more; }
 private:
 	static const size_t BUF_SIZE = 128*1024; //increase buffer from 64, test
 
@@ -170,11 +170,11 @@ private:
 template<class Filter, bool managed>
 class FilteredInputStream : public InputStream {
 public:
-	FilteredInputStream(InputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
+	explicit FilteredInputStream(InputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
 		f.reset(aFile);
 	}
 
-	~FilteredInputStream() noexcept { 
+	~FilteredInputStream() noexcept final { 
 		if(!managed) 
 			f.release(); 
 	}
@@ -186,7 +186,7 @@ public:
 	* @return Length of data in buffer
 	*/
 	size_t read(void* rbuf, size_t& len) override {
-		uint8_t* rb = (uint8_t*)rbuf;
+		auto rb = (uint8_t*)rbuf;
 
 		size_t totalRead = 0;
 		size_t totalProduced = 0;

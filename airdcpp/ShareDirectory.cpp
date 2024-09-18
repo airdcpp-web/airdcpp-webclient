@@ -36,9 +36,9 @@ bool ShareDirectory::RootIsParentOrExact::operator()(const ShareDirectory::Ptr& 
 }
 
 ShareDirectory::ShareDirectory(DualString&& aRealName, const ShareDirectory::Ptr& aParent, time_t aLastWrite, const ShareRoot::Ptr& aRoot) :
+	lastWrite(aLastWrite),
 	parent(aParent.get()),
 	root(aRoot),
-	lastWrite(aLastWrite),
 	realName(std::move(aRealName))
 {
 }
@@ -48,7 +48,7 @@ ShareDirectory::~ShareDirectory() {
 }
 
 ShareDirectory::File::File(DualString&& aName, ShareDirectory* aParent, const HashedFile& aFileInfo) :
-	size(aFileInfo.getSize()), parent(aParent), tth(aFileInfo.getRoot()), lastWrite(aFileInfo.getTimeStamp()), name(std::move(aName)) {
+	size(aFileInfo.getSize()), parent(aParent), lastWrite(aFileInfo.getTimeStamp()), tth(aFileInfo.getRoot()), name(std::move(aName)) {
 
 }
 
@@ -96,8 +96,7 @@ ShareDirectory::Ptr ShareDirectory::cloneRoot(const Ptr& aOldRoot, time_t aLastW
 bool ShareDirectory::setParent(const ShareDirectory::Ptr& aDirectory, const ShareDirectory::Ptr& aParent) noexcept {
 	aDirectory->parent = aParent.get();
 	if (aParent) {
-		auto inserted = aParent->directories.insert_sorted(aDirectory).second;
-		if (!inserted) {
+		if (auto inserted = aParent->directories.insert_sorted(aDirectory).second; !inserted) {
 			dcassert(0);
 			return false;
 		}
@@ -127,7 +126,7 @@ int64_t ShareDirectory::getTotalSize() const noexcept {
 
 string ShareDirectory::getAdcPathUnsafe() const noexcept {
 	if (parent) {
-		return parent->getAdcPathUnsafe() + realName.getNormal() + ADC_SEPARATOR;
+		return PathUtil::joinAdcDirectory(parent->getAdcPathUnsafe(), realName.getNormal());
 	}
 
 	if (!root) {
@@ -232,8 +231,7 @@ ShareDirectory::Ptr ShareDirectory::findDirectoryByPath(const string& aPath, cha
 	dcassert(!aPath.empty());
 
 	auto p = aPath.find(aSeparator);
-	auto d = directories.find(Text::toLower(p != string::npos ? aPath.substr(0, p) : aPath));
-	if (d != directories.end()) {
+	if (auto d = directories.find(Text::toLower(p != string::npos ? aPath.substr(0, p) : aPath)); d != directories.end()) {
 		if (p == aPath.size() || p == aPath.size() - 1)
 			return *d;
 
@@ -308,11 +306,10 @@ ProfileTokenSet ShareDirectory::getRootProfiles() const noexcept {
 }
 
 bool ShareRoot::hasRootProfile(const ProfileTokenSet& aProfiles) const noexcept {
-	for (const auto ap : aProfiles) {
-		if (rootProfiles.find(ap) != rootProfiles.end())
-			return true;
-	}
-	return false;
+	auto found = ranges::any_of(aProfiles, [this](auto profile) {
+		return rootProfiles.contains(profile);
+	});
+	return found;
 }
 
 bool ShareDirectory::hasProfile(const OptionalProfileToken& aProfile) const noexcept {
@@ -338,8 +335,8 @@ void ShareDirectory::cleanIndices(ShareDirectory& aDirectory, int64_t& sharedSiz
 	}
 }
 
-void ShareDirectory::cleanIndices(int64_t& sharedSize_, ShareDirectory::File::TTHMap& tthIndex_, ShareDirectory::MultiMap& dirNames_) noexcept {
-	for (auto& d : directories) {
+void ShareDirectory::cleanIndices(int64_t& sharedSize_, ShareDirectory::File::TTHMap& tthIndex_, ShareDirectory::MultiMap& dirNames_) const noexcept {
+	for (const auto& d : directories) {
 		d->cleanIndices(sharedSize_, tthIndex_, dirNames_);
 	}
 
@@ -358,14 +355,14 @@ void ShareDirectory::File::updateIndices(ShareBloom& bloom_, int64_t& sharedSize
 #ifdef _DEBUG
 	checkAddedTTHDebug(this, tthIndex_);
 #endif
-	tthIndex_.emplace(const_cast<TTHValue*>(&tth), this);
+	tthIndex_.emplace(&tth, this);
 	bloom_.add(name.getLower());
 }
 
 void ShareDirectory::File::cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_) noexcept {
 	parent->decreaseSize(size, sharedSize_);
 
-	auto flst = tthIndex_.equal_range(const_cast<TTHValue*>(&tth));
+	auto flst = tthIndex_.equal_range(&tth);
 	auto p = ranges::find(flst | pair_to_range | views::values, this);
 	if (p.base() != flst.second)
 		tthIndex_.erase(p.base());
@@ -450,9 +447,9 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 	// Subdirectories of fully matched items won't match anything
 	if (aStrings.matchesAnyDirectoryLower(dirName)) {
 		bool positionsComplete = aStrings.positionsComplete();
-		if (aStrings.itemType != SearchQuery::TYPE_FILE && positionsComplete && aStrings.gt == 0 && aStrings.matchesDate(lastWrite)) {
+		if (aStrings.itemType != SearchQuery::ItemType::FILE && positionsComplete && aStrings.gt == 0 && aStrings.matchesDate(lastWrite)) {
 			// Full match
-			results_.insert(ShareDirectory::SearchResultInfo(this, aStrings, aLevel));
+			results_.emplace(this, aStrings, aLevel);
 		}
 
 		if (aStrings.matchType == Search::MATCH_PATH_PARTIAL) {
@@ -482,13 +479,13 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 	}
 
 	// Match files
-	if (aStrings.itemType != SearchQuery::TYPE_DIRECTORY) {
+	if (aStrings.itemType != SearchQuery::ItemType::DIRECTORY) {
 		for (const auto& f : files) {
 			if (!aStrings.matchesFileLower(f->getName().getLower(), f->getSize(), f->getLastWrite())) {
 				continue;
 			}
 
-			results_.insert(ShareDirectory::SearchResultInfo(f, aStrings, aLevel));
+			results_.emplace(f, aStrings, aLevel);
 			if (aStrings.addParents)
 				break;
 		}
@@ -512,7 +509,7 @@ void ShareDirectory::File::addSR(SearchResultList& aResults, bool aAddParent) co
 		auto sr = make_shared<SearchResult>(parent->getAdcPathUnsafe());
 		aResults.push_back(sr);
 	} else {
-		auto sr = make_shared<SearchResult>(SearchResult::TYPE_FILE,
+		auto sr = make_shared<SearchResult>(SearchResult::Type::FILE,
 			size, getAdcPath(), getTTH(), getLastWrite(), DirectoryContentInfo::uninitialized());
 
 		aResults.push_back(sr);
@@ -522,7 +519,7 @@ void ShareDirectory::File::addSR(SearchResultList& aResults, bool aAddParent) co
 
 // CACHE
 #define LITERAL(n) n, sizeof(n)-1
-void ShareDirectory::toCacheXmlList(OutputStream& xmlFile, string& indent, string& tmp) {
+void ShareDirectory::toCacheXmlList(OutputStream& xmlFile, string& indent, string& tmp) const {
 	xmlFile.write(indent);
 	xmlFile.write(LITERAL("<Directory Name=\""));
 	xmlFile.write(SimpleXML::escape(realName.lowerCaseOnly() ? realName.getLower() : realName.getNormal(), tmp, true));
@@ -555,7 +552,7 @@ void ShareDirectory::filesToCacheXmlList(OutputStream& xmlFile, string& indent, 
 
 // FILELISTS
 
-FilelistDirectory::FilelistDirectory(const string& aName, time_t aDate) : name(aName), date(aDate) { }
+FilelistDirectory::FilelistDirectory(const string& aName, time_t aDate) : date(aDate), name(aName) { }
 
 unique_ptr<FilelistDirectory> FilelistDirectory::generateRoot(const ShareDirectory::List& aRootDirectory, const ShareDirectory::List& aChildren, bool aRecursive) {
 	auto listRoot = make_unique<FilelistDirectory>(Util::emptyString, 0);
@@ -570,8 +567,7 @@ unique_ptr<FilelistDirectory> FilelistDirectory::generateRoot(const ShareDirecto
 
 void FilelistDirectory::toFileList(const ShareDirectory::Ptr& aShareDirectory, bool aRecursive) {
 	FilelistDirectory* listDirectory = nullptr;
-	auto pos = listDirectories.find(const_cast<string*>(&aShareDirectory->getVirtualNameLower()));
-	if (pos != listDirectories.end()) {
+	if (auto pos = listDirectories.find(const_cast<string*>(&aShareDirectory->getVirtualNameLower())); pos != listDirectories.end()) {
 		listDirectory = pos->second.get();
 	} else {
 		auto newListDir = std::make_unique<FilelistDirectory>(aShareDirectory->getVirtualName(), aShareDirectory->getLastWrite());
@@ -706,12 +702,12 @@ void FilelistDirectory::filesToXml(OutputStream& xmlFile, string& indent, string
 // ROOTS
 
 bool ShareRoot::hasRootProfile(ProfileToken aProfile) const noexcept {
-	return rootProfiles.find(aProfile) != rootProfiles.end();
+	return rootProfiles.contains(aProfile);
 }
 
 ShareRoot::ShareRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastRefreshTime) noexcept :
-	path(aRootPath), pathLower(Text::toLower(aRootPath)), virtualName(make_unique<DualString>(aVname)),
-	incoming(aIncoming), rootProfiles(aProfiles), lastRefreshTime(aLastRefreshTime) {
+	rootProfiles(aProfiles), incoming(aIncoming), lastRefreshTime(aLastRefreshTime),
+	virtualName(make_unique<DualString>(aVname)), path(aRootPath), pathLower(Text::toLower(aRootPath)) {
 
 }
 

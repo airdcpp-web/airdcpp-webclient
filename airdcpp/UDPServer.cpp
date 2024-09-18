@@ -72,7 +72,7 @@ void UDPServer::addTask(Callback&& aTask) noexcept {
 	pp.addTask(std::move(aTask));
 }
 
-#define BUFSIZE 8192
+constexpr auto BUFSIZE = 8192;
 int UDPServer::run() {
 	int len;
 	string remoteAddr;
@@ -83,9 +83,9 @@ int UDPServer::run() {
 				continue;
 			}
 
-			auto buf = vector<uint8_t>(BUFSIZE);
-			if((len = socket->read(buf.data(), BUFSIZE, remoteAddr)) > 0) {
-				pp.addTask([=, this] { handlePacket(buf, len, remoteAddr); });
+			auto buffer = vector<uint8_t>(BUFSIZE);
+			if((len = socket->read(buffer.data(), BUFSIZE, remoteAddr)) > 0) {
+				pp.addTask([buf = std::move(buffer), len, remoteAddr, this] { handlePacket(buf, len, remoteAddr); });
 				continue;
 			}
 		} catch(const SocketException& e) {
@@ -159,7 +159,7 @@ void UDPServer::handlePacket(const ByteVector& aBuf, size_t aLen, const string& 
 	}
 
 	// Dispatch without newline
-	dispatch(x.substr(0, x.length() - 1), false, [&](const AdcCommand& aCmd) {
+	dispatch(x.substr(0, x.length() - 1), false, [&aRemoteIp](const AdcCommand& aCmd) {
 		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingUDPCommand(), aCmd, aRemoteIp);
 	}, aRemoteIp);
 }

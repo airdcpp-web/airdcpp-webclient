@@ -25,7 +25,7 @@
 
 namespace dcpp {
 
-SettingHolder::SettingHolder(MessageCallback aErrorF) : errorF(aErrorF)  {
+SettingHolder::SettingHolder(MessageCallback&& aErrorF) : errorF(std::move(aErrorF))  {
 	for (const auto& changeHandler : SettingsManager::getInstance()->getChangeCallbacks()) {
 		SettingsManager::SettingValueList settingValues;
 
@@ -33,7 +33,7 @@ SettingHolder::SettingHolder(MessageCallback aErrorF) : errorF(aErrorF)  {
 			settingValues.push_back(SettingsManager::getInstance()->getSettingValue(settingKey));
 		}
 
-		valueHolders.emplace_back(SettingValueListHolder({ changeHandler, settingValues }));
+		valueHolders.emplace_back(changeHandler, settingValues);
 	}
 }
 
@@ -41,7 +41,7 @@ SettingHolder::~SettingHolder() {
 
 }
 
-void SettingHolder::apply() {
+void SettingHolder::apply() const {
 	for (const auto& valueHolder: valueHolders) {
 		for (size_t i = 0; i < valueHolder.handler.settingKeys.size(); ++i) {
 			SettingsManager::SettingKeyList changedValues;
@@ -57,7 +57,7 @@ void SettingHolder::apply() {
 		}
 	}
 
-	ClientManager::getInstance()->infoUpdated();
+	ClientManager::getInstance()->myInfoUpdated();
 }
 
 void SettingHolder::showError(const string& aError) const noexcept{

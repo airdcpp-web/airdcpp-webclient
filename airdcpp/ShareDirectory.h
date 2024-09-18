@@ -222,7 +222,7 @@ public:
 	void toTTHList(OutputStream& tthList, string& tmp2, bool aRecursive) const;
 
 	//for file list caching
-	void toCacheXmlList(OutputStream& xmlFile, string& indent, string& tmp);
+	void toCacheXmlList(OutputStream& xmlFile, string& indent, string& tmp) const;
 	void filesToCacheXmlList(OutputStream& xmlFile, string& indent, string& tmp2) const;
 
 	GETSET(time_t, lastWrite, LastWrite);
@@ -293,7 +293,7 @@ public:
 	}
 private:
 	File::Set files;
-	void cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_, ShareDirectory::MultiMap& dirNames_) noexcept;
+	void cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_, ShareDirectory::MultiMap& dirNames_) const noexcept;
 
 	ShareDirectory* parent;
 	Set directories;

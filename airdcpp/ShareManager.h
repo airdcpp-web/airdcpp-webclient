@@ -67,7 +67,7 @@ public:
 	}
 
 	void startup(StartupLoader& aLoader) noexcept;
-	void shutdown(function<void(float)> progressF) noexcept;
+	void shutdown(const ProgressFunction& progressF) noexcept;
 
 	// Validate that the new root can be added in share (sub/parent/existing directory matching)
 	// Throws ShareException
@@ -76,7 +76,7 @@ public:
 	// Returns size and file name of a filelist
 	// virtualFile = name requested by the other user (Transfer::USER_LIST_NAME_BZ or Transfer::USER_LIST_NAME)
 	// Throws ShareException
-	pair<int64_t, string> getFileListInfo(const string& virtualFile, ProfileToken aProfile);
+	pair<int64_t, string> getFileListInfo(const string_view& virtualFile, ProfileToken aProfile);
 
 	struct HashedFileInfo {
 		string path;
@@ -94,7 +94,7 @@ public:
 	HashedFileInfo toRealWithSize(const UploadFileQuery& aQuery) const noexcept;
 
 	// Refresh the whole share or in
-	RefreshTaskQueueInfo refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, function<void(float)> progressF = nullptr) noexcept;
+	RefreshTaskQueueInfo refresh(ShareRefreshType aType, ShareRefreshPriority aPriority, const ProgressFunction& progressF = nullptr) noexcept;
 
 	// Refresh a single single path or all paths under a virtual name (roots only)
 	// Returns nullopt if the path doesn't exist in share
@@ -102,11 +102,11 @@ public:
 
 	// Refresh the specific directories
 	// Returns nullopt if the path doesn't exist in share (and it can't be added there)
-	optional<RefreshTaskQueueInfo> refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr) noexcept;
+	optional<RefreshTaskQueueInfo> refreshPathsHooked(ShareRefreshPriority aPriority, const StringList& aPaths, CallerPtr aCaller, const string& aDisplayName = Util::emptyString, const ProgressFunction& aProgressF = nullptr) noexcept;
 
 	// Refresh the specific directories
 	// Throws if the path doesn't exist in share and can't be added there
-	RefreshTaskQueueInfo refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, const void* aCaller, const string& aDisplayName = Util::emptyString, function<void(float)> aProgressF = nullptr);
+	RefreshTaskQueueInfo refreshPathsHookedThrow(ShareRefreshPriority aPriority, const StringList& aPaths, CallerPtr aCaller, const string& aDisplayName = Util::emptyString, const ProgressFunction& aProgressF = nullptr);
 
 	bool isRefreshing() const noexcept;
 
@@ -137,18 +137,18 @@ public:
 	bool isRealPathShared(const string& aPath) const noexcept;
 
 	// Returns true if the real path can be added in share
-	bool allowShareDirectoryHooked(const string& aPath, const void* aCaller) const noexcept;
+	bool allowShareDirectoryHooked(const string& aPath, CallerPtr aCaller) const noexcept;
 
 	// Validate a file/directory path
 	// Throws on errors
-	void validatePathHooked(const string& aPath, bool aSkipQueueCheck, const void* aCaller) const;
+	void validatePathHooked(const string& aPath, bool aSkipQueueCheck, CallerPtr aCaller) const;
 
 	GroupedDirectoryMap getGroupedDirectories() const noexcept;
 	MemoryInputStream* generatePartialList(const string& aVirtualPath, bool aRecursive, const OptionalProfileToken& aProfile) const noexcept;
 	MemoryInputStream* generateTTHList(const string& aVirtualPath, bool aRecursive, ProfileToken aProfile) const noexcept;
 	MemoryInputStream* getTree(const string& virtualFile, ProfileToken aProfile) const noexcept;
 
-	void saveShareCache(function<void (float)> progressF = nullptr) noexcept;	//for filelist caching
+	void saveShareCache(const ProgressFunction& progressF = nullptr) noexcept;	//for filelist caching
 
 	// Throws ShareException
 	AdcCommand getFileInfo(const string& aFile, ProfileToken aProfile);
@@ -171,8 +171,6 @@ public:
 	// Generate own full filelist on disk
 	// Throws ShareException
 	string generateOwnList(ProfileToken aProfile);
-
-	// bool isTTHShared(const TTHValue& tth) const noexcept;
 
 	// Get real paths for an ADC virtual path
 	// Throws ShareException
@@ -222,7 +220,7 @@ public:
 private:
 	void removeRootProfile(const ShareProfilePtr& aProfile) noexcept;
 
-	typedef vector< const UploadFileProvider*> UploadFileProviderList;
+	using UploadFileProviderList = vector<const UploadFileProvider*>;
 	UploadFileProviderList hashedFileProviders;
 
 	const unique_ptr<ShareProfileManager> profiles;
@@ -238,7 +236,7 @@ private:
 	// Throws ShareException
 	FileList* generateXmlList(ProfileToken aProfile, bool aForced = false);
 
-	bool loadCache(function<void(float)> progressF) noexcept;
+	bool loadCache(const ProgressFunction& progressF) noexcept;
 
 	uint64_t lastFullUpdate = GET_TICK();
 	uint64_t lastIncomingUpdate = GET_TICK();
@@ -247,10 +245,10 @@ private:
 	bool shareCacheSaving = false;
 
 	struct RefreshTaskHandler : public ShareTasksManager::RefreshTaskHandler {
-		typedef function<bool(const string& aRefreshPath, const ShareRefreshTask& aTask, ShareRefreshStats& totalStats, ShareBloom* bloom_, ProfileTokenSet& dirtyProfiles_)> PathRefreshF;
-		typedef function<void(bool aCompleted, const ShareRefreshTask& aTask, const ShareRefreshStats& aTotalStats, ShareBloom* bloom_, ProfileTokenSet& dirtyProfiles_)> CompletionF;
+		using PathRefreshF = function<bool (const string &, const ShareRefreshTask &, ShareRefreshStats &, ShareBloom *, ProfileTokenSet &)>;
+		using CompletionF = function<void (bool, const ShareRefreshTask &, const ShareRefreshStats &, ShareBloom *, ProfileTokenSet &)>;
 
-		RefreshTaskHandler(ShareBloom* aBloom, PathRefreshF aPathRefreshF, CompletionF aCompletionF);
+		RefreshTaskHandler(ShareBloom* aBloom, PathRefreshF&& aPathRefreshF, CompletionF&& aCompletionF);
 
 		void refreshCompleted(bool aCompleted, const ShareRefreshTask& aTask, const ShareRefreshStats& aTotalStats) override;
 		bool refreshPath(const string& aRefreshPath, const ShareRefreshTask& aTask, ShareRefreshStats& totalStats) override;
@@ -276,8 +274,8 @@ private:
 			const ShareManager& sm;
 		};
 
-		typedef shared_ptr<ShareBuilder> ShareBuilderPtr;
-		typedef set<ShareBuilderPtr, std::less<ShareBuilderPtr>> ShareBuilderSet;
+		using ShareBuilderPtr = shared_ptr<ShareBuilder>;
+		using ShareBuilderSet = set<ShareBuilderPtr, std::less<ShareBuilderPtr>>;
 	};
 
 	// Change the refresh status for a directory and its subroots
@@ -302,7 +300,7 @@ private:
 
 	void loadProfiles(SimpleXML& aXml);
 	void loadProfile(SimpleXML& aXml, bool aIsDefault);
-	void saveProfiles(SimpleXML& aXml);
+	void saveProfiles(SimpleXML& aXml) const;
 
 	ShareSearchCounters searchCounters;
 }; //sharemanager end

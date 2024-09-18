@@ -67,12 +67,12 @@ namespace dcpp
 	private:
 		
 		// download limiter
-		size_t						downTokens = 0;
+		size_t				downTokens = 0;
 		condition_variable	downCond;
 		mutex				downMutex;
 		
 		// upload limiter
-		size_t						upTokens = 0;
+		size_t				upTokens = 0;
 		condition_variable	upCond;
 		mutex				upMutex;
 			
@@ -82,10 +82,10 @@ namespace dcpp
 		ThrottleManager();
 
 		// destructor
-		~ThrottleManager();
+		~ThrottleManager() final;
 		
 		// TimerManagerListener
-		void on(TimerManagerListener::Second, uint64_t aTick) noexcept;
+		void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 				
 	};
 

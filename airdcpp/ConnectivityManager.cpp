@@ -22,6 +22,7 @@
 #include "ClientManager.h"
 #include "ConnectionManager.h"
 #include "DCPlusPlus.h"
+#include "FavoriteManager.h"
 #include "format.h"
 #include "LogManager.h"
 #include "MappingManager.h"
@@ -499,13 +500,23 @@ StringList ConnectivityManager::getMappers(bool v6) const {
 	}
 }
 
+bool ConnectivityManager::isActive() const noexcept {
+	if (CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_PASSIVE && CONNSETTING(INCOMING_CONNECTIONS) != SettingsManager::INCOMING_DISABLED)
+		return true;
+
+	if (CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_PASSIVE && CONNSETTING(INCOMING_CONNECTIONS6) != SettingsManager::INCOMING_DISABLED)
+		return true;
+
+	return FavoriteManager::getInstance()->hasActiveHubs();
+}
+
 void ConnectivityManager::startSocket() {
 	autoDetectedV4 = false;
 	autoDetectedV6 = false;
 
 	disconnect();
 
-	if(ClientManager::getInstance()->isActive()) {
+	if (isActive()) {
 		listen();
 
 		// must be done after listen calls; otherwise ports won't be set

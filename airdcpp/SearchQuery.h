@@ -32,13 +32,13 @@ namespace dcpp {
 
 	class SearchQuery {
 	public:
-		enum ItemType {
-			TYPE_ANY,
-			TYPE_FILE,
-			TYPE_DIRECTORY
+		enum class ItemType {
+			ANY,
+			FILE,
+			DIRECTORY
 		};
 
-		typedef vector<pair<size_t, int>> ResultPointsList;
+		using ResultPointsList = vector<pair<size_t, int>>;
 
 		// Gets a score (0-1) based on how well the current item matches the provided search (which must have been fully matched first)
 		static double getRelevanceScore(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept;
@@ -50,7 +50,7 @@ namespace dcpp {
 		static SearchQuery* getSearch(const SearchPtr& aSearch) noexcept;
 		static StringList parseSearchString(const string& aString) noexcept;
 		SearchQuery(const string& aString, const StringList& aExcluded, const StringList& aExt, Search::MatchType aMatchType) noexcept;
-		SearchQuery(const TTHValue& aRoot) noexcept;
+		explicit SearchQuery(const TTHValue& aRoot) noexcept;
 
 		// Protocol-specific
 		SearchQuery(const StringList& adcParams, size_t maxResults) noexcept;
@@ -58,7 +58,7 @@ namespace dcpp {
 
 		inline bool isExcluded(const string& str) const noexcept { return exclude.match_any(str); }
 		inline bool isExcludedLower(const string& str) const noexcept { return exclude.match_any_lower(str); }
-		bool hasExt(const string& name) noexcept;
+		bool hasExt(const string_view& name) noexcept;
 
 		StringSearch include;
 		StringSearch exclude;
@@ -77,7 +77,7 @@ namespace dcpp {
 		// We count the positions from the beginning of name of the first matching item
 		// This struct will keep the positions from the upper levels
 		struct Recursion{
-			Recursion() noexcept { }
+			Recursion() noexcept = default;
 			Recursion(const SearchQuery& aSearch, const string& aName) noexcept;
 
 			inline void increase(string::size_type aLen) noexcept { recursionLevel++; depthLen += aLen; }
@@ -112,7 +112,7 @@ namespace dcpp {
 		Search::MatchType matchType = Search::MATCH_PATH_PARTIAL;
 		bool addParents = false;
 
-		ItemType itemType = TYPE_ANY;
+		ItemType itemType = ItemType::ANY;
 
 		// Returns true if any of the include strings were matched. Saves positions
 		bool matchesAnyDirectoryLower(const string& aName) noexcept;
@@ -124,7 +124,7 @@ namespace dcpp {
 		bool matchesStr(const string& aStr) noexcept;
 
 		// Simple match, no storing of positions
-		bool matchesDirectory(const string& aName) noexcept;
+		bool matchesDirectory(const string& aName) const noexcept;
 
 		// Simple match, no storing of positions
 		bool matchesFile(const string& aName, int64_t aSize, uint64_t aDate, const TTHValue& aTTH) noexcept;

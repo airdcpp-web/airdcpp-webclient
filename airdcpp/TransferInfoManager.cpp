@@ -187,7 +187,7 @@ namespace dcpp {
 		fire(TransferInfoManagerListener::Updated(), aTransfer, aUpdatedProperties, aTick);
 	}
 
-	void TransferInfoManager::updateQueueInfo(TransferInfoPtr& aInfo) noexcept {
+	void TransferInfoManager::updateQueueInfo(const TransferInfoPtr& aInfo) noexcept {
 		if (!aInfo->isDownload()) {
 			return;
 		}
