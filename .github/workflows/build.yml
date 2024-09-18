@@ -17,10 +17,10 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [clang, gcc]
-        os: [ubuntu-24.04, macos-latest]
+        os: [ubuntu-24.04, macos-15]
         exclude:
         # Not testing with GCC on macOS.
-        - os: macos-latest
+        - os: macos-15
           compiler: gcc
         # TODO
         - os: ubuntu-24.04
