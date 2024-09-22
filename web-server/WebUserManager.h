@@ -35,13 +35,13 @@ namespace webserver {
 	class WebUserManager : private WebServerManagerListener, public Speaker<WebUserManagerListener> {
 	public:
 		explicit WebUserManager(WebServerManager* aServer);
-		~WebUserManager() final;
+		~WebUserManager() override;
 
 		// Parse Authentication header from an HTTP request
 		// Throws on errors, returns nullptr if no Authorization header is present
 		SessionPtr parseHttpSession(const string& aAuthToken, const string& aIp);
 
-		// Throws on errors
+		// Throws std::domain_error on errors (e.g. invalid password)
 		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP);
 		SessionPtr authenticateSession(const string& aRefreshToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP);
 
@@ -70,11 +70,17 @@ namespace webserver {
 
 		WebUserManager(WebUserManager&) = delete;
 		WebUserManager& operator=(WebUserManager&) = delete;
+
+		enum class SessionRemovalReason {
+			LOGOUT,
+			USER_CHANGED,
+			TIMEOUT,
+		};
 	private:
-		enum AuthType {
-			AUTH_UNKNOWN,
-			AUTH_BASIC,
-			AUTH_BEARER,
+		enum class AuthType {
+			UNKNOWN,
+			BASIC,
+			BEARER,
 		};
 
 		struct TokenInfo {
@@ -97,13 +103,12 @@ namespace webserver {
 
 		void checkExpiredSessions() noexcept;
 		void checkExpiredTokens() noexcept;
-		void resetSocketSession(const WebSocketPtr& aSocket) noexcept;
-		void removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept;
+		void removeSession(const SessionPtr& aSession, SessionRemovalReason aReason) noexcept;
 		void removeRefreshTokens(const WebUserPtr& aUser) noexcept;
-		void removeSessions(const WebUserPtr& aUser) noexcept;
+		void removeUserSessions(const WebUserPtr& aUser) noexcept;
 		TimerPtr expirationTimer;
 
-		// Throws on errors
+		// Throws std::domain_error on errors (e.g. invalid password)
 		SessionPtr authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP, const string& aSessionToken);
 
 		SessionPtr createSession(const WebUserPtr& aUser, const string& aSessionToken, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) noexcept;
@@ -111,7 +116,6 @@ namespace webserver {
 		void on(WebServerManagerListener::Started) noexcept override;
 		void on(WebServerManagerListener::Stopping) noexcept override;
 		void on(WebServerManagerListener::Stopped) noexcept override;
-		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
 
 		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;

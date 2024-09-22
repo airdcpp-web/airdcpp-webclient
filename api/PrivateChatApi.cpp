@@ -24,6 +24,8 @@
 #include <api/common/MessageUtils.h>
 #include <api/common/Serializer.h>
 
+#include <web-server/WebServerSettings.h>
+
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/PrivateChatManager.h>
 #include <airdcpp/ScopedFunctor.h>
@@ -67,7 +69,7 @@ namespace webserver {
 
 		PrivateChatManager::getInstance()->addListener(this);
 
-		createHook("private_chat_incoming_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook("private_chat_incoming_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(PrivateChatApi::incomingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->incomingPrivateMessageHook.removeSubscriber(aId);
@@ -75,7 +77,7 @@ namespace webserver {
 			return ClientManager::getInstance()->incomingPrivateMessageHook.getSubscribers();
 		});
 
-		createHook("private_chat_outgoing_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook("private_chat_outgoing_message_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingPrivateMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(PrivateChatApi::outgoingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->outgoingPrivateMessageHook.removeSubscriber(aId);

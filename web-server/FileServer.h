@@ -33,6 +33,8 @@ namespace webserver {
 		~FileServer();
 
 		void setResourcePath(const string& aPath) noexcept;
+
+		// Get location of the file server root directory (Web UI files)
 		const string& getResourcePath() const noexcept;
 
 		websocketpp::http::status_code::value handleRequest(const HttpRequest& aRequest, 

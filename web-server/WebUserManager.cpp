@@ -59,20 +59,20 @@ namespace webserver {
 	SessionPtr WebUserManager::parseHttpSession(const string& aAuthToken, const string& aIP) {
 		auto token = aAuthToken;
 
-		auto authType = AUTH_UNKNOWN;
+		auto authType = AuthType::UNKNOWN;
 		if (token.starts_with("Basic ")) {
 			token = websocketpp::base64_decode(token.substr(6));
-			authType = AUTH_BASIC;
+			authType = AuthType::BASIC;
 		} else if (token.starts_with("Bearer ")) {
 			token = token.substr(7);
-			authType = AUTH_BEARER;
+			authType = AuthType::BEARER;
 		} else {
-			authType = AUTH_BEARER;
+			authType = AuthType::BEARER;
 		}
 
 		auto session = getSession(token);
 		if (!session) {
-			if (authType == AUTH_BASIC) {
+			if (authType == AuthType::BASIC) {
 				string username, password;
 
 				auto i = token.rfind(':');
@@ -213,24 +213,9 @@ namespace webserver {
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
-		removeSession(aSession, false);
-
-		auto socket = wsm->getSocket(aSession->getId());
-		if (socket) {
-			resetSocketSession(socket);
-		} else {
-			dcdebug("No socket for session %s\n", aSession->getAuthToken().c_str());
-		}
+		removeSession(aSession, SessionRemovalReason::LOGOUT);
 
 		dcdebug("Session %s logging out, use count: %ld\n", aSession->getAuthToken().c_str(), aSession.use_count());
-	}
-
-	void WebUserManager::resetSocketSession(const WebSocketPtr& aSocket) noexcept {
-		if (aSocket->getSession()) {
-			dcdebug("Resetting socket for session %s\n", aSocket->getSession()->getAuthToken().c_str());
-			aSocket->getSession()->onSocketDisconnected();
-			aSocket->setSession(nullptr);
-		}
 	}
 
 	void WebUserManager::checkExpiredSessions() noexcept {
@@ -239,16 +224,13 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			ranges::copy_if(sessionsLocalId | views::values, back_inserter(removedSession), [=](const SessionPtr& s) {
-				return s->getMaxInactivity() > 0 && s->getLastActivity() + s->getMaxInactivity() < tick;
+			ranges::copy_if(sessionsLocalId | views::values, back_inserter(removedSession), [tick](const SessionPtr& s) {
+				return s->isTimeout(tick);
 			});
 		}
 
 		for (const auto& s : removedSession) {
-			// Don't remove sessions with active socket
-			if (!wsm->getSocket(s->getId())) {
-				removeSession(s, true);
-			}
+			removeSession(s, SessionRemovalReason::TIMEOUT);
 		}
 	}
 
@@ -271,7 +253,7 @@ namespace webserver {
 		}
 	}
 
-	void WebUserManager::removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept {
+	void WebUserManager::removeSession(const SessionPtr& aSession, SessionRemovalReason aReason) noexcept {
 		aSession->getUser()->removeSession();
 		fire(WebUserManagerListener::UserUpdated(), aSession->getUser());
 
@@ -281,7 +263,7 @@ namespace webserver {
 			sessionsLocalId.erase(aSession->getId());
 		}
 
-		fire(WebUserManagerListener::SessionRemoved(), aSession, aTimedOut);
+		fire(WebUserManagerListener::SessionRemoved(), aSession, static_cast<int>(aReason));
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {
@@ -294,7 +276,7 @@ namespace webserver {
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Stopping) noexcept {
-
+		// ...
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Stopped) noexcept {
@@ -396,7 +378,7 @@ namespace webserver {
 	}
 
 
-	void WebUserManager::removeSessions(const WebUserPtr& aUser) noexcept {
+	void WebUserManager::removeUserSessions(const WebUserPtr& aUser) noexcept {
 		SessionList removedSession;
 
 		{
@@ -407,19 +389,14 @@ namespace webserver {
 		}
 
 		for (const auto& s: removedSession) {
-			auto socket = wsm->getSocket(s->getId());
-			if (socket) {
-				socket->close(websocketpp::close::status::normal, "Re-authentication required");
-			}
-
-			removeSession(s, true);
+			removeSession(s, SessionRemovalReason::USER_CHANGED);
 		}
 	}
 
 	bool WebUserManager::updateUser(const WebUserPtr& aUser, bool aRemoveSessions) noexcept {
 		if (aRemoveSessions) {
 			removeRefreshTokens(aUser);
-			removeSessions(aUser);
+			removeUserSessions(aUser);
 		}
 
 		fire(WebUserManagerListener::UserUpdated(), aUser);
@@ -434,7 +411,7 @@ namespace webserver {
 		}
 
 		removeRefreshTokens(user);
-		removeSessions(user);
+		removeUserSessions(user);
 
 		{
 			WLock l(cs);
@@ -473,11 +450,6 @@ namespace webserver {
 		}
 
 		setDirty();
-	}
-
-
-	void WebUserManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
-		resetSocketSession(aSocket);
 	}
 
 	void WebUserManager::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& xml_) noexcept {

@@ -33,7 +33,7 @@ namespace webserver {
 		static StringList subscriptionList;
 
 		explicit SearchApi(Session* aSession);
-		~SearchApi() final;
+		~SearchApi() override;
 	private:
 		static json serializeSearchInstance(const SearchInstancePtr& aSearch) noexcept;
 

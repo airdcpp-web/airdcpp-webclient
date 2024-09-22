@@ -20,6 +20,7 @@
 
 #include <api/ShareApi.h>
 
+#include <web-server/HttpManager.h>
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
@@ -29,6 +30,7 @@
 #include <api/common/Validation.h>
 
 #include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/HashManager.h>
@@ -91,7 +93,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
 
-		createHook("share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook("share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::fileValidationHook));
 		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().fileValidationHook.removeSubscriber(aId);
@@ -99,7 +101,7 @@ namespace webserver {
 			return ShareManager::getInstance()->getValidator().fileValidationHook.getSubscribers();
 		});
 
-		createHook("share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook("share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().directoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::directoryValidationHook));
 		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().directoryValidationHook.removeSubscriber(aId);
@@ -107,7 +109,7 @@ namespace webserver {
 			return ShareManager::getInstance()->getValidator().directoryValidationHook.getSubscribers();
 		});
 
-		createHook("new_share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook("new_share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newDirectoryValidationHook));
 		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().newDirectoryValidationHook.removeSubscriber(aId);
@@ -115,7 +117,7 @@ namespace webserver {
 			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.getSubscribers();
 		});
 
-		createHook("new_share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook("new_share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
 			return ShareManager::getInstance()->getValidator().newFileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newFileValidationHook));
 		}, [](const string& aId) {
 			ShareManager::getInstance()->getValidator().newFileValidationHook.removeSubscriber(aId);
@@ -369,7 +371,7 @@ namespace webserver {
 		const auto user = Deserializer::deserializeUser(aRequest.getRequestBody(), true, true);
 		const auto optionalClient = Deserializer::deserializeClient(aRequest.getRequestBody(), true);
 
-		const auto filePath = aRequest.getSession()->getServer()->getFileServer().getTempFilePath(fileId);
+		const auto filePath = aRequest.getSession()->getServer()->getHttpManager().getFileServer().getTempFilePath(fileId);
 		if (filePath.empty() || !PathUtil::fileExists(filePath)) {
 			JsonUtil::throwError("file_id", JsonUtil::ERROR_INVALID, "Source file was not found");
 		}

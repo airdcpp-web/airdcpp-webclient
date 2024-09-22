@@ -327,6 +327,15 @@
     <ClInclude Include="web-server\ContextMenuManagerListener.h">
       <Filter>Header Files\web-server</Filter>
     </ClInclude>
+    <ClInclude Include="web-server\SocketManager.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\SocketManagerListener.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
+    <ClInclude Include="web-server\HttpManager.h">
+      <Filter>Header Files\web-server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\QueueApi.cpp">
@@ -538,6 +547,12 @@
     </ClCompile>
     <ClCompile Include="api\AdcCommandApi.cpp">
       <Filter>Source Files\api</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\SocketManager.cpp">
+      <Filter>Source Files\web-server</Filter>
+    </ClCompile>
+    <ClCompile Include="web-server\HttpManager.cpp">
+      <Filter>Source Files\web-server</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

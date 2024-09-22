@@ -26,6 +26,7 @@
 
 #include <web-server/ApiSettingItem.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 

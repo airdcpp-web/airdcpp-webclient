@@ -32,33 +32,38 @@ namespace webserver {
 	class ApiRequest;
 
 	class ContextMenuItem;
-	typedef std::shared_ptr<ContextMenuItem> ContextMenuItemPtr;
-	typedef std::vector<ContextMenuItemPtr> ContextMenuItemList;
+	using ContextMenuItemPtr = std::shared_ptr<ContextMenuItem>;
+	using ContextMenuItemList = std::vector<ContextMenuItemPtr>;
 	struct ContextMenuItemClickData;
 
 	class GroupedContextMenuItem;
-	typedef std::shared_ptr<GroupedContextMenuItem> GroupedContextMenuItemPtr;
-	typedef std::vector<GroupedContextMenuItemPtr> GroupedContextMenuItemList;
+	using GroupedContextMenuItemPtr = std::shared_ptr<GroupedContextMenuItem>;
+	using GroupedContextMenuItemList = std::vector<GroupedContextMenuItemPtr>;
 
 	class Extension;
-	typedef std::shared_ptr<Extension> ExtensionPtr;
-	typedef std::vector<ExtensionPtr> ExtensionList;
+	using ExtensionPtr = std::shared_ptr<Extension>;
+	using ExtensionList = std::vector<ExtensionPtr>;
 
 	class Session;
-	typedef std::shared_ptr<Session> SessionPtr;
-	typedef std::vector<SessionPtr> SessionList;
-	typedef uint32_t LocalSessionId;
+	using SessionPtr = std::shared_ptr<Session>;
+	using SessionList = std::vector<SessionPtr>;
+	using SessionCallback = std::function<void(const SessionPtr&)>;
+	using LocalSessionId = uint32_t;
 
 	class Timer;
-	typedef std::shared_ptr<Timer> TimerPtr;
+	using TimerPtr = std::shared_ptr<Timer>;
 
 	class WebSocket;
-	typedef std::shared_ptr<WebSocket> WebSocketPtr;
+	using WebSocketPtr = std::shared_ptr<WebSocket>;
 
 	class WebServerManager;
 
-	typedef std::function<void()> Callback;
-	typedef std::function<void(const std::string&)> MessageCallback;
+	using Callback = std::function<void ()>;
+	using MessageCallback = std::function<void (const std::string &)>;
+
+	class WebUser;
+	using WebUserPtr = std::shared_ptr<WebUser>;
+	using WebUserList = std::vector<WebUserPtr>;
 
 	using json = nlohmann::json;
 }

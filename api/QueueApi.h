@@ -41,7 +41,7 @@ namespace webserver {
 	class QueueApi : public HookApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
 		explicit QueueApi(Session* aSession);
-		~QueueApi() final;
+		~QueueApi() override;
 	private:
 		ActionHookResult<> bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept;
 		ActionHookResult<> fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept;

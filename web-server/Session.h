@@ -44,7 +44,7 @@ namespace webserver {
 		};
 
 		Session(const WebUserPtr& aUser, const std::string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP);
-		~Session() final;
+		~Session() override;
 
 		const std::string& getAuthToken() const noexcept {
 			return token;
@@ -90,10 +90,13 @@ namespace webserver {
 		}
 
 		void reportError(const string& aError) noexcept;
+		bool isTimeout(uint64_t aTick) const noexcept;
 	private:
 		const uint64_t maxInactivity;
 		const time_t started;
+
 		uint64_t lastActivity;
+		bool hasSocket = false;
 
 		const LocalSessionId id;
 		const std::string token;

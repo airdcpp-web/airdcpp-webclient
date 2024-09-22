@@ -24,19 +24,19 @@
 #include <airdcpp/typedefs.h>
 
 namespace webserver {
-	struct HttpRequest;
+	// struct HttpRequest;
+	struct RouterRequest;
+
 	class ApiRouter {
 	public:
-		ApiRouter();
-		~ApiRouter();
 
-		void handleSocketRequest(const std::string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) const noexcept;
-		api_return handleHttpRequest(const HttpRequest& aRequest,
-			json& output_, json& error_, const ApiDeferredHandler& aDeferredHandler) const noexcept;
-	private:
-		api_return handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) const noexcept;
+		// static void handleSocketRequest(const std::string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) noexcept;
+		//static api_return handleHttpRequest(const HttpRequest& aRequest,
+		//	json& output_, json& error_, const ApiDeferredHandler& aDeferredHandler) noexcept;
+	// private:
+		static api_return handleRequest(RouterRequest& aRequest) noexcept;
 
-		api_return routeAuthRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) const;
+		static api_return routeAuthRequest(RouterRequest& aRequest);
 	};
 }
 

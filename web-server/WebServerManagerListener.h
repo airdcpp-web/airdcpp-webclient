@@ -47,10 +47,7 @@ namespace webserver {
 		typedef X<4> LoadLegacySettings;
 		typedef X<5> SaveSettings;
 
-		typedef X<7> SocketConnected;
-		typedef X<8> SocketDisconnected;
-
-		typedef X<9> Data;
+		typedef X<6> Data;
 
 
 		virtual void on(Started) noexcept { }
@@ -60,9 +57,6 @@ namespace webserver {
 		virtual void on(LoadLegacySettings, SimpleXML&) noexcept { }
 		virtual void on(LoadSettings, const MessageCallback&) noexcept { }
 		virtual void on(SaveSettings, const MessageCallback&) noexcept { }
-
-		virtual void on(SocketConnected, const WebSocketPtr&) noexcept { }
-		virtual void on(SocketDisconnected, const WebSocketPtr&) noexcept { }
 
 		virtual void on(Data, const string& /*aData*/, TransportType, Direction, const string& /*aIP*/) noexcept { }
 	};

@@ -30,6 +30,7 @@
 
 #include <web-server/ExtensionListener.h>
 #include <web-server/ExtensionManagerListener.h>
+#include <web-server/SocketManagerListener.h>
 #include <web-server/WebServerManagerListener.h>
 
 namespace dcpp {
@@ -49,10 +50,10 @@ namespace webserver {
 
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ExtensionEngine, name, command, arguments);
 
-	class ExtensionManager: public Speaker<ExtensionManagerListener>, private WebServerManagerListener, private UpdateManagerListener, ExtensionListener {
+	class ExtensionManager: public Speaker<ExtensionManagerListener>, private WebServerManagerListener, private UpdateManagerListener, private ExtensionListener, private SocketManagerListener {
 	public:
 		explicit ExtensionManager(WebServerManager* aWsm);
-		~ExtensionManager() final;
+		~ExtensionManager() override;
 
 		// Load and start all managed extensions from disk
 		void load() noexcept;
@@ -135,7 +136,8 @@ namespace webserver {
 		void on(WebServerManagerListener::Started) noexcept override;
 		void on(WebServerManagerListener::Stopping) noexcept override;
 		void on(WebServerManagerListener::Stopped) noexcept override;
-		void on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
+
+		void on(SocketManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept override;
 
 		void on(ExtensionListener::ExtensionStarted, const Extension*) noexcept override;
 		void on(ExtensionListener::ExtensionStopped, const Extension*, bool /*aFailed*/) noexcept override;

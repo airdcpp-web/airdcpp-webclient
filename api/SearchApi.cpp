@@ -23,6 +23,8 @@
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 
+#include <web-server/WebServerSettings.h>
+
 #include <airdcpp/QueueAddInfo.h>
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/DirectSearch.h>
@@ -55,7 +57,7 @@ namespace webserver {
 			Access::SEARCH
 		)
 	{
-		createHook(HOOK_INCOMING_USER_RESULT, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_INCOMING_USER_RESULT, [this](ActionHookSubscriber&& aSubscriber) {
 			return SearchManager::getInstance()->incomingSearchResultHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(SearchApi::incomingUserResultHook));
 		}, [this](const string& aId) {
 			SearchManager::getInstance()->incomingSearchResultHook.removeSubscriber(aId);

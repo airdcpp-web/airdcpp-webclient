@@ -150,6 +150,13 @@ namespace webserver {
 		json& responseJsonError;
 		ApiDeferredHandler deferredHandler;
 	};
+
+	struct RouterRequest {
+		ApiRequest& apiRequest;
+		const bool isSecure;
+		const SessionCallback& authenticationCallback;
+		const string& ip;
+	};
 }
 
 #endif

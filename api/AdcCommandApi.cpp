@@ -21,6 +21,7 @@
 #include <api/AdcCommandApi.h>
 
 #include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/ConnectionManager.h>

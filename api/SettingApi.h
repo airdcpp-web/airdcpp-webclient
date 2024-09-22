@@ -27,7 +27,7 @@ namespace webserver {
 	class SettingApi : public ApiModule {
 	public:
 		explicit SettingApi(Session* aSession);
-		~SettingApi() final;
+		~SettingApi() override;
 	private:
 		api_return handleGetDefinitions(ApiRequest& aRequest);
 		api_return handleGetValues(ApiRequest& aRequest);

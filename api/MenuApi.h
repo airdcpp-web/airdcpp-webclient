@@ -38,7 +38,7 @@ namespace webserver {
 	class MenuApi : public HookApiModule, private ContextMenuManagerListener {
 	public:
 		explicit MenuApi(Session* aSession);
-		~MenuApi() final;
+		~MenuApi() override;
 	private:
 		ContextMenuManager& cmm;
 

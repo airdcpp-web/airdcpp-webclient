@@ -17,9 +17,11 @@
 */
 
 #include "stdinc.h"
-#include <web-server/JsonUtil.h>
 
 #include <api/QueueApi.h>
+
+#include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
 
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>

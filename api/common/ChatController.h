@@ -20,6 +20,8 @@
 #define DCPLUSPLUS_DCPP_MESSAGECACHE_MODULE_H
 
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
+#include <web-server/WebUserManager.h>
 
 #include <api/base/ApiModule.h>
 #include <api/common/Deserializer.h>

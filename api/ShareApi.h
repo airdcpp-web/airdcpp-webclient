@@ -31,7 +31,7 @@ namespace webserver {
 	class ShareApi : public HookApiModule, private ShareManagerListener, private TempShareManagerListener {
 	public:
 		explicit ShareApi(Session* aSession);
-		~ShareApi() final;
+		~ShareApi() override;
 	private:
 		struct ShareItem {
 			explicit ShareItem(const ShareDirectory::File* aFile) : file(aFile) {}
