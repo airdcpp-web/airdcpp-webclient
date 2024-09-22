@@ -102,7 +102,7 @@ public:
 
 	using FreeSlotF = std::function<uint8_t ()>;
 	explicit UploadQueueManager(FreeSlotF&& aFreeSlotF) noexcept;
-	~UploadQueueManager() final;
+	~UploadQueueManager() override;
 private:
 	friend class UploadManager;
 

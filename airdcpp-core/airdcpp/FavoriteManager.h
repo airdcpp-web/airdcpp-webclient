@@ -92,7 +92,7 @@ private:
 	friend class Singleton<FavoriteManager>;
 	
 	FavoriteManager();
-	~FavoriteManager() final;
+	~FavoriteManager() override;
 	
 	FavoriteHubEntryList::const_iterator getFavoriteHubUnsafe(const string& aServer) const noexcept;
 	FavoriteHubEntryList::const_iterator getFavoriteHubUnsafe(FavoriteHubToken aToken) const noexcept;

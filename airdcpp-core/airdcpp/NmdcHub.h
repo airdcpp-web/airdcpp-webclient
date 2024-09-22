@@ -63,7 +63,7 @@ public:
 	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept override;
 
 	NmdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
-	~NmdcHub() final;
+	~NmdcHub() override;
 	
 	NmdcHub(const NmdcHub&) = delete;
 	NmdcHub& operator=(const NmdcHub&) = delete;

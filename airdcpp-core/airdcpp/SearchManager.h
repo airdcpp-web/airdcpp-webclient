@@ -91,7 +91,7 @@ private:
 
 	static std::string normalizeWhitespace(const std::string& aString);
 
-	~SearchManager() final;
+	~SearchManager() override;
 	
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
 

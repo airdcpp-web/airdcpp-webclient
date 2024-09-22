@@ -41,7 +41,7 @@ public:
 		TimerManager::getInstance()->addListener(this);
 	}
 
-	~DelayedEvents() final {
+	~DelayedEvents() override {
 		TimerManager::getInstance()->removeListener(this);
 		clear();
 	}

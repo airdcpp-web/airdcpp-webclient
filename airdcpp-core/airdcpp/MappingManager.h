@@ -60,7 +60,7 @@ public:
 	string getStatus() const;
 
 	explicit MappingManager(bool v6);
-	~MappingManager() final = default;
+	~MappingManager() override = default;
 private:
 	vector<pair<string, function<Mapper* (const string&, bool)>>> mappers;
 

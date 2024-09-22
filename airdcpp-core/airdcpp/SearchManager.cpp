@@ -20,7 +20,7 @@
 #include "SearchManager.h"
 
 #include "ClientManager.h"
-#include "CryptoManager.h"
+#include "CryptoUtil.h"
 #include "LogManager.h"
 #include "PathUtil.h"
 #include "ScopedFunctor.h"
@@ -40,6 +40,10 @@ SearchManager::SearchManager() :
 	udpServer(make_unique<UDPServer>()) 
 {
 	TimerManager::getInstance()->addListener(this);
+
+#ifdef _DEBUG
+	CryptoUtil::testSUDP();
+#endif
 }
 
 SearchManager::~SearchManager() {
@@ -69,7 +73,7 @@ string SearchManager::generateSUDPKey() {
 	}
 
 	// generate a random key and store it so we can check the results
-	auto key = CryptoManager::generateSUDPKey();
+	auto key = CryptoUtil::generateSUDPKey();
 	auto keyStr = Encoder::toBase32(key.get(), 16);
 
 	{
@@ -152,7 +156,7 @@ SearchInstanceList SearchManager::getSearchInstances() const noexcept {
 bool SearchManager::decryptPacket(string& x, size_t aLen, const ByteVector& aBuf) {
 	RLock l (cs);
 	for (const auto& [key, _] : searchKeys | views::reverse) {
-		if (CryptoManager::decryptSUDP(key.get(), aBuf, aLen, x)) {
+		if (CryptoUtil::decryptSUDP(key.get(), aBuf, aLen, x)) {
 			return true;
 		}
 	}

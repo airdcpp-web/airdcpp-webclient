@@ -37,7 +37,7 @@ public:
 	};
 
 	Upload(UserConnection& aSource, const string& aPath, const TTHValue& aTTH, unique_ptr<InputStream> aIS);
-	~Upload() final;
+	~Upload() override;
 
 	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept override;
 

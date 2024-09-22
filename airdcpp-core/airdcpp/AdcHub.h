@@ -65,7 +65,7 @@ public:
 	static const string TIGR_SUPPORT;
 
 	AdcHub(const string& aHubURL, const ClientPtr& aOldClient = nullptr);
-	~AdcHub() final;
+	~AdcHub() override;
 
 	AdcHub(const AdcHub&) = delete;
 	AdcHub& operator=(const AdcHub&) = delete;

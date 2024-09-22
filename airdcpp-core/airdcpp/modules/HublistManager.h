@@ -38,7 +38,7 @@ namespace dcpp {
 	{
 	public:
 		HublistManager();
-		~HublistManager() final;
+		~HublistManager() override;
 
 		// Public Hubs
 		enum HubTypes {

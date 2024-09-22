@@ -457,7 +457,7 @@ private:
 
 	friend class Singleton<SettingsManager>;
 	SettingsManager();
-	~SettingsManager() final = default;
+	~SettingsManager() override = default;
 
 	static const string settingTags[SETTINGS_LAST+1];
 

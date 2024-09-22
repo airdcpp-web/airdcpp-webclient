@@ -30,8 +30,8 @@
 
 namespace dcpp {
 
-typedef boost::detail::spinlock	FastCriticalSection;
-typedef std::lock_guard<boost::detail::spinlock> FastLock;
+using FastCriticalSection = boost::detail::spinlock;
+using FastLock = std::lock_guard<boost::detail::spinlock>;
 
 
 #ifndef _WIN32
@@ -77,7 +77,7 @@ typedef LockBase<CriticalSection> Lock;
 #else
 
 using CriticalSection = std::recursive_mutex;
-using Lock = std::lock_guard<std::recursive_mutex>;
+using Lock = std::scoped_lock <std::recursive_mutex>;
 
 using SharedMutex = std::shared_mutex;
 using RLock = std::shared_lock<std::shared_mutex>;

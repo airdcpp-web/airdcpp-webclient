@@ -415,7 +415,7 @@ private:
 	friend class Singleton<QueueManager>;
 	
 	QueueManager();
-	~QueueManager() final;
+	~QueueManager() override;
 	
 	mutable CriticalSection slotAssignCS;
 	mutable SharedMutex cs;

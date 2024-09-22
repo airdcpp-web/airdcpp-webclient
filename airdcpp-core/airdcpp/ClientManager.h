@@ -323,7 +323,7 @@ private:
 
 	ClientManager();
 
-	~ClientManager() final;
+	~ClientManager() override;
 
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	OnlineUser* findOnlineUserHintUnsafe(const CID& aCID, const string& aHubUrl) const noexcept {

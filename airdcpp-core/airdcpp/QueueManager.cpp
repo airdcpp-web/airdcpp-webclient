@@ -2359,7 +2359,7 @@ void QueueManager::saveQueue(bool aForce) noexcept {
 class QueueLoader : public SimpleXMLReader::CallBack {
 public:
 	QueueLoader() = default;
-	~QueueLoader() final = default;
+	~QueueLoader() override = default;
 	void startTag(const string& name, StringPairList& attribs, bool simple) override;
 	void endTag(const string& name) override;
 	void createFileBundle(QueueItemPtr& aQI, QueueToken aToken);

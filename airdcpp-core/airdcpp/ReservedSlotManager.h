@@ -38,7 +38,7 @@ public:
 
 	using SlotsUpdatedF = std::function<void (const UserPtr &)>;
 	explicit ReservedSlotManager(SlotsUpdatedF&& aSlotsUpdatedF) noexcept;
-	~ReservedSlotManager() final;
+	~ReservedSlotManager() override;
 private:
 	mutable SharedMutex cs;
 

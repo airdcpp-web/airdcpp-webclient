@@ -43,7 +43,7 @@ class HashManager : public Singleton<HashManager>, public Speaker<HashManagerLis
 
 public:
 	HashManager();
-	~HashManager() final;
+	~HashManager() override;
 
 	/**
 	 * Check if the TTH tree associated with the filename is current.
@@ -163,14 +163,14 @@ private:
 	class Optimizer : public Thread {
 	public:
 		Optimizer();
-		~Optimizer() final;
+		~Optimizer() override;
 
 		void startMaintenance(bool verify);
 		bool isRunning() const noexcept { return running; }
 	private:
 		bool verify = true;
 		atomic<bool> running = { false };
-		int run() final;
+		int run() override;
 	};
 
 	Optimizer optimizer;

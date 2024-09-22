@@ -29,7 +29,7 @@ class CountOutputStream : public OutputStream {
 public:
 	using OutputStream::write;
 	explicit CountOutputStream(OutputStream* aStream) : s(aStream) { }
-	~CountOutputStream() final { if(managed) delete s; }
+	~CountOutputStream() override { if(managed) delete s; }
 
 	size_t flushBuffers(bool aForce) override {
 		size_t n = s->flushBuffers(aForce);
@@ -54,7 +54,7 @@ public:
 	using OutputStream::write;
 
 	explicit CalcOutputStream(OutputStream* aStream) : s(aStream) { }
-	~CalcOutputStream() final { if(managed) delete s; }
+	~CalcOutputStream() override { if(managed) delete s; }
 
 	size_t flushBuffers(bool aForce) override {
 		return s->flushBuffers(aForce);
@@ -76,7 +76,7 @@ template<class Filter, bool managed>
 class CalcInputStream : public InputStream {
 public:
 	explicit CalcInputStream(InputStream* aStream) : s(aStream) { }
-	~CalcInputStream() final { if(managed) delete s; }
+	~CalcInputStream() override { if(managed) delete s; }
 
 	size_t read(void* buf, size_t& len) override {
 		size_t x = s->read(buf, len);
@@ -99,7 +99,7 @@ public:
 		f.reset(aFile);
 	}
 
-	~FilteredOutputStream() final { 
+	~FilteredOutputStream() override { 
 		if(!manage) 
 			f.release(); 
 	}

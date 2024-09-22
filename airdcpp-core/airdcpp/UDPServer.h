@@ -27,7 +27,7 @@ namespace dcpp {
 class UDPServer : public Thread, public CommandHandler<UDPServer> {
 public:
 	UDPServer();
-	~UDPServer() final;
+	~UDPServer() override;
 
 	const string& getPort() const { return port; }
 	void disconnect();
@@ -38,7 +38,7 @@ public:
 private:
 	friend class CommandHandler<UDPServer>;
 
-	int run() final;
+	int run() override;
 
 	std::unique_ptr<Socket> socket;
 	string port;

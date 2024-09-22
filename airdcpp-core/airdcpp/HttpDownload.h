@@ -34,7 +34,7 @@ struct HttpDownload : private HttpConnectionListener, private boost::noncopyable
 	CompletionF f;
 
 	explicit HttpDownload(const string& address, CompletionF&& f, const HttpOptions& aOptions = HttpOptions());
-	~HttpDownload() final;
+	~HttpDownload() override;
 
 	// HttpConnectionListener
 	void on(HttpConnectionListener::Data, HttpConnection*, const uint8_t* buf_, size_t len) noexcept override;

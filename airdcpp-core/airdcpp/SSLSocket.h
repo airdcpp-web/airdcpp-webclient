@@ -47,7 +47,7 @@ public:
 	/** Creates an SSL socket without any verification */
 	explicit SSLSocket(CryptoManager::SSLContext context);
 
-	~SSLSocket() final { verifyData.reset(); }
+	~SSLSocket() override { verifyData.reset(); }
 
 	int read(void* aBuffer, size_t aBufLen) override;
 	int write(const void* aBuffer, size_t aLen) override;

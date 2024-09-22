@@ -37,7 +37,7 @@ class UpdateManager : public Singleton<UpdateManager>, public Speaker<UpdateMana
 
 public:
 	UpdateManager();
-	~UpdateManager() final;
+	~UpdateManager() override;
 
 	struct {
 		string geoip;
@@ -47,7 +47,7 @@ public:
 	} links;
 
 	static void log(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
-	static bool verifyVersionData(const string& data, const ByteVector& singature);
+	static bool verifyVersionData(const string& data, const ByteVector& aSignature);
 
 	enum {
 		CONN_VERSION,

@@ -21,7 +21,7 @@
 
 #include "ConnectivityManager.h"
 #include "ConnectionManager.h"
-#include "CryptoManager.h"
+#include "CryptoUtil.h"
 #include "ProtocolCommandManager.h"
 #include "LinkUtil.h"
 #include "LogManager.h"
@@ -697,7 +697,7 @@ bool ClientManager::sendUDPHooked(AdcCommand& cmd, const CID& aCID, bool aNoCID 
 				uint8_t keyChar[16];
 				Encoder::fromBase32(aKey.c_str(), keyChar, 16);
 
-				CryptoManager::encryptSUDP(keyChar, cmdStr);
+				CryptoUtil::encryptSUDP(keyChar, cmdStr);
 			}
 
 			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);

@@ -82,7 +82,7 @@ namespace dcpp
 		ThrottleManager();
 
 		// destructor
-		~ThrottleManager() final;
+		~ThrottleManager() override;
 		
 		// TimerManagerListener
 		void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;

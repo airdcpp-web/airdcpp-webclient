@@ -740,6 +740,9 @@
     <ClCompile Include="airdcpp\UpdateDownloader.cpp">
       <Filter>Source Files\core\update</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\CryptoUtil.cpp">
+      <Filter>Source Files\core\crypto</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\DCPlusPlus.h">
@@ -1500,6 +1503,9 @@
     </ClInclude>
     <ClInclude Include="airdcpp\UpdateConstants.h">
       <Filter>Header Files\core\update</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\CryptoUtil.h">
+      <Filter>Header Files\util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

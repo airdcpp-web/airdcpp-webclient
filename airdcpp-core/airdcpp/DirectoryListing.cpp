@@ -270,7 +270,7 @@ public:
 		partialList(aList->getPartialList()), listDownloadDate(aListDownloadDate) {
 	}
 
-	~ListLoader() final = default;
+	~ListLoader() override = default;
 
 	void startTag(const string& name, StringPairList& attribs, bool simple) override;
 	void endTag(const string& name) override;

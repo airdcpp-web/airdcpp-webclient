@@ -231,7 +231,7 @@ private:
 
 	// We only want ConnectionManager to create this...
 	explicit UserConnection(/*bool secure_*/) noexcept;
-	~UserConnection() final;
+	~UserConnection() override;
 
 	friend struct DeleteFunction;
 

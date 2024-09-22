@@ -71,23 +71,11 @@ public:
 	// Options that can also be shared with external contexts
 	static void setContextOptions(SSL_CTX* aSSL, bool aServer);
 	static string keyprintToString(const ByteVector& aKP) noexcept;
-
-	static optional<ByteVector> calculateSha1(const string& aData) noexcept;
-
-	static string encryptSUDP(const uint8_t* aKey, const string& aCmd);
-	static bool decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_);
-
-	using SUDPKey = std::unique_ptr<uint8_t[]>;
-	static SUDPKey generateSUDPKey();
 private:
-#ifdef _DEBUG
-	static void testSUDP();
-#endif
-
 	friend class Singleton<CryptoManager>;
 
 	CryptoManager();
-	~CryptoManager() final;
+	~CryptoManager() override;
 
 	ssl::SSL_CTX clientContext;
 	ssl::SSL_CTX clientVerContext;
@@ -99,7 +87,7 @@ private:
 
 	static int getKeyLength(TLSTmpKeys key) noexcept;
 
-	bool certsLoaded;
+	bool certsLoaded = false;
 
 	static char idxVerifyDataName[];
 	static SSLVerifyData trustedKeyprint;
@@ -113,7 +101,7 @@ private:
 		return (b == 0 || b==5 || b==124 || b==96 || b==126 || b==36);
 	}
 
-	static string formatError(X509_STORE_CTX *ctx, const string& message);
+	static string formatError(const X509_STORE_CTX *ctx, const string& message);
 	static string getNameEntryByNID(X509_NAME* name, int nid) noexcept;
 
 	void loadKeyprint(const string& file) noexcept;

@@ -52,7 +52,7 @@ namespace dcpp {
 		static const string& ccpmStateToString(CCPMState aState) noexcept;
 
 		PrivateChat(const HintedUser& aUser, UserConnection* aUc = nullptr);
-		~PrivateChat() final;
+		~PrivateChat() override;
 
 		const CID& getToken() const noexcept {
 			return replyTo.user->getCID();

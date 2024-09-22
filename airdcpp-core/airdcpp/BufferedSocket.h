@@ -149,7 +149,7 @@ private:
 
 	BufferedSocket(char aSeparator, bool v4only);
 
-	~BufferedSocket() final;
+	~BufferedSocket() override;
 
 	CriticalSection cs;
 

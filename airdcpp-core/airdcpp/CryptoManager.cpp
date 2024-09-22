@@ -25,7 +25,6 @@
 #include "Encoder.h"
 #include "File.h"
 #include "LogManager.h"
-#include "ScopedFunctor.h"
 #include "SystemUtil.h"
 #include "version.h"
 
@@ -59,7 +58,6 @@ CryptoManager::SSLVerifyData CryptoManager::trustedKeyprint = { false, "trusted_
 
 CryptoManager::CryptoManager()
 :
-	certsLoaded(false),
 	lock("EXTENDEDPROTOCOLABCABCABCABCABCABC"),
 	pk("DCPLUSPLUS" + VERSIONSTRING)
 {
@@ -81,10 +79,6 @@ CryptoManager::CryptoManager()
 		SSL_CTX_set_verify(clientContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 		SSL_CTX_set_verify(serverContext, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, verify_callback);
 	}
-
-#ifdef _DEBUG
-	testSUDP();
-#endif
 }
 
 void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
@@ -167,27 +161,6 @@ CryptoManager::~CryptoManager() {
 
 string CryptoManager::keyprintToString(const ByteVector& aKP) noexcept {
 	return "SHA256/" + Encoder::toBase32(&aKP[0], aKP.size());
-}
-
-optional<ByteVector> CryptoManager::calculateSha1(const string& aData) noexcept {
-	ByteVector ret(SHA_DIGEST_LENGTH);
-
-	EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
-	const EVP_MD* md = EVP_get_digestbyname("SHA1");
-	ScopedFunctor([mdctx] { EVP_MD_CTX_free(mdctx); });
-
-	auto len = static_cast<unsigned int>(aData.size());
-	auto res = EVP_DigestInit_ex(mdctx, md, NULL);
-	if (res != 1)
-		return nullopt;
-	res = EVP_DigestUpdate(mdctx, aData.c_str(), len);
-	if (res != 1)
-		return nullopt;
-	res = EVP_DigestFinal_ex(mdctx, ret.data(), &len);
-	if (res != 1)
-		return nullopt;
-
-	return ret;
 }
 
 bool CryptoManager::TLSOk() const noexcept{
@@ -551,7 +524,7 @@ int CryptoManager::verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 
 }
 
-string CryptoManager::formatError(X509_STORE_CTX *ctx, const string& message) {
+string CryptoManager::formatError(const X509_STORE_CTX *ctx, const string& message) {
 	X509* cert = NULL;
 	if ((cert = X509_STORE_CTX_get_current_cert(ctx)) != NULL) {
 		X509_NAME* subject = X509_get_subject_name(cert);
@@ -656,99 +629,6 @@ string CryptoManager::makeKey(const string& aLock) {
 	}
 
 	return keySubst(&temp[0], aLock.length(), extra);
-}
-
-#ifdef _DEBUG
-void CryptoManager::testSUDP() {
-	uint8_t keyChar[16];
-	string data = "URES SI30744059452 SL8 FN/Downloads/ DM1644168099 FI440 FO124 TORLHTR7KH7GV7W";
-	Encoder::fromBase32("DR6AOECCMYK5DQ2VDATONKFSWU", keyChar, 16);
-	auto encrypted = encryptSUDP(keyChar, data);
-
-	string result;
-	auto success = decryptSUDP(keyChar, ByteVector(begin(encrypted), end(encrypted)), encrypted.length(), result);
-	dcassert(success);
-	dcassert(compare(data, result) == 0);
-}
-#endif
-
-string CryptoManager::encryptSUDP(const uint8_t* aKey, const string& aCmd) {
-	string inData = aCmd;
-	uint8_t ivd[16] = { };
-
-	// prepend 16 random bytes to message
-	RAND_bytes(ivd, 16);
-	inData.insert(0, (char*)ivd, 16);
-
-	// use PKCS#5 padding to align the message length to the cypher block size (16)
-	uint8_t pad = 16 - (aCmd.length() & 15);
-	inData.append(pad, (char)pad);
-
-	// encrypt it
-	boost::scoped_array<uint8_t> out(new uint8_t[inData.length()]);
-	memset(ivd, 0, 16);
-	auto commandLength = inData.length();
-
-#define CHECK(n) if(!(n)) { dcassert(0); }
-
-	int len, tmpLen;
-	auto ctx = EVP_CIPHER_CTX_new();
-	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 1));
-	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
-	CHECK(EVP_EncryptUpdate(ctx, out.get(), &len, (unsigned char*)inData.c_str(), inData.length()));
-	CHECK(EVP_EncryptFinal_ex(ctx, out.get() + len, &tmpLen));
-	EVP_CIPHER_CTX_free(ctx);
-
-	dcassert((commandLength & 15) == 0);
-
-	inData.clear();
-	inData.insert(0, (char*)out.get(), commandLength);
-	return inData;
-}
-
-bool CryptoManager::decryptSUDP(const uint8_t* aKey, const ByteVector& aData, size_t aDataLen, string& result_) {
-	boost::scoped_array<uint8_t> out(new uint8_t[aData.size()]);
-
-	uint8_t ivd[16] = { };
-
-	auto ctx = EVP_CIPHER_CTX_new();
-
-#define CHECK(n) if(!(n)) { dcassert(0); }
-	int len;
-	CHECK(EVP_CipherInit_ex(ctx, EVP_aes_128_cbc(), NULL, aKey, ivd, 0));
-	CHECK(EVP_CIPHER_CTX_set_padding(ctx, 0));
-	CHECK(EVP_DecryptUpdate(ctx, out.get(), &len, aData.data(), aDataLen));
-	CHECK(EVP_DecryptFinal_ex(ctx, out.get() + len, &len));
-	EVP_CIPHER_CTX_free(ctx);
-
-	// Validate padding and replace with 0-bytes.
-	int padlen = out[aDataLen - 1];
-	if (padlen < 1 || padlen > 16) {
-		return false;
-	}
-
-	bool valid = true;
-	for (auto r = 0; r < padlen; r++) {
-		if (out[aDataLen - padlen + r] != padlen) {
-			valid = false;
-			break;
-		} else {
-			out[aDataLen - padlen + r] = 0;
-		}
-	}
-
-	if (valid) {
-		result_ = (char*)&out[0] + 16;
-		return true;
-	}
-
-	return false;
-}
-
-CryptoManager::SUDPKey CryptoManager::generateSUDPKey() {
-	auto key = std::make_unique<uint8_t[]>(16);
-	RAND_bytes(key.get(), 16);
-	return key;
 }
 
 } // namespace dcpp

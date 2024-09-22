@@ -28,14 +28,30 @@ namespace dcpp {
 class UpdaterCreator {
 
 public:
-	static void signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, bool aMakeHeader = false);
-
+	using ErrorF = std::function<void(const string&)>;
 	using FileListF = std::function<void(StringPairList&, const string&)>;
+
+
+	static bool signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, const ErrorF& aErrorF, bool aMakeHeader);
+
 	// Create an updater zip file from the current application (it must be in the default "compiled" path)
 	// Returns the path of the created updater file
-	static string createUpdate(const FileListF& aFileListF) noexcept;
+	static string createUpdate(const FileListF& aFileListF, const ErrorF& aErrorF) noexcept;
 
-	static void updateVersionFile(const string& aUpdaterPath);
+	static bool updateVersionFile(const string& aUpdaterPath, const ErrorF& aErrorF);
+private:
+	static optional<ByteVector> calculateFileSha1(const string& aVersionFilePath, const ErrorF& aErrorF);
+
+	static bool writePublicKey(const string& aOutputPath, const ByteVector& aPubKey, const ErrorF& aErrorF) noexcept;
+
+	struct Signature {
+		ByteVector sig;
+		ByteVector pubkey;
+	};
+
+	using SignatureData = pair<ByteVector, ByteVector>;
+
+	static optional<SignatureData> signDigest(const ByteVector& aDigest, const string& aPrivateKeyFilePath);
 };
 
 #endif

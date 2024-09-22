@@ -33,7 +33,7 @@ namespace dcpp {
 class TempShareManager : public Speaker<TempShareManagerListener>, public Singleton<TempShareManager>, public UploadFileProvider {
 public:
 	TempShareManager();
-	~TempShareManager() final;
+	~TempShareManager() override;
 
 	optional<TempShareInfo> addTempShare(const TTHValue& aTTH, const string& aName, const string& aFilePath, int64_t aSize, ProfileToken aProfile, const UserPtr& aUser) noexcept;
 	bool removeTempShare(TempShareToken aId) noexcept;

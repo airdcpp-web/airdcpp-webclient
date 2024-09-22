@@ -94,7 +94,7 @@ private:
 	friend class Singleton<DownloadManager>;
 
 	DownloadManager();
-	~DownloadManager() final;
+	~DownloadManager() override;
 
 	void checkDownloads(UserConnection* aConn);
 	bool disconnectSlowSpeed(Download* aDownload, uint64_t aTick) const noexcept;

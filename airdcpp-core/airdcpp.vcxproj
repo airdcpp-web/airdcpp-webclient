@@ -217,6 +217,7 @@
     <ClCompile Include="airdcpp\AdcCommand.cpp" />
     <ClCompile Include="airdcpp\AdcHub.cpp" />
     <ClCompile Include="airdcpp\AppUtil.cpp" />
+    <ClCompile Include="airdcpp\CryptoUtil.cpp" />
     <ClCompile Include="airdcpp\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\DupeUtil.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
@@ -370,6 +371,7 @@
     <ClInclude Include="airdcpp\AdcSupports.h" />
     <ClInclude Include="airdcpp\AddressInfo.h" />
     <ClInclude Include="airdcpp\AppUtil.h" />
+    <ClInclude Include="airdcpp\CryptoUtil.h" />
     <ClInclude Include="airdcpp\DirectoryContentInfo.h" />
     <ClInclude Include="airdcpp\DupeUtil.h" />
     <ClInclude Include="airdcpp\FavoriteUserManager.h" />
