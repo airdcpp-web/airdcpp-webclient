@@ -38,7 +38,7 @@ namespace webserver {
 #endif
 
 		explicit WebServerSettings(WebServerManager* aServer);
-		~WebServerSettings() final;
+		~WebServerSettings() override;
 
 		enum ServerSettings {
 			PLAIN_PORT,

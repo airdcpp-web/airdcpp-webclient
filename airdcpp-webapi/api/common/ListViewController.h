@@ -20,6 +20,7 @@
 #define DCPLUSPLUS_WEBSERVER_LISTVIEW_H
 
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 #include <web-server/SessionListener.h>
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
@@ -59,7 +60,7 @@ namespace webserver {
 			MODULE_METHOD_HANDLER(aModule, access, METHOD_GET, (EXACT_PARAM(viewName), EXACT_PARAM("items"), RANGE_START_PARAM, RANGE_MAX_PARAM), ListViewController::handleGetItems);
 		}
 
-		~ListViewController() final {
+		~ListViewController() override {
 			apiModule->getSession()->removeListener(this);
 
 			timer->stop(true);

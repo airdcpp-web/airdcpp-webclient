@@ -24,6 +24,7 @@
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/ClientManager.h>
 #include <airdcpp/HubEntry.h>
@@ -72,7 +73,7 @@ namespace webserver {
 
 		ClientManager::getInstance()->addListener(this);
 
-		createHook(HOOK_INCOMING_MESSAGE, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_INCOMING_MESSAGE, [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(HubApi::incomingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->incomingHubMessageHook.removeSubscriber(aId);
@@ -80,7 +81,7 @@ namespace webserver {
 			return ClientManager::getInstance()->incomingHubMessageHook.getSubscribers();
 		});
 
-		createHook(HOOK_OUTGOING_MESSAGE, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_OUTGOING_MESSAGE, [this](ActionHookSubscriber&& aSubscriber) {
 			return ClientManager::getInstance()->outgoingHubMessageHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(HubApi::outgoingMessageHook));
 		}, [this](const string& aId) {
 			ClientManager::getInstance()->outgoingHubMessageHook.removeSubscriber(aId);

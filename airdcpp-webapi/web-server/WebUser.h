@@ -26,10 +26,6 @@
 #include <airdcpp/GetSet.h>
 
 namespace webserver {
-	class WebUser;
-	using WebUserPtr = std::shared_ptr<WebUser>;
-	using WebUserList = vector<WebUserPtr>;
-
 	class WebUser {
 	public:
 		WebUser(const std::string& aUserName, const std::string& aPasswordHashOrPlain, bool aIsAdmin = false);

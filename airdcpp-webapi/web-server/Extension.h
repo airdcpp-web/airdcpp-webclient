@@ -44,7 +44,7 @@ namespace webserver {
 		// Throws on errors
 		Extension(const SessionPtr& aSession, const json& aPackageJson);
 
-		~Extension() final;
+		~Extension() override;
 
 		// Reload package.json from the supplied path
 		// Throws on errors

@@ -22,7 +22,9 @@
 
 #include <api/common/Deserializer.h>
 #include <api/common/Validation.h>
+
 #include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
 
 #include <airdcpp/DirectoryListingManager.h>
 #include <airdcpp/PathUtil.h>
@@ -50,7 +52,7 @@ namespace webserver {
 		) 
 	{
 
-		createHook(HOOK_LOAD_DIRECTORY, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_LOAD_DIRECTORY, [this](ActionHookSubscriber&& aSubscriber) {
 			return DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(FilelistApi::directoryLoadHook));
 		}, [](const string& aId) {
 			DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook.removeSubscriber(aId);
@@ -58,7 +60,7 @@ namespace webserver {
 			return DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook.getSubscribers();
 		});
 
-		createHook(HOOK_LOAD_FILE, [this](ActionHookSubscriber&& aSubscriber) {
+		HookApiModule::createHook(HOOK_LOAD_FILE, [this](ActionHookSubscriber&& aSubscriber) {
 			return DirectoryListingManager::getInstance()->loadHooks.fileLoadHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(FilelistApi::fileLoadHook));
 		}, [](const string& aId) {
 			DirectoryListingManager::getInstance()->loadHooks.fileLoadHook.removeSubscriber(aId);

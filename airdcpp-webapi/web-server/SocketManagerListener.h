@@ -17,33 +17,27 @@
 */
 
 
-#ifndef DCPLUSPLUS_WEBSERVER_WEBUSERMANAGER_LISTENER_H
-#define DCPLUSPLUS_WEBSERVER_WEBUSERMANAGER_LISTENER_H
+#ifndef DCPLUSPLUS_WEBSERVER_SOCKET_MANAGER_LISTENER_H
+#define DCPLUSPLUS_WEBSERVER_SOCKET_MANAGER_LISTENER_H
 
 #include "forward.h"
-#include <web-server/WebUser.h>
+#include "stdinc.h"
+
+#include <airdcpp/forward.h>
 
 namespace webserver {
-	class WebUserManagerListener {
+	class SocketManagerListener {
 	public:
-		virtual ~WebUserManagerListener() { }
+		virtual ~SocketManagerListener() = default;
 		template<int I>	struct X { enum { TYPE = I }; };
 
-		typedef X<0> UserAdded;
-		typedef X<1> UserUpdated;
-		typedef X<2> UserRemoved;
+		typedef X<0> SocketConnected;
+		typedef X<1> SocketDisconnected;
 
-		typedef X<3> SessionCreated;
-		typedef X<4> SessionRemoved;
-
-		virtual void on(UserAdded, const WebUserPtr&) noexcept { }
-		virtual void on(UserUpdated, const WebUserPtr&) noexcept { }
-		virtual void on(UserRemoved, const WebUserPtr&) noexcept { }
-
-		virtual void on(SessionCreated, const SessionPtr&) noexcept { }
-		virtual void on(SessionRemoved, const SessionPtr&, int /*aReason*/) noexcept { }
+		virtual void on(SocketConnected, const WebSocketPtr&) noexcept { }
+		virtual void on(SocketDisconnected, const WebSocketPtr&) noexcept { }
 	};
 
 }
 
-#endif // !defined(DCPLUSPLUS_DCPP_WEBUSER_LISTENER_H)
+#endif // !defined(DCPLUSPLUS_WEBSERVER_SOCKET_MANAGER_LISTENER_H)

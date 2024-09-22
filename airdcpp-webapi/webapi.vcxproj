@@ -253,6 +253,7 @@
     <ClInclude Include="web-server\ExtensionManager.h" />
     <ClInclude Include="web-server\ExtensionManagerListener.h" />
     <ClInclude Include="web-server\FileServer.h" />
+    <ClInclude Include="web-server\HttpManager.h" />
     <ClInclude Include="web-server\HttpRequest.h" />
     <ClInclude Include="web-server\HttpUtil.h" />
     <ClInclude Include="web-server\JsonUtil.h" />
@@ -261,6 +262,8 @@
     <ClInclude Include="web-server\NpmRepository.h" />
     <ClInclude Include="web-server\Session.h" />
     <ClInclude Include="web-server\SessionListener.h" />
+    <ClInclude Include="web-server\SocketManager.h" />
+    <ClInclude Include="web-server\SocketManagerListener.h" />
     <ClInclude Include="web-server\SystemUtil.h" />
     <ClInclude Include="web-server\TarFile.h" />
     <ClInclude Include="web-server\Timer.h" />
@@ -347,10 +350,12 @@
     <ClCompile Include="web-server\Extension.cpp" />
     <ClCompile Include="web-server\ExtensionManager.cpp" />
     <ClCompile Include="web-server\FileServer.cpp" />
+    <ClCompile Include="web-server\HttpManager.cpp" />
     <ClCompile Include="web-server\HttpUtil.cpp" />
     <ClCompile Include="web-server\JsonUtil.cpp" />
     <ClCompile Include="web-server\NpmRepository.cpp" />
     <ClCompile Include="web-server\Session.cpp" />
+    <ClCompile Include="web-server\SocketManager.cpp" />
     <ClCompile Include="web-server\SystemUtil.cpp" />
     <ClCompile Include="web-server\TarFile.cpp" />
     <ClCompile Include="web-server\WebServerManager.cpp" />

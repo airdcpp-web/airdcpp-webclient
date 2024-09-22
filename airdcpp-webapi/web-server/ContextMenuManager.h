@@ -75,7 +75,7 @@ public:
 	ENTITY_CONTEXT_MENU(MessageHighlightToken, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
 
 	ContextMenuManager();
-	~ContextMenuManager() final;
+	~ContextMenuManager() override;
 };
 
 } // namespace webserver

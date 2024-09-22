@@ -36,7 +36,7 @@ namespace webserver {
 		static StringList subscriptionList;
 
 		explicit AdcCommandApi(Session* aSession);
-		~AdcCommandApi() final;
+		~AdcCommandApi() override;
 
 		struct AdcParam {
 			string name;

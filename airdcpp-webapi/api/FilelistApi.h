@@ -33,7 +33,7 @@ namespace webserver {
 		static StringList subscriptionList;
 
 		explicit FilelistApi(Session* aSession);
-		~FilelistApi() final;
+		~FilelistApi() override;
 	private:
 		void addList(const DirectoryListingPtr& aList) noexcept;
 

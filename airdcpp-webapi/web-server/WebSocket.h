@@ -40,13 +40,15 @@ namespace webserver {
 		IGETSET(SessionPtr, session, Session, nullptr);
 
 		// Send raw data
-		// Throws on JSON conversion errors (possibly because of failing UTF-8 validation...)
+		// Throws json::exception on JSON conversion errors  (possibly because of failing UTF-8 validation...)
 		//
 		// The goal is that the data is always fully validated, but especially the legacy
 		// NMDC code can't be trusted to parse the incoming messages without incorrectly 
 		// splitting multibyte character sequences in malformed received data...
 		void sendPlain(const json& aJson);
 		void sendApiResponse(const json& aJsonResponse, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept;
+
+		void onData(const string& aPayload, const SessionCallback& aAuthCallback);
 
 		WebSocket(WebSocket&) = delete;
 		WebSocket& operator=(WebSocket&) = delete;

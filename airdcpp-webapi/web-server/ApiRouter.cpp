@@ -20,153 +20,69 @@
 
 #include <web-server/version.h>
 #include <web-server/ApiRouter.h>
-#include <web-server/JsonUtil.h>
+#include <web-server/HttpUtil.h>
 
 #include <web-server/ApiRequest.h>
-#include <web-server/HttpRequest.h>
-#include <web-server/WebServerManager.h>
-#include <web-server/WebUserManager.h>
-#include <web-server/WebSocket.h>
+#include <web-server/Session.h>
 
 #include <api/SessionApi.h>
-
-#include <airdcpp/File.h>
-#include <airdcpp/Util.h>
-#include <airdcpp/StringTokenizer.h>
 
 #include <sstream>
 
 namespace webserver {
-	ApiRouter::ApiRouter() {
-	}
-
-	ApiRouter::~ApiRouter() {
-
-	}
-
-	void ApiRouter::handleSocketRequest(const string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) const noexcept {
-
-		dcdebug("Received socket request: %s\n", Util::truncate(aMessage, 500).c_str());
-
-		// Parse request
-		websocketpp::http::status_code::value code;
-		int callbackId = -1;
-		string method, path;
-		json data;
-		try {
-			WebSocket::parseRequest(aMessage, callbackId, method, path, data);
-		} catch (const std::exception& e) {
-			aSocket->sendApiResponse(nullptr, ApiRequest::toResponseErrorStr("Failed to parse JSON: " + string(e.what())), websocketpp::http::status_code::bad_request, callbackId);
-			return;
-		}
-
-		// Prepare response handlers
-		const auto responseF = [callbackId, aSocket](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
-			aSocket->sendApiResponse(aResponseJsonData, aResponseErrorJson, aStatus, callbackId);
-		};
-
-		bool isDeferred = false;
-		const auto deferredF = [&isDeferred, &responseF]() {
-			isDeferred = true;
-
-			return [responseF](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
-				responseF(aStatus, aResponseJsonData, aResponseErrorJson);
-			};
-		};
-
-		// Route request
-
-		json responseJsonData, responseErrorJson;
-		try {
-			ApiRequest apiRequest(aSocket->getConnectUrl() + path, method, std::move(data), aSocket->getSession(), deferredF, responseJsonData, responseErrorJson);
-			code = handleRequest(apiRequest, aIsSecure, aSocket, aSocket->getIp());
-		} catch (const std::invalid_argument& e) {
-			aSocket->sendApiResponse(nullptr, ApiRequest::toResponseErrorStr(e.what()), websocketpp::http::status_code::bad_request, callbackId);
-			return;
-		}
-
-		if (!isDeferred) {
-			responseF(code, responseJsonData, responseErrorJson);
-		}
-	}
-
-	websocketpp::http::status_code::value ApiRouter::handleHttpRequest(const HttpRequest& aRequest, json& output_, json& error_, const ApiDeferredHandler& aDeferredHandler) const noexcept 
-	{
-		const auto& httpRequest = aRequest.httpRequest;
-		dcdebug("Received HTTP request: %s\n", httpRequest.get_body().c_str());
-
-		json bodyJson;
-		if (!httpRequest.get_body().empty()) {
-			try {
-				bodyJson = json::parse(httpRequest.get_body());
-			} catch (const std::exception& e) {
-				error_ = ApiRequest::toResponseErrorStr("Failed to parse JSON: " + string(e.what()));
-				return websocketpp::http::status_code::bad_request;
-			}
-		}
-
-		try {
-			ApiRequest apiRequest(aRequest.path, httpRequest.get_method(), std::move(bodyJson), aRequest.session, aDeferredHandler, output_, error_);
-			const auto status = handleRequest(apiRequest, aRequest.secure, nullptr, aRequest.ip);
-			return status;
-		} catch (const std::invalid_argument& e) {
-			error_ = ApiRequest::toResponseErrorStr(string(e.what()));
-		}
-
-		return websocketpp::http::status_code::bad_request;
-	}
-
-	api_return ApiRouter::handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) const noexcept {
-		if (aRequest.getApiVersion() != API_VERSION) {
-			aRequest.setResponseErrorStr("Unsupported API version");
+	api_return ApiRouter::handleRequest(RouterRequest& aRequest) noexcept {
+		auto& apiRequest = aRequest.apiRequest;
+		if (apiRequest.getApiVersion() != API_VERSION) {
+			apiRequest.setResponseErrorStr("Unsupported API version");
 			return websocketpp::http::status_code::precondition_failed;
 		}
 
 		int code;
 		try {
 			// Special case because we may not have the session yet
-			if (aRequest.getApiModule() == "sessions" && !aRequest.getSession()) {
-				return routeAuthRequest(aRequest, aIsSecure, aSocket, aIp);
+			if (apiRequest.getApiModule() == "sessions" && !apiRequest.getSession()) {
+				return routeAuthRequest(aRequest);
 			}
 
 			// Require auth for all other modules
-			if (!aRequest.getSession()) {
-				aRequest.setResponseErrorStr("Not authorized");
+			if (!apiRequest.getSession()) {
+				apiRequest.setResponseErrorStr("Not authorized");
 				return websocketpp::http::status_code::unauthorized;
 			}
 
 			// Require using the same protocol that was used for logging in
-			if (aRequest.getSession()->getSessionType() != Session::TYPE_BASIC_AUTH && (aRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
-				aRequest.setResponseErrorStr("Protocol mismatch");
+			if (apiRequest.getSession()->getSessionType() != Session::TYPE_BASIC_AUTH && (apiRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aRequest.isSecure) {
+				apiRequest.setResponseErrorStr("Protocol mismatch");
 				return websocketpp::http::status_code::not_acceptable;
 			}
 
-			aRequest.getSession()->updateActivity();
+			apiRequest.getSession()->updateActivity();
 
-			code = aRequest.getSession()->handleRequest(aRequest);
+			code = apiRequest.getSession()->handleRequest(apiRequest);
 		} catch (const ArgumentException& e) {
-			aRequest.setResponseErrorJson(e.getErrorJson());
+			apiRequest.setResponseErrorJson(e.getErrorJson());
 			code = CODE_UNPROCESSABLE_ENTITY;
 		} catch (const RequestException& e) {
-			aRequest.setResponseErrorStr(e.what());
+			apiRequest.setResponseErrorStr(e.what());
 			code = e.getCode();
 		} catch (const std::exception& e) {
-			aRequest.setResponseErrorStr(e.what());
+			apiRequest.setResponseErrorStr(e.what());
 			code = websocketpp::http::status_code::bad_request;
 		}
 
-		dcassert(HttpUtil::isStatusOk(code) || code == CODE_DEFERRED || aRequest.hasErrorMessage());
+		dcassert(HttpUtil::isStatusOk(code) || code == CODE_DEFERRED || apiRequest.hasErrorMessage());
 		return static_cast<api_return>(code);
 	}
 
-	api_return ApiRouter::routeAuthRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) const {
-		if (aRequest.getPathTokenAt(0) == "authorize" && aRequest.getMethod() == METHOD_POST) {
-			return SessionApi::handleLogin(aRequest, aIsSecure, aSocket, aIp);
-		} else if (aRequest.getPathTokenAt(0) == "socket" && aRequest.getMethod() == METHOD_POST) {
-			return SessionApi::handleSocketConnect(aRequest, aIsSecure, aSocket);
+	api_return ApiRouter::routeAuthRequest(RouterRequest& aRequest) {
+		auto& apiRequest = aRequest.apiRequest;
+		if (apiRequest.getPathTokenAt(0) == "authorize" && apiRequest.getMethod() == METHOD_POST) {
+			return SessionApi::handleLogin(aRequest);
+		} else if (apiRequest.getPathTokenAt(0) == "socket" && apiRequest.getMethod() == METHOD_POST) {
+			return SessionApi::handleSocketConnect(aRequest);
 		}
 
-		aRequest.setResponseErrorStr("Invalid command/method (not authenticated)");
+		apiRequest.setResponseErrorStr("Invalid command/method (not authenticated)");
 		return websocketpp::http::status_code::bad_request;
 	}
 }

@@ -18,11 +18,14 @@
 
 #include "stdinc.h"
 
+#include <web-server/WebServerManager.h>
+
 #include <web-server/ApiSettingItem.h>
 #include <web-server/ContextMenuManager.h>
 #include <web-server/ExtensionManager.h>
+#include <web-server/HttpManager.h>
+#include <web-server/SocketManager.h>
 #include <web-server/WebServerSettings.h>
-#include <web-server/WebServerManager.h>
 #include <web-server/WebUserManager.h>
 
 #include <airdcpp/typedefs.h>
@@ -33,13 +36,10 @@
 #include <airdcpp/PathUtil.h>
 #include <airdcpp/SettingsManager.h>
 #include <airdcpp/SimpleXML.h>
-#include <airdcpp/SystemUtil.h>
 #include <airdcpp/TimerManager.h>
 
 #define LEGACY_CONFIG_NAME_XML "WebServer.xml"
 #define CONFIG_DIR AppUtil::PATH_USER_CONFIG
-
-#define AUTHENTICATION_TIMEOUT 60 // seconds
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
 
@@ -50,13 +50,12 @@ namespace webserver {
 		tasks(4),
 		work(tasks)
 	{
-
-		fileServer.setResourcePath(AppUtil::getPath(AppUtil::PATH_RESOURCES) + "web-resources" + PATH_SEPARATOR);
-
 		settingsManager = make_unique<WebServerSettings>(this);
 		extManager = make_unique<ExtensionManager>(this);
 		userManager = make_unique<WebUserManager>(this);
 		contextMenuManager = make_unique<ContextMenuManager>();
+		socketManager = make_unique<SocketManager>(this);
+		httpManager = make_unique<HttpManager>(this);
 
 		plainServerConfig = make_unique<ServerConfig>(settingsManager->getSettingItem(WebServerSettings::PLAIN_PORT), settingsManager->getSettingItem(WebServerSettings::PLAIN_BIND));
 		tlsServerConfig = make_unique<ServerConfig>(settingsManager->getSettingItem(WebServerSettings::TLS_PORT), settingsManager->getSettingItem(WebServerSettings::TLS_BIND));
@@ -133,9 +132,8 @@ namespace webserver {
 	}
 
 	bool WebServerManager::startup(const MessageCallback& errorF, const string& aWebResourcePath, const Callback& aShutdownF) {
-		if (!aWebResourcePath.empty()) {
-			fileServer.setResourcePath(aWebResourcePath);
-		}
+		httpManager->start(aWebResourcePath);
+		socketManager->start();
 
 		shutdownF = aShutdownF;
 		return start(errorF);
@@ -169,8 +167,6 @@ namespace webserver {
 			// initialize asio with our external io_service rather than an internal one
 			endpoint_plain.init_asio(&ios);
 			endpoint_tls.init_asio(&ios);
-
-			//endpoint_plain.set_pong_handler(std::bind(&WebServerManager::onPongReceived, this, _1, _2));
 		} catch (const websocketpp::exception& e) {
 			if (errorF) {
 				errorF(e.what());
@@ -180,8 +176,11 @@ namespace webserver {
 		}
 
 		// Handlers
-		setEndpointHandlers(endpoint_plain, false, this);
-		setEndpointHandlers(endpoint_tls, true, this);
+		socketManager->setEndpointHandlers(endpoint_plain, false);
+		socketManager->setEndpointHandlers(endpoint_tls, true);
+
+		httpManager->setEndpointHandlers(endpoint_plain, false);
+		httpManager->setEndpointHandlers(endpoint_tls, true);
 
 		// Misc options
 		setEndpointOptions(endpoint_plain);
@@ -284,29 +283,11 @@ namespace webserver {
 				30 * 1000
 			);
 
-			socketPingTimer = addTimer(
-				[this] {
-					pingTimer();
-				},
-				WEBCFG(PING_INTERVAL).num() * 1000
-			);
-
 			minuteTimer->start(false);
-			socketPingTimer->start(false);
 		}
 
 		fire(WebServerManagerListener::Started());
 		return true;
-	}
-
-	WebSocketPtr WebServerManager::getSocket(websocketpp::connection_hdl hdl) const noexcept {
-		RLock l(cs);
-		auto s = sockets.find(hdl);
-		if (s != sockets.end()) {
-			return s->second;
-		}
-
-		return nullptr;
 	}
 
 	void WebServerManager::onData(const string& aData, TransportType aType, Direction aDirection, const string& aIP) noexcept {
@@ -314,52 +295,6 @@ namespace webserver {
 		addAsyncTask([=, this] {
 			fire(WebServerManagerListener::Data(), aData, aType, aDirection, aIP);
 		});
-	}
-
-	// For debugging only
-	void WebServerManager::handlePongReceived(websocketpp::connection_hdl hdl, const string& /*aPayload*/) {
-		auto socket = getSocket(hdl);
-		if (!socket) {
-			return;
-		}
-
-		socket->debugMessage("PONG succeed");
-	}
-
-	void WebServerManager::handlePongTimeout(websocketpp::connection_hdl hdl, const string&) {
-		auto socket = getSocket(hdl);
-		if (!socket) {
-			return;
-		}
-
-		if (socket->getSession() && socket->getSession()->getSessionType() == Session::SessionType::TYPE_EXTENSION && WEBCFG(EXTENSIONS_DEBUG_MODE).boolean()) {
-			log("Disconnecting extension " + socket->getSession()->getUser()->getUserName() + " because of ping timeout", LogMessage::SEV_INFO);
-		}
-
-		socket->debugMessage("PONG timed out");
-
-		socket->close(websocketpp::close::status::internal_endpoint_error, "PONG timed out");
-	}
-
-	void WebServerManager::pingTimer() noexcept {
-		vector<WebSocketPtr> inactiveSockets;
-		auto tick = GET_TICK();
-
-		{
-			RLock l(cs);
-			for (const auto& socket : sockets | views::values) {
-				socket->ping();
-
-				// Disconnect sockets without a session after one minute
-				if (!socket->getSession() && socket->getTimeCreated() + AUTHENTICATION_TIMEOUT * 1000ULL < tick) {
-					inactiveSockets.push_back(socket);
-				}
-			}
-		}
-
-		for (const auto& s : inactiveSockets) {
-			s->close(websocketpp::close::status::policy_violation, "Authentication timeout");
-		}
 	}
 
 	context_ptr WebServerManager::handleInitTls(websocketpp::connection_hdl hdl) {
@@ -392,20 +327,9 @@ namespace webserver {
 		return ctx;
 	}
 
-	void WebServerManager::disconnectSockets(const string& aMessage) noexcept {
-		RLock l(cs);
-		for (const auto& socket : sockets | views::values) {
-			socket->close(websocketpp::close::status::going_away, aMessage);
-		}
-	}
-
 	void WebServerManager::stop() noexcept {
-		fileServer.stop();
-
 		if (minuteTimer)
 			minuteTimer->stop(true);
-		if (socketPingTimer)
-			socketPingTimer->stop(true);
 
 		fire(WebServerManagerListener::Stopping());
 
@@ -414,18 +338,8 @@ namespace webserver {
 		if(endpoint_tls.is_listening())
 			endpoint_tls.stop_listening();
 
-		disconnectSockets(STRING(WEB_SERVER_SHUTTING_DOWN));
-
-		for (;;) {
-			{
-				RLock l(cs);
-				if (sockets.empty()) {
-					break;
-				}
-			}
-
-			Thread::sleep(50);
-		}
+		httpManager->stop();
+		socketManager->stop();
 
 		ios.stop();
 		tasks.stop();
@@ -442,55 +356,12 @@ namespace webserver {
 		fire(WebServerManagerListener::Stopped());
 	}
 
-	WebSocketPtr WebServerManager::getSocket(LocalSessionId aSessionToken) noexcept {
-		RLock l(cs);
-		auto i = ranges::find_if(sockets | views::values, [&](const WebSocketPtr& s) {
-			return s->getSession() && s->getSession()->getId() == aSessionToken;
-		});
-
-		return i.base() == sockets.end() ? nullptr : *i;
-	}
-
 	TimerPtr WebServerManager::addTimer(Callback&& aCallback, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper) noexcept {
 		return make_shared<Timer>(std::move(aCallback), tasks, aIntervalMillis, aCallbackWrapper);
 	}
 
 	void WebServerManager::addAsyncTask(Callback&& aCallback) noexcept {
 		tasks.post(std::move(aCallback));
-	}
-
-	void WebServerManager::addSocket(websocketpp::connection_hdl hdl, const WebSocketPtr& aSocket) noexcept {
-		{
-			WLock l(cs);
-			sockets.emplace(hdl, aSocket);
-		}
-
-		fire(WebServerManagerListener::SocketConnected(), aSocket);
-	}
-
-	void WebServerManager::handleSocketDisconnected(websocketpp::connection_hdl hdl) {
-		WebSocketPtr socket = getSocket(hdl);
-		if (!socket) {
-			dcassert(0);
-			return;
-		}
-
-		// Process all listener events before removing the socket from the list to avoid issues on shutdown
-		dcdebug("Socket disconnected: %s\n", socket->getSession() ? socket->getSession()->getAuthToken().c_str() : "(no session)");
-		fire(WebServerManagerListener::SocketDisconnected(), socket);
-
-		{
-			WLock l(cs);
-			auto s = sockets.find(hdl);
-			dcassert(s != sockets.end());
-			if (s == sockets.end()) {
-				return;
-			}
-
-			sockets.erase(s);
-		}
-
-		dcassert(socket.use_count() == 1);
 	}
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {

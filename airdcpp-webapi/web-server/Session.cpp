@@ -107,21 +107,13 @@ namespace webserver {
 	}
 
 	void Session::onSocketConnected(const WebSocketPtr& aSocket) noexcept {
-		auto oldSocket = getServer()->getSocket(id);
-		if (oldSocket) {
-			oldSocket->debugMessage("Replace session socket");
-
-			// This must be called before the new socket is associated with this session
-			fire(SessionListener::SocketConnected(), oldSocket);
-			oldSocket->setSession(nullptr);
-
-			oldSocket->close(websocketpp::close::status::policy_violation, "Another socket was connected to this session");
-		}
-
+		hasSocket = true;
 		fire(SessionListener::SocketConnected(), aSocket);
 	}
 
 	void Session::onSocketDisconnected() noexcept {
+		hasSocket = false;
+
 		// Set the expiration time from this moment if there is no further activity
 		updateActivity();
 
@@ -130,6 +122,15 @@ namespace webserver {
 
 	void Session::updateActivity() noexcept {
 		lastActivity = GET_TICK();
+	}
+
+	bool Session::isTimeout(uint64_t aTick) const noexcept {
+		// Don't remove sessions with an active socket
+		if (hasSocket) {
+			return false;
+		}
+
+		return maxInactivity > 0 && lastActivity + maxInactivity < aTick;
 	}
 
 	void Session::reportError(const string& aError) noexcept {

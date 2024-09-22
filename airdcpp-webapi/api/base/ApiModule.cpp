@@ -18,6 +18,7 @@
 
 #include "stdinc.h"
 
+#include <web-server/SocketManager.h>
 #include <web-server/WebSocket.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebUserManager.h>
@@ -128,7 +129,7 @@ namespace webserver {
 
 
 	SubscribableApiModule::SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions) : ApiModule(aSession), subscriptionAccess(aSubscriptionAccess) {
-		socket = WebServerManager::getInstance()->getSocket(aSession->getId());
+		socket = aSession->getServer()->getSocketManager().getSocket(aSession->getId());
 
 		for (const auto& s: aSubscriptions) {
 			subscriptions.emplace(s, false);

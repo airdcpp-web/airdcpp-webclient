@@ -89,10 +89,11 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	websocketpp::http::status_code::value SessionApi::handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIP) {
+	websocketpp::http::status_code::value SessionApi::handleLogin(RouterRequest& aRequest) {
+		auto& apiRequest = aRequest.apiRequest;
 		auto& um = WebServerManager::getInstance()->getUserManager();
 
-		const auto& reqJson = aRequest.getRequestBody();
+		const auto& reqJson = apiRequest.getRequestBody();
 
 
 		auto grantType = JsonUtil::getOptionalFieldDefault<string>("grant_type", reqJson, "password");
@@ -100,7 +101,7 @@ namespace webserver {
 
 
 		SessionPtr session = nullptr;
-		auto sessionType = aIsSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN;
+		auto sessionType = aRequest.isSecure ? Session::TYPE_SECURE : Session::TYPE_PLAIN;
 
 		if (grantType == "password") {
 			auto username = JsonUtil::getField<string>("username", reqJson, false);
@@ -108,9 +109,9 @@ namespace webserver {
 
 			try {
 				session = um.authenticateSession(username, password,
-					sessionType, inactivityMinutes, aIP);
-			} catch (const std::exception& e) {
-				aRequest.setResponseErrorStr(e.what());
+					sessionType, inactivityMinutes, aRequest.ip);
+			} catch (const std::domain_error& e) {
+				apiRequest.setResponseErrorStr(e.what());
 				return websocketpp::http::status_code::unauthorized;
 			}
 		} else if (grantType == "refresh_token") {
@@ -118,9 +119,9 @@ namespace webserver {
 
 			try {
 				session = um.authenticateSession(refreshToken,
-					sessionType, inactivityMinutes, aIP);
-			} catch (const std::exception& e) {
-				aRequest.setResponseErrorStr(e.what());
+					sessionType, inactivityMinutes, aRequest.ip);
+			} catch (const std::domain_error& e) {
+				apiRequest.setResponseErrorStr(e.what());
 				return websocketpp::http::status_code::bad_request;
 			}
 		} else {
@@ -129,13 +130,13 @@ namespace webserver {
 		}
 
 		dcassert(session);
-		if (aSocket) {
-			session->onSocketConnected(aSocket);
-			aSocket->setSession(session);
+
+		if (aRequest.authenticationCallback) {
+			aRequest.authenticationCallback(session);
 		}
 
 
-		aRequest.setResponseBody(serializeLoginInfo(session, um.createRefreshToken(session->getUser())));
+		apiRequest.setResponseBody(serializeLoginInfo(session, um.createRefreshToken(session->getUser())));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -156,29 +157,29 @@ namespace webserver {
 		return ret;
 	}
 
-	api_return SessionApi::handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket) {
-		if (!aSocket) {
-			aRequest.setResponseErrorStr("This method may be called only via a websocket");
+	api_return SessionApi::handleSocketConnect(RouterRequest& aRequest) {
+		auto& apiRequest = aRequest.apiRequest;
+		if (!aRequest.authenticationCallback) {
+			apiRequest.setResponseErrorStr("This method may be called only via a websocket");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		auto sessionToken = JsonUtil::getField<string>("auth_token", aRequest.getRequestBody(), false);
+		auto sessionToken = JsonUtil::getField<string>("auth_token", apiRequest.getRequestBody(), false);
 
 		auto session = WebServerManager::getInstance()->getUserManager().getSession(sessionToken);
 		if (!session) {
-			aRequest.setResponseErrorStr("Invalid session token");
+			apiRequest.setResponseErrorStr("Invalid session token");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		if ((session->getSessionType() == Session::TYPE_SECURE) != aIsSecure) {
-			aRequest.setResponseErrorStr("Invalid protocol");
+		if ((session->getSessionType() == Session::TYPE_SECURE) != aRequest.isSecure) {
+			apiRequest.setResponseErrorStr("Invalid protocol");
 			return websocketpp::http::status_code::bad_request;
 		}
 
-		session->onSocketConnected(aSocket);
-		aSocket->setSession(session);
+		aRequest.authenticationCallback(session);
 
-		aRequest.setResponseBody(serializeLoginInfo(session, Util::emptyString));
+		apiRequest.setResponseBody(serializeLoginInfo(session, Util::emptyString));
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -209,7 +210,7 @@ namespace webserver {
 		return logout(aRequest, s);
 	}
 
-	api_return SessionApi::handleGetCurrentSession(ApiRequest& aRequest) {
+	api_return SessionApi::handleGetCurrentSession(ApiRequest& aRequest) const {
 		aRequest.setResponseBody(serializeSession(aRequest.getSession()));
 		return websocketpp::http::status_code::ok;
 	}
@@ -237,18 +238,18 @@ namespace webserver {
 	}
 
 	void SessionApi::on(WebUserManagerListener::SessionCreated, const SessionPtr& aSession) noexcept {
-		maybeSend("session_created", [&] {
+		maybeSend("session_created", [&aSession] {
 			return json({
 				{ "session", serializeSession(aSession) },
 			});
 		});
 	}
 
-	void SessionApi::on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, bool aTimedOut) noexcept {
-		maybeSend("session_removed", [&] {
+	void SessionApi::on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, int aReason) noexcept {
+		maybeSend("session_removed", [&aSession, &aReason] {
 			return json({
 				{ "session", serializeSession(aSession) },
-				{ "timed_out", aTimedOut },
+				{ "timed_out", static_cast<WebUserManager::SessionRemovalReason>(aReason) == WebUserManager::SessionRemovalReason::TIMEOUT },
 			});
 		});
 	}

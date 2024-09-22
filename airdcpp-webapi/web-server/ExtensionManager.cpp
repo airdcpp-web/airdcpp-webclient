@@ -21,11 +21,13 @@
 #include <web-server/ExtensionManager.h>
 #include <web-server/Extension.h>
 #include <web-server/NpmRepository.h>
+#include <web-server/SocketManager.h>
 #include <web-server/TarFile.h>
 #include <web-server/WebServerManager.h>
+#include <web-server/WebServerSettings.h>
 #include <web-server/WebSocket.h>
 
-#include <airdcpp/CryptoManager.h>
+#include <airdcpp/CryptoUtil.h>
 #include <airdcpp/Encoder.h>
 #include <airdcpp/Exception.h>
 #include <airdcpp/File.h>
@@ -57,11 +59,12 @@ namespace webserver {
 	}
 
 	void ExtensionManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
-		// wsm->log(aMsg, aSeverity);
 		LogManager::getInstance()->message(aMsg, aSeverity, STRING(EXTENSIONS));
 	}
 
 	void ExtensionManager::on(WebServerManagerListener::Started) noexcept {
+		wsm->getSocketManager().addListener(this);
+
 		// Don't add in the constructor as core may not have been initialized at that point
 		UpdateManager::getInstance()->addListener(this);
 
@@ -91,6 +94,8 @@ namespace webserver {
 			}
 		}
 
+		wsm->getSocketManager().removeListener(this);
+
 		UpdateManager::getInstance()->removeListener(this);
 		fire(ExtensionManagerListener::Stopped());
 	}
@@ -112,7 +117,7 @@ namespace webserver {
 		extensions.clear();
 	}
 
-	void ExtensionManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
+	void ExtensionManager::on(SocketManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
 		if (!aSocket->getSession()) {
 			return;
 		}
@@ -342,7 +347,7 @@ namespace webserver {
 			return true;
 		}
 
-		auto calculatedSha1 = CryptoManager::calculateSha1(aData);
+		auto calculatedSha1 = CryptoUtil::calculateSha1(aData);
 		if (calculatedSha1) {
 			char mdString[SHA_DIGEST_LENGTH * 2 + 1];
 			for (int i = 0; i < SHA_DIGEST_LENGTH; i++)
