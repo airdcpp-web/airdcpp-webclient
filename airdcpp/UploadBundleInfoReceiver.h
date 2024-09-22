@@ -46,7 +46,7 @@ public:
 	size_t getRunningBundleCount() const noexcept;
 
 	UploadBundleInfoReceiver() noexcept;
-	~UploadBundleInfoReceiver() final;
+	~UploadBundleInfoReceiver() override;
 private:
 	mutable SharedMutex cs;
 	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;

@@ -38,7 +38,7 @@ namespace dcpp {
 	class TransferInfoManager : public Singleton<TransferInfoManager>, public Speaker<TransferInfoManagerListener>, private ConnectionManagerListener, private DownloadManagerListener, private UploadManagerListener {
 	public:
 		TransferInfoManager();
-		~TransferInfoManager() final;
+		~TransferInfoManager() override;
 
 		TransferInfo::List getTransfers() const noexcept;
 		TransferInfoPtr findTransfer(const string& aToken) const noexcept;

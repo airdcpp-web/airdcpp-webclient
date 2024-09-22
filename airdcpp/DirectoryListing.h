@@ -221,7 +221,7 @@ public:
 	};
 
 	DirectoryListing(const HintedUser& aUser, bool aPartial, const string& aFileName, bool aIsClientView, Directory::ValidationHooks* aLoadHooks, bool aIsOwnList = false);
-	~DirectoryListing() final;
+	~DirectoryListing() override;
 	
 	const CID& getToken() const noexcept {
 		return hintedUser.user->getCID();

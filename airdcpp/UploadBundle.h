@@ -37,7 +37,7 @@ public:
 	using BundleUploadList = set<TransferToken>;
 
 	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
-	~UploadBundle() final;
+	~UploadBundle() override;
 
 	GETSET(int64_t, size, Size);
 

@@ -43,7 +43,7 @@ public:
 	using SharedFileHandleMap = unordered_map<string, unique_ptr<SharedFileHandle>, noCaseStringHash, noCaseStringEq>;
 
     SharedFileStream(const string& aFileName, int access, int mode);
-    ~SharedFileStream() final;
+    ~SharedFileStream() override;
 
 	size_t write(const void* buf, size_t len) override;
 	size_t read(void* buf, size_t& len) override;

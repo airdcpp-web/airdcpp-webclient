@@ -38,7 +38,7 @@ public:
 	void onPSR(const AdcCommand& cmd, UserPtr from, const string& remoteIp);
 
 	PartialFileSharingManager();
-	~PartialFileSharingManager() final;
+	~PartialFileSharingManager() override;
 	
 	ADC_CMD(PSR, 'P', 'S', 'R');
 private:

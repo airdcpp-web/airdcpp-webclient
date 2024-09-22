@@ -74,7 +74,7 @@ private:
 	friend class Singleton<FavoriteUserManager>;
 	
 	FavoriteUserManager();
-	~FavoriteUserManager() final;
+	~FavoriteUserManager() override;
 
 	ActionHookResult<MessageHighlightList> onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 	ActionHookResult<MessageHighlightList> onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;

@@ -164,7 +164,7 @@ public:
 	
 	QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag, time_t aAdded, const TTHValue& tth, const string& aTempTarget);
 
-	~QueueItem() final;
+	~QueueItem() override;
 
 	bool usesSmallSlot() const noexcept;
 

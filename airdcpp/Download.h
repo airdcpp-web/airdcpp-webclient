@@ -62,7 +62,7 @@ public:
 
 	void getParams(const UserConnection& aSource, ParamMap& params) const noexcept override;
 
-	~Download() final;
+	~Download() override;
 
 	/** @return Target filename without path. */
 	string getTargetFileName() const noexcept;

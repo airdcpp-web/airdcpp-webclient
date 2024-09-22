@@ -78,7 +78,7 @@ public:
 	string getTypeIdByExtension(const string& aExtension, bool aDefaultsOnly = false) const noexcept;
 
 	explicit SearchTypes(SearchTypeChangeHandler&& aSearchTypeChangeHandler);
-	~SearchTypes() final;
+	~SearchTypes() override;
 private:
 	static ResourceManager::Strings types[Search::TYPE_LAST];
 

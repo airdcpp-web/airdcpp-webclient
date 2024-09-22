@@ -48,7 +48,7 @@ public:
 	ShareRefreshTaskList getRefreshTasks() const noexcept;
 
 	explicit(false) ShareTasks(ShareTasksManager* const aManager);
-	~ShareTasks() final;
+	~ShareTasks() override;
 
 	// Add directories for refresh
 	RefreshTaskQueueInfo addRefreshTask(ShareRefreshPriority aPriority, const StringList& aDirs, ShareRefreshType aRefreshType, const string& aDisplayName = Util::emptyString, const ProgressFunction& aProgressF = nullptr) noexcept;

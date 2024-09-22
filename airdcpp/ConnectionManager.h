@@ -197,7 +197,7 @@ private:
 	class Server : public Thread {
 	public:
 		Server(bool secure, const string& port_, const string& ipv4, const string& ipv6);
-		~Server() final { die = true; join(); }
+		~Server() override { die = true; join(); }
 
 		const string& getPort() const { return port; }
 
@@ -239,7 +239,7 @@ private:
 	friend class Singleton<ConnectionManager>;
 	ConnectionManager();
 
-	~ConnectionManager() final = default;
+	~ConnectionManager() override = default;
 	
 	UserConnection* getConnection(bool aNmdc) noexcept;
 	void putConnection(UserConnection* aConn) noexcept;

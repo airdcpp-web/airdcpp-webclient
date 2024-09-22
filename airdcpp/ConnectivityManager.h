@@ -86,7 +86,7 @@ private:
 	friend class MappingManager;
 	
 	ConnectivityManager();
-	~ConnectivityManager() final = default;
+	~ConnectivityManager() override = default;
 
 	void startMapping();
 	void startMapping(bool v6);

@@ -121,7 +121,7 @@ private:
 
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;
-	~UploadManager() final;
+	~UploadManager() override;
 
 	bool standardSlotsRemaining(const UserPtr& aUser) const noexcept;
 	bool lowSpeedSlotsRemaining() const noexcept;
