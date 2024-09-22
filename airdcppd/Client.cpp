@@ -33,6 +33,8 @@
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/UpdateManager.h>
 
+#include <web-server/FileServer.h>
+#include <web-server/HttpManager.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
@@ -52,7 +54,7 @@ void Client::run(const dcpp::StartupParams& aStartupParams) {
 		printf(".\n\n%s running, press ctrl-c to exit...\n\n", shortVersionString.c_str());
 		printf("HTTP port: %d, HTTPS port: %d\n", WEBCFG(PLAIN_PORT).num(), WEBCFG(TLS_PORT).num());
 		printf("Config path: %s\n", AppUtil::getPath(AppUtil::PATH_USER_CONFIG).c_str());
-		printf("Web resources path: %s\n", wsm->getResourcePath().c_str());
+		printf("Web resources path: %s\n", wsm->getHttpManager().getFileServer().getResourcePath().c_str());
 	}
 
 	shutdownSemaphore.wait();

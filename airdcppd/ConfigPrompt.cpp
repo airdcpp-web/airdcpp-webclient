@@ -26,6 +26,7 @@
 
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
+#include <web-server/WebUserManager.h>
 #include <web-server/WebUser.h>
 
 namespace airdcppd {
