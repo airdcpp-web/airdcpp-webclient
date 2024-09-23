@@ -37,7 +37,7 @@ namespace dcpp {
 	public:
 		typedef unordered_map<UserPtr, DirectoryListingPtr, User::Hash> DirectoryListingMap;
 
-		DirectoryListing::Directory::ValidationHooks loadHooks;
+		DirectoryListing::ValidationHooks loadHooks;
 
 		// Browse own share, will always success
 		DirectoryListingPtr openOwnList(ProfileToken aProfile, const string& aDir = ADC_ROOT_STR) noexcept;

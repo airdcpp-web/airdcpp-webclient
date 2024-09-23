@@ -218,7 +218,7 @@
     <ClCompile Include="airdcpp\AdcHub.cpp" />
     <ClCompile Include="airdcpp\AppUtil.cpp" />
     <ClCompile Include="airdcpp\CryptoUtil.cpp" />
-    <ClCompile Include="airdcpp\DirectSearch.cpp" />
+    <ClCompile Include="airdcpp\DirectoryListingDirectory.cpp" />
     <ClCompile Include="airdcpp\DupeUtil.cpp" />
     <ClCompile Include="airdcpp\ErrorCollector.cpp" />
     <ClCompile Include="airdcpp\FavoriteUserManager.cpp" />
@@ -229,9 +229,12 @@
     <ClCompile Include="airdcpp\HBRIValidation.cpp" />
     <ClCompile Include="airdcpp\IgnoreManager.cpp" />
     <ClCompile Include="airdcpp\LinkUtil.cpp" />
+    <ClCompile Include="airdcpp\ListLoader.cpp" />
     <ClCompile Include="airdcpp\MessageCache.cpp" />
     <ClCompile Include="airdcpp\MessageHighlight.cpp" />
     <ClCompile Include="airdcpp\modules\ADLSearch.cpp" />
+    <ClCompile Include="airdcpp\modules\DirectoryListingSearch.cpp" />
+    <ClCompile Include="airdcpp\modules\DirectSearch.cpp" />
     <ClCompile Include="airdcpp\NetworkUtil.cpp" />
     <ClCompile Include="airdcpp\PartialFileSharingManager.cpp" />
     <ClCompile Include="airdcpp\PartialBundleSharingManager.cpp" />
@@ -373,11 +376,15 @@
     <ClInclude Include="airdcpp\AppUtil.h" />
     <ClInclude Include="airdcpp\CryptoUtil.h" />
     <ClInclude Include="airdcpp\DirectoryContentInfo.h" />
+    <ClInclude Include="airdcpp\DirectoryListingDirectory.h" />
     <ClInclude Include="airdcpp\DupeUtil.h" />
     <ClInclude Include="airdcpp\FavoriteUserManager.h" />
     <ClInclude Include="airdcpp\FavoriteUserManagerListener.h" />
     <ClInclude Include="airdcpp\FloodCounter.h" />
     <ClInclude Include="airdcpp\HBRIValidation.h" />
+    <ClInclude Include="airdcpp\ListLoader.h" />
+    <ClInclude Include="airdcpp\modules\DirectoryListingSearch.h" />
+    <ClInclude Include="airdcpp\modules\DirectSearch.h" />
     <ClInclude Include="airdcpp\StartupParams.h" />
     <ClInclude Include="airdcpp\TransferInfoManagerListener.h" />
     <ClInclude Include="airdcpp\UpdateDownloader.h" />
@@ -400,7 +407,6 @@
     <ClInclude Include="airdcpp\QueueAddInfo.h" />
     <ClInclude Include="airdcpp\constants.h" />
     <ClInclude Include="airdcpp\DirectoryDownload.h" />
-    <ClInclude Include="airdcpp\DirectSearch.h" />
     <ClInclude Include="airdcpp\DupeType.h" />
     <ClInclude Include="airdcpp\ErrorCollector.h" />
     <ClInclude Include="airdcpp\GroupedSearchResult.h" />

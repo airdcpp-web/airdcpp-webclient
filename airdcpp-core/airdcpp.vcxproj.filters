@@ -419,9 +419,6 @@
     <ClCompile Include="airdcpp\FileQueue.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DirectSearch.cpp">
-      <Filter>Source Files\search</Filter>
-    </ClCompile>
     <ClCompile Include="airdcpp\UserQueue.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
@@ -743,6 +740,18 @@
     <ClCompile Include="airdcpp\CryptoUtil.cpp">
       <Filter>Source Files\core\crypto</Filter>
     </ClCompile>
+    <ClCompile Include="airdcpp\DirectoryListingDirectory.cpp">
+      <Filter>Source Files\filelist</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\ListLoader.cpp">
+      <Filter>Source Files\filelist</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\DirectoryListingSearch.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="airdcpp\modules\DirectSearch.cpp">
+      <Filter>Source Files\modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="airdcpp\DCPlusPlus.h">
@@ -921,9 +930,6 @@
     </ClInclude>
     <ClInclude Include="airdcpp\UserQueue.h">
       <Filter>Header Files\queue</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\DirectSearch.h">
-      <Filter>Header Files\search</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\TransferInfoManager.h">
       <Filter>Header Files\transfer</Filter>
@@ -1506,6 +1512,18 @@
     </ClInclude>
     <ClInclude Include="airdcpp\CryptoUtil.h">
       <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\DirectoryListingDirectory.h">
+      <Filter>Header Files\filelist</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\ListLoader.h">
+      <Filter>Header Files\filelist</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\DirectoryListingSearch.h">
+      <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\modules\DirectSearch.h">
+      <Filter>Header Files\modules</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

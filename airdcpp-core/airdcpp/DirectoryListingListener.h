@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DIRECTORYLISTING_LISTENER_H
-#define DIRECTORYLISTING_LISTENER_H
+#ifndef DCPLUSPLUS_DCPP_DIRECTORYLISTING_LISTENER_H
+#define DCPLUSPLUS_DCPP_DIRECTORYLISTING_LISTENER_H
 
 #include "forward.h"
 
@@ -33,8 +33,7 @@ public:
 	typedef X<2> LoadingStarted;
 	typedef X<3> QueueMatched;
 	typedef X<4> Close;
-	typedef X<5> SearchStarted;
-	typedef X<6> SearchFailed;
+
 	typedef X<7> ChangeDirectory;
 	typedef X<8> UpdateStatusMessage;
 	typedef X<9> RemovedQueue;
@@ -48,8 +47,7 @@ public:
 	virtual void on(LoadingStarted, bool /* changeDir */) noexcept { }
 	virtual void on(QueueMatched, const string&) noexcept { }
 	virtual void on(Close) noexcept { }
-	virtual void on(SearchStarted) noexcept { }
-	virtual void on(SearchFailed, bool) noexcept { }
+
 	virtual void on(ChangeDirectory, const string& /*aPath*/, uint8_t /*aChangeType*/) noexcept { }
 	virtual void on(UpdateStatusMessage, const string&) noexcept { }
 	virtual void on(RemovedQueue, const string&) noexcept { }

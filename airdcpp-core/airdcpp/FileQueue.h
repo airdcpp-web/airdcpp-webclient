@@ -23,7 +23,7 @@
 #include "forward.h"
 #include "typedefs.h"
 
-#include "DirectoryListing.h"
+#include "DirectoryListingDirectory.h"
 #include "DupeType.h"
 // #include "HashBloom.h"
 #include "QueueItem.h"

@@ -505,12 +505,18 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 }
 
 void ShareDirectory::File::addSR(SearchResultList& aResults, bool aAddParent) const noexcept {
+	auto path = aAddParent ? parent->getAdcPathUnsafe() : getAdcPath();
+
+	// Have we added it already?
+	if (ranges::any_of(aResults, [&path](const SearchResultPtr& sr) { return Util::stricmp(sr->getAdcPath(), path) == 0; }))
+		return;
+
 	if (aAddParent) {
-		auto sr = make_shared<SearchResult>(parent->getAdcPathUnsafe());
+		auto sr = make_shared<SearchResult>(path);
 		aResults.push_back(sr);
 	} else {
 		auto sr = make_shared<SearchResult>(SearchResult::Type::FILE,
-			size, getAdcPath(), getTTH(), getLastWrite(), DirectoryContentInfo::uninitialized());
+			size, path, getTTH(), getLastWrite(), DirectoryContentInfo::uninitialized());
 
 		aResults.push_back(sr);
 	}

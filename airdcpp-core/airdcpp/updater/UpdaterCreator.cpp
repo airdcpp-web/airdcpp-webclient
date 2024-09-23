@@ -124,7 +124,7 @@ optional<ByteVector> UpdaterCreator::calculateFileSha1(const string& aVersionFil
 		return nullopt;
 	}
 
-	return CryptoUtil::calculateSha1(aVersionFilePath);
+	return CryptoUtil::calculateSha1(versionData);
 }
 
 bool UpdaterCreator::signVersionFile(const string& aVersionFilePath, const string& aPrivateKeyFilePath, const ErrorF& aErrorF, bool aMakeHeader) {

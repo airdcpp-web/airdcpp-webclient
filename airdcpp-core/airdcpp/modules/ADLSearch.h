@@ -24,7 +24,7 @@
 #ifndef DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 #define DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 
-#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/DirectoryListingDirectory.h>
 #include <airdcpp/Message.h>
 #include <airdcpp/Singleton.h>
 #include <airdcpp/StringMatch.h>
