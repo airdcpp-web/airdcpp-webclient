@@ -778,14 +778,14 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(TEXT_URL_ITALIC, false);
 	setDefault(UNDERLINE_LINKS, true);
 
-	setDefault(TEXT_DUPE_BACK_COLOR, RGB(255, 255, 255));
-	setDefault(DUPE_COLOR, RGB(255, 128, 255));
+	setDefault(TEXT_SHARE_DUPE_BACK_COLOR, RGB(255, 255, 255));
+	setDefault(SHARE_DUPE_COLOR, RGB(255, 128, 255));
 	setDefault(TEXT_DUPE_BOLD, false);
 	setDefault(TEXT_DUPE_ITALIC, false);
 	setDefault(UNDERLINE_DUPES, true);
 
-	setDefault(TEXT_QUEUE_BACK_COLOR, RGB(255, 255, 255));
-	setDefault(QUEUE_COLOR, RGB(255,200,0));
+	setDefault(TEXT_QUEUE_DUPE_BACK_COLOR, RGB(255, 255, 255));
+	setDefault(QUEUE_DUPE_COLOR, RGB(255,200,0));
 	setDefault(TEXT_QUEUE_BOLD, false);
 	setDefault(TEXT_QUEUE_ITALIC, false);
 	setDefault(UNDERLINE_QUEUE, true);

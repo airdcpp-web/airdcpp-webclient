@@ -50,8 +50,6 @@ private:
 	};
 
 	using SignatureData = pair<ByteVector, ByteVector>;
-
-	static optional<SignatureData> signDigest(const ByteVector& aDigest, const string& aPrivateKeyFilePath);
 };
 
 #endif

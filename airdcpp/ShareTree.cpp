@@ -640,7 +640,7 @@ bool ShareTree::addDirectoryResultUnsafe(const ShareDirectory* aDir, SearchResul
 	const string path = srch.addParents ? PathUtil::getAdcParentDir(aDir->getAdcPathUnsafe()) : aDir->getAdcPathUnsafe();
 
 	// Have we added it already?
-	if (ranges::any_of(aResults, [&path](const SearchResultPtr& sr) { return sr->getAdcPath() == path; }))
+	if (ranges::any_of(aResults, [&path](const SearchResultPtr& sr) { return Util::stricmp(sr->getAdcPath(), path) == 0; }))
 		return false;
 
 	// Get all directories with this path

@@ -81,7 +81,7 @@ CryptoManager::CryptoManager()
 	}
 }
 
-void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) {
+void CryptoManager::setContextOptions(SSL_CTX* aCtx, bool aServer) noexcept {
 	// Only require TLS 1.2 => for now, other requirements need to be tested first for compatibility issues
 	SSL_CTX_set_min_proto_version(aCtx, TLS1_2_VERSION);
 	// SSL_CTX_set_security_level(aCtx, 2);

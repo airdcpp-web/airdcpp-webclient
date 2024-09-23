@@ -1216,7 +1216,7 @@ bool AdcHub::sendSearchHooked(AdcCommand& c, const SearchPtr& aSearch, const Onl
 			c.addParam("LE", Util::toString(aSearch->size));
 		}
 
-		auto searchTokens = std::move(SearchQuery::parseSearchString(aSearch->query));
+		auto searchTokens = SearchQuery::parseSearchString(aSearch->query);
 		for(const auto& t: searchTokens)
 			c.addParam("AN", t);
 
@@ -1238,7 +1238,7 @@ bool AdcHub::sendSearchHooked(AdcCommand& c, const SearchPtr& aSearch, const Onl
 			c.addParam("OT", Util::toString(*aSearch->maxDate));
 		}
 
-		if (!aSearch->key.empty() && Util::strnicmp("adcs://", getHubUrl().c_str(), 7) == 0) {
+		if (!aSearch->key.empty() && isSocketSecure() && myIdentity.isUdpActive()) {
 			c.addParam("KY", aSearch->key);
 		}
 
@@ -1547,7 +1547,7 @@ void AdcHub::on(Line l, const string& aLine) noexcept {
 		return;
 	}
 
-	dispatch(aLine, [&](const AdcCommand& aCmd) {
+	dispatch(aLine, [this](const AdcCommand& aCmd) {
 		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingHubCommand (), aCmd, *this);
 	});
 }

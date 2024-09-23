@@ -70,6 +70,9 @@ public:
 	}
 
 	static string getTitle(const string& searchTerm) noexcept;
+
+	using DupeSet = set<DupeType>;
+	static DupeType parseDirectoryContentDupe(const DupeSet& aDupeSet) noexcept;
 private:
 	static pair<string, string::size_type> getDirectoryName(const string& aName, char aSeparator) noexcept;
 };

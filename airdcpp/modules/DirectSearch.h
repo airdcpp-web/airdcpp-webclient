@@ -19,14 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECT_SEARCH_H
 #define DCPLUSPLUS_DCPP_DIRECT_SEARCH_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "ClientManagerListener.h"
-#include "SearchManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/SearchManagerListener.h>
 
-#include "GetSet.h"
-#include "SearchResult.h"
-#include "TimerManager.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 
