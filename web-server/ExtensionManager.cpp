@@ -21,6 +21,7 @@
 #include <web-server/ExtensionManager.h>
 #include <web-server/Extension.h>
 #include <web-server/NpmRepository.h>
+#include <web-server/Session.h>
 #include <web-server/SocketManager.h>
 #include <web-server/TarFile.h>
 #include <web-server/WebServerManager.h>

@@ -205,6 +205,9 @@ namespace webserver {
 			case DUPE_FINISHED_PARTIAL: return "finished_partial";
 			case DUPE_FINISHED_FULL: return "finished_full";
 			case DUPE_SHARE_QUEUE: return "share_queue";
+			case DUPE_SHARE_FINISHED: return "share_finished";
+			case DUPE_QUEUE_FINISHED: return "queue_finished";
+			case DUPE_SHARE_QUEUE_FINISHED: return "share_queue_finished";
 			default: dcassert(0); return Util::emptyString;
 		}
 	}

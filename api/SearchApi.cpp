@@ -24,15 +24,12 @@
 #include <api/common/FileSearchParser.h>
 
 #include <web-server/WebServerSettings.h>
+#include <web-server/WebUser.h>
 
-#include <airdcpp/QueueAddInfo.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/DirectSearch.h>
 #include <airdcpp/SearchInstance.h>
 #include <airdcpp/SearchManager.h>
 #include <airdcpp/SearchQuery.h>
 #include <airdcpp/SearchTypes.h>
-#include <airdcpp/ShareManager.h>
 
 
 #define DEFAULT_INSTANCE_EXPIRATION_MINUTES 30

@@ -44,17 +44,15 @@ namespace webserver {
 		typedef X<2> Stopped;
 
 		typedef X<3> LoadSettings;
-		typedef X<4> LoadLegacySettings;
-		typedef X<5> SaveSettings;
+		typedef X<4> SaveSettings;
 
-		typedef X<6> Data;
+		typedef X<5> Data;
 
 
 		virtual void on(Started) noexcept { }
 		virtual void on(Stopping) noexcept { }
 		virtual void on(Stopped) noexcept { }
 
-		virtual void on(LoadLegacySettings, SimpleXML&) noexcept { }
 		virtual void on(LoadSettings, const MessageCallback&) noexcept { }
 		virtual void on(SaveSettings, const MessageCallback&) noexcept { }
 

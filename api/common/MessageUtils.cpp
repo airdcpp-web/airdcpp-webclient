@@ -23,6 +23,7 @@
 
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>
+#include <web-server/WebUser.h>
 
 #include <airdcpp/ActionHook.h>
 #include <airdcpp/Magnet.h>

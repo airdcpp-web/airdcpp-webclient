@@ -26,7 +26,6 @@
 #include <airdcpp/Speaker.h>
 
 #include <web-server/Session.h>
-#include <web-server/Timer.h>
 #include <web-server/WebServerManagerListener.h>
 #include <web-server/WebUserManagerListener.h>
 #include <web-server/WebUser.h>
@@ -117,7 +116,6 @@ namespace webserver {
 		void on(WebServerManagerListener::Stopping) noexcept override;
 		void on(WebServerManagerListener::Stopped) noexcept override;
 
-		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
 

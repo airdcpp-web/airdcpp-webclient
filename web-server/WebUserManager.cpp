@@ -19,13 +19,13 @@
 #include "stdinc.h"
 
 #include <web-server/WebUserManager.h>
+
+#include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/ActivityManager.h>
-#include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 #include <airdcpp/Util.h>
 
@@ -452,57 +452,6 @@ namespace webserver {
 		setDirty();
 	}
 
-	void WebUserManager::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& xml_) noexcept {
-		if (xml_.findChild("WebUsers")) {
-			xml_.stepIn();
-			while (xml_.findChild("WebUser")) {
-				const auto& username = xml_.getChildAttrib("Username");
-				const auto& password = xml_.getChildAttrib("Password");
-
-				if (username.empty() || password.empty()) {
-					continue;
-				}
-
-				const auto& permissions = xml_.getChildAttrib("Permissions");
-
-				// Set as admin mainly for compatibility with old accounts if no permissions were found
-				auto user = std::make_shared<WebUser>(username, password, permissions.empty());
-
-				user->setLastLogin(xml_.getTimeChildAttrib("LastLogin"));
-				if (!permissions.empty()) {
-					user->setPermissions(permissions);
-				}
-
-				users.try_emplace(username, user);
-
-			}
-			xml_.stepOut();
-		}
-
-		if (xml_.findChild("RefreshTokens")) {
-			xml_.stepIn();
-			while (xml_.findChild("TokenInfo")) {
-				const auto& token = xml_.getChildAttrib("Token");
-				const auto& username = xml_.getChildAttrib("Username");
-				const auto& expiresOn = xml_.getTimeChildAttrib("ExpiresOn");
-
-				if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
-					continue;
-				}
-
-				auto user = getUser(username);
-				if (!user) {
-					continue;
-				}
-
-				refreshTokens.try_emplace(token, token, user, expiresOn);
-			}
-			xml_.stepOut();
-		}
-
-		xml_.resetCurrentChild();
-		setDirty();
-	}
 	void WebUserManager::loadUsers(const json& aJson) {
 		auto usersJson = aJson.find("users");
 		if (usersJson == aJson.end()) {

@@ -23,7 +23,6 @@
 
 #include <web-server/LazyInitWrapper.h>
 #include <web-server/SessionListener.h>
-#include <web-server/WebUser.h>
 
 #include <api/base/ApiModule.h>
 

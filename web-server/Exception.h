@@ -19,11 +19,7 @@
 #ifndef DCPLUSPLUS_WEBSERVER_EXCEPTION_H
 #define DCPLUSPLUS_WEBSERVER_EXCEPTION_H
 
-#include <nlohmann/json.hpp>
-#include <websocketpp/http/constants.hpp>
-#include <string>
-
-#include <airdcpp/debug.h>
+#include "stdinc.h"
 
 namespace webserver {
 	using json = nlohmann::json;

@@ -20,6 +20,8 @@
 
 #include <web-server/JsonUtil.h>
 
+#include <airdcpp/debug.h>
+
 namespace webserver {
 
 	const json JsonUtil::emptyJson;

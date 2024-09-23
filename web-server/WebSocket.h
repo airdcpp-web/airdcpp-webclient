@@ -21,13 +21,14 @@
 
 #include "stdinc.h"
 
-#include <web-server/Session.h>
-#include <web-server/ApiRequest.h>
+#include "forward.h"
 
 #include <airdcpp/GetSet.h>
 
 namespace webserver {
-	// WebSockets are owned by WebServerManager and API modules
+	// WebSockets are owned by SocketManager and API modules
+	// WebSockets are owned by SocketManager and API modules
+	class WebServerManager;
 
 	class WebSocket {
 	public:

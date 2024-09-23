@@ -23,6 +23,7 @@
 #include <web-server/ApiRouter.h>
 #include <web-server/HttpUtil.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
 #include <airdcpp/format.h>

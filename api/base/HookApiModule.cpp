@@ -20,6 +20,7 @@
 
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>
+#include <web-server/WebUser.h>
 
 #include <api/base/HookApiModule.h>
 
