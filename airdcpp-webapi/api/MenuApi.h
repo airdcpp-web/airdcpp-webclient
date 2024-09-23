@@ -29,6 +29,7 @@
 #include <web-server/ContextMenuManagerListener.h>
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>
+#include <web-server/WebUser.h>
 
 #include <airdcpp/typedefs.h>
 

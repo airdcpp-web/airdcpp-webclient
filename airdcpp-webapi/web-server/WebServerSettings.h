@@ -26,10 +26,6 @@
 
 #include <airdcpp/SettingsManager.h>
 
-namespace dcpp {
-	class SimpleXML;
-}
-
 namespace webserver {
 	class WebServerSettings : private WebServerManagerListener {
 	public:
@@ -121,11 +117,8 @@ namespace webserver {
 
 		void setDirty() noexcept;
 
-		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
-
-		void loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept;
 	};
 
 #define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettingsManager().getSettingItem(webserver::WebServerSettings::k))

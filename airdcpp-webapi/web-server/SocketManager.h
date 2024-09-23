@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_WEBSERVER_SOCKET_MANAGER_H
 #define DCPLUSPLUS_WEBSERVER_SOCKET_MANAGER_H
 
+#include "forward.h"
 #include "stdinc.h"
 
-#include "Timer.h"
 #include "SocketManagerListener.h"
 #include "WebSocket.h"
 #include "WebUserManagerListener.h"

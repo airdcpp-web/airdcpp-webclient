@@ -25,6 +25,7 @@
 #include <web-server/ExtensionManager.h>
 #include <web-server/HttpManager.h>
 #include <web-server/SocketManager.h>
+#include <web-server/Timer.h>
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebUserManager.h>
 
@@ -33,12 +34,9 @@
 #include <airdcpp/CryptoManager.h>
 #include <airdcpp/LogManager.h>
 #include <airdcpp/NetworkUtil.h>
-#include <airdcpp/PathUtil.h>
 #include <airdcpp/SettingsManager.h>
-#include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 
-#define LEGACY_CONFIG_NAME_XML "WebServer.xml"
 #define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 
 #define HANDSHAKE_TIMEOUT 0 // disabled, affects HTTP downloads
@@ -126,9 +124,6 @@ namespace webserver {
 	void setEndpointOptions(T& aEndpoint) {
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
 		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
-
-		// Workaround for https://github.com/zaphoyd/websocketpp/issues/549
-		aEndpoint.set_listen_backlog(boost::asio::socket_base::max_connections);
 	}
 
 	bool WebServerManager::startup(const MessageCallback& errorF, const string& aWebResourcePath, const Callback& aShutdownF) {
@@ -318,12 +313,11 @@ namespace webserver {
 
 			ctx->use_certificate_file(useCustom ? customCert : SETTING(TLS_CERTIFICATE_FILE), boost::asio::ssl::context::pem);
 			ctx->use_private_key_file(useCustom ? customKey : SETTING(TLS_PRIVATE_KEY_FILE), boost::asio::ssl::context::pem);
-
-			CryptoManager::setContextOptions(ctx->native_handle(), true);
-		} catch (std::exception& e) {
+		} catch (const boost::system::system_error& e) {
 			dcdebug("TLS init failed: %s", e.what());
 		}
 
+		CryptoManager::setContextOptions(ctx->native_handle(), true);
 		return ctx;
 	}
 
@@ -456,20 +450,6 @@ namespace webserver {
 	}
 
 	bool WebServerManager::load(const MessageCallback& aErrorF) noexcept {
-		const auto legacyXmlPath = AppUtil::getPath(CONFIG_DIR) + LEGACY_CONFIG_NAME_XML;
-		if (PathUtil::fileExists(legacyXmlPath)) {
-			SettingsManager::loadSettingFile(CONFIG_DIR, LEGACY_CONFIG_NAME_XML, [this](SimpleXML& xml) {
-				if (xml.findChild("WebServer")) {
-					xml.stepIn();
-
-					fire(WebServerManagerListener::LoadLegacySettings(), xml);
-					xml.stepOut();
-				}
-			}, aErrorF);
-
-			File::deleteFile(legacyXmlPath);
-		}
-
 		fire(WebServerManagerListener::LoadSettings(), aErrorF);
 		return hasValidServerConfig();
 	}

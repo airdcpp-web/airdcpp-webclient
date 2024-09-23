@@ -23,7 +23,6 @@
 #include <api/common/SettingUtils.h>
 
 #include <airdcpp/File.h>
-#include <airdcpp/SimpleXML.h>
 #include <airdcpp/TimerManager.h>
 
 namespace webserver {
@@ -115,10 +114,10 @@ namespace webserver {
 	}
 
 	bool WebServerSettings::loadSettingFile(AppUtil::Paths aPath, const string& aFileName, const JsonParseCallback& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
-		const auto parseJsonFile = [&](const string& aPath) {
+		const auto parseJsonFile = [&aParseCallback, &aCustomErrorF, aMaxConfigVersion](const string& aFilePath) {
 			try {
 				// Parse
-				auto parsed = json::parse(File(aPath, File::READ, File::OPEN).read());
+				auto parsed = json::parse(File(aFilePath, File::READ, File::OPEN).read());
 
 				// Check version
 				int configVersion = parsed.at("version");
@@ -129,7 +128,7 @@ namespace webserver {
 				// Parse settings
 				aParseCallback(parsed.at("settings"), configVersion);
 			} catch (const std::exception& e) {
-				aCustomErrorF(STRING_F(LOAD_FAILED_X, aPath % e.what()));
+				aCustomErrorF(STRING_F(LOAD_FAILED_X, aFilePath % e.what()));
 				return false;
 			}
 
@@ -138,51 +137,6 @@ namespace webserver {
 
 		return SettingsManager::loadSettingFile(aPath, aFileName, parseJsonFile, aCustomErrorF);
 	}
-
-
-	void WebServerSettings::loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept {
-		if (aXml.findChild(aTagName)) {
-			// getChildIntAttrib returns 0 also for non-existing attributes, get as string instead...
-			const auto& port = aXml.getChildAttrib("Port");
-			if (!port.empty()) {
-				aPort.setValue(Util::toInt(port));
-			}
-
-			aBindAddress.setValue(aXml.getChildAttrib("BindAddress"));
-
-			if (aTls) {
-				getSettingItem(WebServerSettings::TLS_CERT_PATH).setValue(aXml.getChildAttrib("Certificate"));
-				getSettingItem(WebServerSettings::TLS_CERT_KEY_PATH).setValue(aXml.getChildAttrib("CertificateKey"));
-			}
-		}
-
-		aXml.resetCurrentChild();
-	}
-
-	void WebServerSettings::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept {
-		if (aXml.findChild("Config")) {
-			aXml.stepIn();
-			loadLegacyServer(aXml, "Server", getSettingItem(WebServerSettings::PLAIN_PORT), getSettingItem(WebServerSettings::PLAIN_BIND), false);
-			loadLegacyServer(aXml, "TLSServer", getSettingItem(WebServerSettings::TLS_PORT), getSettingItem(WebServerSettings::TLS_BIND), true);
-
-			if (aXml.findChild("Threads")) {
-				aXml.stepIn();
-				getSettingItem(WebServerSettings::SERVER_THREADS).setValue(max(Util::toInt(aXml.getData()), 1));
-				aXml.stepOut();
-			}
-			aXml.resetCurrentChild();
-
-			if (aXml.findChild("ExtensionsDebugMode")) {
-				aXml.stepIn();
-				getSettingItem(WebServerSettings::EXTENSIONS_DEBUG_MODE).setValue(Util::toInt(aXml.getData()) > 0 ? true : false);
-				aXml.stepOut();
-			}
-			aXml.resetCurrentChild();
-
-			aXml.stepOut();
-		}
-	}
-
 
 	string WebServerSettings::getConfigFilePath() const noexcept {
 		return AppUtil::getPath(CONFIG_DIR) + CONFIG_NAME;

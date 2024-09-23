@@ -26,7 +26,6 @@
 #include <airdcpp/Singleton.h>
 #include <airdcpp/Speaker.h>
 #include <airdcpp/UpdateManagerListener.h>
-#include <airdcpp/Util.h>
 
 #include <web-server/ExtensionListener.h>
 #include <web-server/ExtensionManagerListener.h>

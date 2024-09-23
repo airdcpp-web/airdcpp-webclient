@@ -21,7 +21,7 @@
 
 #include <airdcpp/typedefs.h>
 
-#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/DirectoryListingDirectory.h>
 
 
 namespace webserver {

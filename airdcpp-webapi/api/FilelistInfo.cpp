@@ -104,7 +104,7 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	DirectoryListing::Directory::Ptr FilelistInfo::ensureCurrentDirectoryLoaded() const {
+	DirectoryListing::DirectoryPtr FilelistInfo::ensureCurrentDirectoryLoaded() const {
 		auto curDir = dl->getCurrentLocationInfo().directory;
 		if (!curDir) {
 			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");

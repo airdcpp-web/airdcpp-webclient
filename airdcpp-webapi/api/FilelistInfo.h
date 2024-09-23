@@ -56,7 +56,7 @@ namespace webserver {
 		api_return handleGetItems(ApiRequest& aRequest);
 		api_return handleGetItem(ApiRequest& aRequest);
 
-		DirectoryListing::Directory::Ptr ensureCurrentDirectoryLoaded() const;
+		DirectoryListing::DirectoryPtr ensureCurrentDirectoryLoaded() const;
 
 		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, uint8_t aType) noexcept override;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept override;

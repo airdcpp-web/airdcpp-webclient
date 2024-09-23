@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_WEBSERVER_APISETTINGITEM_H
 
 #include "forward.h"
-#include "json.h"
 #include "stdinc.h"
 
 #include <airdcpp/GetSet.h>
