@@ -21,15 +21,15 @@
 #include <boost/range/numeric.hpp>
 #include <boost/range/adaptor/map.hpp>
 
-#include "BundleQueue.h"
-#include "DupeUtil.h"
-#include "Exception.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "QueueItem.h"
-#include "SettingsManager.h"
-#include "TimerManager.h"
-#include "ValueGenerator.h"
+#include <airdcpp/BundleQueue.h>
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueItem.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

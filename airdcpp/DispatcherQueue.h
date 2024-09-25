@@ -20,10 +20,10 @@
 #define DCPLUSPLUS_DISPATCHER_QUEUE
 
 
-#include "Thread.h"
-#include "Semaphore.h"
+#include <airdcpp/Thread.h>
+#include <airdcpp/Semaphore.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
 namespace dcpp {
 

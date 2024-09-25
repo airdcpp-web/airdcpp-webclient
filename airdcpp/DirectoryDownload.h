@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORYDOWNLOAD_H_
 #define DCPLUSPLUS_DCPP_DIRECTORYDOWNLOAD_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "QueueAddInfo.h"
-#include "GetSet.h"
-#include "Priority.h"
+#include <airdcpp/QueueAddInfo.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Priority.h>
 
 namespace dcpp {
 	using DirectoryDownloadOwner = CallerPtr;

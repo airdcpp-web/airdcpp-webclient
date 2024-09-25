@@ -20,7 +20,7 @@
 #ifndef DCPLUSPLUS_DCPP_LEVELDB_H_
 #define DCPLUSPLUS_DCPP_LEVELDB_H_
 
-#include "DbHandler.h"
+#include <airdcpp/DbHandler.h>
 
 #include <leveldb/status.h>
 #include <leveldb/db.h>

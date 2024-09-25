@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "Util.h"
+#include <airdcpp/Util.h>
 
-#include "DirectoryContentInfo.h"
-#include "PathUtil.h"
-#include "SettingsManager.h"
-#include "SystemUtil.h"
+#include <airdcpp/DirectoryContentInfo.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SystemUtil.h>
 
 #include <locale.h>
 

@@ -19,13 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_ACTIVITY_MANAGER_H
 #define DCPLUSPLUS_DCPP_ACTIVITY_MANAGER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "SettingsManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/SettingsManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "Speaker.h"
-#include "TimerManager.h"
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TimerManager.h>
 
 
 namespace dcpp {

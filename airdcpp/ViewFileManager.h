@@ -19,18 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_VIEWFILE_MANAGER_H_
 #define DCPLUSPLUS_DCPP_VIEWFILE_MANAGER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 #include "stdinc.h"
 
-#include "ViewFileManagerListener.h"
-#include "ViewFile.h"
+#include <airdcpp/ViewFileManagerListener.h>
+#include <airdcpp/ViewFile.h>
 
-#include "QueueAddInfo.h"
-#include "CriticalSection.h"
-#include "Message.h"
-#include "QueueManagerListener.h"
-#include "Singleton.h"
-#include "Speaker.h"
+#include <airdcpp/QueueAddInfo.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
 
 
 namespace dcpp {

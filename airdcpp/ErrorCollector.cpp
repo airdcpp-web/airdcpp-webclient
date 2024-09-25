@@ -18,10 +18,10 @@
 
 #include "stdinc.h"
 
-#include "ErrorCollector.h"
+#include <airdcpp/ErrorCollector.h>
 
-#include "ResourceManager.h"
-#include "Util.h"
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

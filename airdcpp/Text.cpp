@@ -17,10 +17,10 @@
  */
 
 #include "stdinc.h"
-#include "Text.h"
+#include <airdcpp/Text.h>
 
 #ifdef _WIN32
-#include "w.h"
+#include <airdcpp/w.h>
 #else
 #include <errno.h>
 #include <iconv.h>
@@ -32,7 +32,7 @@
 
 #endif
 
-#include "Util.h"
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

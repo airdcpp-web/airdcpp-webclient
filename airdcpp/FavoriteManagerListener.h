@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITEMANAGERLISTENER_H_
 #define DCPLUSPLUS_DCPP_FAVORITEMANAGERLISTENER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 namespace dcpp {
 

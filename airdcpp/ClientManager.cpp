@@ -17,19 +17,19 @@
  */
 
 #include "stdinc.h"
-#include "ClientManager.h"
+#include <airdcpp/ClientManager.h>
 
-#include "ConnectivityManager.h"
-#include "ConnectionManager.h"
-#include "CryptoUtil.h"
-#include "ProtocolCommandManager.h"
-#include "LinkUtil.h"
-#include "LogManager.h"
-#include "RelevanceSearch.h"
-#include "ResourceManager.h"
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/CryptoUtil.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/RelevanceSearch.h>
+#include <airdcpp/ResourceManager.h>
 
-#include "AdcHub.h"
-#include "NmdcHub.h"
+#include <airdcpp/AdcHub.h>
+#include <airdcpp/NmdcHub.h>
 
 #include <boost/algorithm/string/trim.hpp>
 

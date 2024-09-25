@@ -19,13 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERINFO_H
 #define DCPLUSPLUS_DCPP_TRANSFERINFO_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "HintedUser.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "Transfer.h"
-#include "ValueGenerator.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Transfer.h>
+#include <airdcpp/ValueGenerator.h>
 
 
 namespace dcpp {

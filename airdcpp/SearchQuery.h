@@ -19,13 +19,13 @@
 #ifndef DCPP_SEARCHQUERY_H
 #define DCPP_SEARCHQUERY_H
 
-#include "typedefs.h"
-#include "forward.h"
+#include <airdcpp/typedefs.h>
+#include <airdcpp/forward.h>
 
-#include "HashValue.h"
-#include "Search.h"
-#include "StringSearch.h"
-#include "TigerHash.h"
+#include <airdcpp/HashValue.h>
+#include <airdcpp/Search.h>
+#include <airdcpp/StringSearch.h>
+#include <airdcpp/TigerHash.h>
 
 
 namespace dcpp {

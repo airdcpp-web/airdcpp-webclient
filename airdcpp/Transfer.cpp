@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "Transfer.h"
+#include <airdcpp/Transfer.h>
 
-#include "ClientManager.h"
-#include "ResourceManager.h"
-#include "Upload.h"
-#include "UserConnection.h"
-#include "ValueGenerator.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/UserConnection.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

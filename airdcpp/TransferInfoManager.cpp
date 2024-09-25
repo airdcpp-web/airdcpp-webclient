@@ -18,16 +18,16 @@
 
 #include "stdinc.h"
 
-#include "TransferInfoManager.h"
+#include <airdcpp/TransferInfoManager.h>
 
-#include "Download.h"
-#include "Upload.h"
+#include <airdcpp/Download.h>
+#include <airdcpp/Upload.h>
 
-#include "DownloadManager.h"
-#include "ConnectionManager.h"
-#include "QueueManager.h"
-#include "ThrottleManager.h"
-#include "UploadManager.h"
+#include <airdcpp/DownloadManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ThrottleManager.h>
+#include <airdcpp/UploadManager.h>
 
 
 namespace dcpp {

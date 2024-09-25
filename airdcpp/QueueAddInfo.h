@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_BUNDLEINFO_H_
 #define DCPLUSPLUS_DCPP_BUNDLEINFO_H_
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "HintedUser.h"
-#include "MerkleTree.h"
-#include "Priority.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Priority.h>
 
 namespace dcpp {
 

@@ -18,22 +18,21 @@
 
 #include "stdinc.h"
 
-#include "SystemUtil.h"
-#include "Util.h"
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/Util.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
 #ifdef _WIN32
 
-#include "w.h"
-#include "shlobj.h"
+#include <airdcpp/w.h>
 #include <shellapi.h>
 #include <VersionHelpers.h>
 
 #endif
 
-#include "PathUtil.h"
-#include "ScopedFunctor.h"
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ScopedFunctor.h>
 
 #include <random>
 
@@ -44,11 +43,6 @@
 #include <netdb.h>
 #include <sys/utsname.h>
 #include <ctype.h>
-
-// #ifdef HAVE_IFADDRS_H
-// #include <ifaddrs.h>
-// #include <net/if.h>
-// #endif
 
 #endif
 

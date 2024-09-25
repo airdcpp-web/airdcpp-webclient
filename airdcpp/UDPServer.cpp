@@ -19,17 +19,17 @@
 
 #include "stdinc.h"
 
-#include "ConnectivityManager.h"
-#include "ClientManager.h"
-#include "ProtocolCommandManager.h"
-#include "LogManager.h"
-#include "PartialSharingManager.h"
-#include "ResourceManager.h"
-#include "SearchManager.h"
-#include "SettingsManager.h"
-#include "Socket.h"
-#include "UDPServer.h"
-#include "UploadBundleManager.h"
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PartialSharingManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Socket.h>
+#include <airdcpp/UDPServer.h>
+#include <airdcpp/UploadBundleManager.h>
 
 
 namespace dcpp {

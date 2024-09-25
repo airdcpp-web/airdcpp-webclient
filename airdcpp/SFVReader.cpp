@@ -18,15 +18,15 @@
 
 #include "stdinc.h"
 
-#include "SFVReader.h"
+#include <airdcpp/SFVReader.h>
 
-#include "File.h"
-#include "FileReader.h"
-#include "FilteredFile.h"
-#include "LogManager.h"
-#include "StringTokenizer.h"
-#include "Text.h"
-#include "ZUtils.h"
+#include <airdcpp/File.h>
+#include <airdcpp/FileReader.h>
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/ZUtils.h>
 
 #include <boost/algorithm/string/trim.hpp>
 

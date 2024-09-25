@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_HASH_VALUE_H
 #define DCPLUSPLUS_DCPP_HASH_VALUE_H
 
-#include "FastAlloc.h"
-#include "Encoder.h"
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/Encoder.h>
 
 namespace dcpp {
 

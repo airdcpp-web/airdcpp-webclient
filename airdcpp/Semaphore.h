@@ -20,7 +20,7 @@
 #define DCPLUSPLUS_DCPP_SEMAPHORE_H
 
 #ifndef _WIN32
-#include "CriticalSection.h"
+#include <airdcpp/CriticalSection.h>
 #include <sys/time.h>
 #endif
 

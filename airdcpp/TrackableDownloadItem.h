@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_TRACKABLE_DOWNLOAD_H
 #define DCPLUSPLUS_DCPP_TRACKABLE_DOWNLOAD_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "CriticalSection.h"
-#include "DownloadManagerListener.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/DownloadManagerListener.h>
 
 namespace dcpp {
 

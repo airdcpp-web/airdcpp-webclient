@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORYLISTING_LISTENER_H
 #define DCPLUSPLUS_DCPP_DIRECTORYLISTING_LISTENER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 namespace dcpp {
 

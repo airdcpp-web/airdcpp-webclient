@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFER_H_
 #define DCPLUSPLUS_DCPP_TRANSFER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "CriticalSection.h"
-#include "GetSet.h"
-#include "MerkleTree.h"
-#include "Segment.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Segment.h>
 
 namespace dcpp {
 

@@ -19,15 +19,15 @@
 #ifndef DCPLUSPLUS_DCPP_BUNDLE_QUEUE_H
 #define DCPLUSPLUS_DCPP_BUNDLE_QUEUE_H
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "Bundle.h"
-#include "DupeType.h"
-#include "HintedUser.h"
-#include "PrioritySearchQueue.h"
-#include "SortedVector.h"
-#include "Util.h"
+#include <airdcpp/Bundle.h>
+#include <airdcpp/DupeType.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/PrioritySearchQueue.h>
+#include <airdcpp/SortedVector.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

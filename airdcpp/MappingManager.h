@@ -23,13 +23,13 @@
 #include <functional>
 #include <vector>
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "Mapper.h"
-#include "Message.h"
-#include "Thread.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/Mapper.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Thread.h>
+#include <airdcpp/TimerManagerListener.h>
 
 namespace dcpp {
 

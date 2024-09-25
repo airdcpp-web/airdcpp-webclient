@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "ActivityManager.h"
-#include "ClientManager.h"
-#include "SettingsManager.h"
+#include <airdcpp/ActivityManager.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/SettingsManager.h>
 
 
 namespace dcpp {

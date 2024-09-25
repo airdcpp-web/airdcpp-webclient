@@ -19,17 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_QUEUE_MANAGER_H
 #define DCPLUSPLUS_DCPP_UPLOAD_QUEUE_MANAGER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "ClientManagerListener.h"
-#include "CriticalSection.h"
-#include "FastAlloc.h"
-#include "HintedUser.h"
-#include "Message.h"
-#include "Speaker.h"
-#include "TimerManagerListener.h"
-#include "UploadQueueManagerListener.h"
-#include "UserInfoBase.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/UploadQueueManagerListener.h>
+#include <airdcpp/UserInfoBase.h>
 
 namespace dcpp {
 

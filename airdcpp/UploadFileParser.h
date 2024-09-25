@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_FILE_PARSER_H
 #define DCPLUSPLUS_DCPP_UPLOAD_FILE_PARSER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "Exception.h"
-#include "Transfer.h"
-#include "UploadRequest.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/Transfer.h>
+#include <airdcpp/UploadRequest.h>
 
 namespace dcpp {
 

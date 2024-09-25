@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_MESSAGE_H
 #define DCPLUSPLUS_DCPP_MESSAGE_H
 
-#include "forward.h"
-#include "GetSet.h"
-#include "MessageHighlight.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/MessageHighlight.h>
 
 namespace dcpp {
 

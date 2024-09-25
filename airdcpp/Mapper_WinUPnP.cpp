@@ -19,9 +19,9 @@
 #include "stdinc.h"
 #include "Mapper_WinUPnP.h"
 
-#include "Util.h"
-#include "Text.h"
-#include "w.h"
+#include <airdcpp/Util.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/w.h>
 
 #include <ole2.h>
 #include <natupnp.h>

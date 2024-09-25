@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "UploadBundleInfoSender.h"
+#include <airdcpp/UploadBundleInfoSender.h>
 
-#include "Bundle.h"
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "Download.h"
-#include "DownloadManager.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "SearchManager.h"
-#include "UploadBundleInfo.h"
-#include "UserConnection.h"
+#include <airdcpp/Bundle.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/DownloadManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/UploadBundleInfo.h>
+#include <airdcpp/UserConnection.h>
 
 namespace dcpp {
 

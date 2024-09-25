@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "SearchResult.h"
+#include <airdcpp/SearchResult.h>
 
-#include "Client.h"
-#include "ClientManager.h"
-#include "DupeUtil.h"
-#include "PathUtil.h"
-#include "ScopedFunctor.h"
-#include "SearchQuery.h"
-#include "Text.h"
-#include "UploadManager.h"
-#include "User.h"
-#include "ValueGenerator.h"
+#include <airdcpp/Client.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/UploadManager.h>
+#include <airdcpp/User.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

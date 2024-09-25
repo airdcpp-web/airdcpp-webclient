@@ -18,18 +18,18 @@
 
 #include "stdinc.h"
 
-#include "AutoLimitUtil.h"
+#include <airdcpp/AutoLimitUtil.h>
 
-#include "ResourceManager.h"
-#include "SettingsManager.h"
-#include "ThrottleManager.h"
-#include "Util.h"
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/ThrottleManager.h>
+#include <airdcpp/Util.h>
 
 
 #ifdef _DEBUG
 
-#include "LogManager.h"
-#include "TimerManager.h"
+#include <airdcpp/LogManager.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

@@ -1,6 +1,6 @@
 project (airdcpp)
 include_directories(${PROJECT_BINARY_DIR})
-cmake_minimum_required (VERSION 3.0.2)
+cmake_minimum_required (VERSION 3.16)
 
 aux_source_directory(${PROJECT_SOURCE_DIR}/airdcpp airdcpp_srcs)
 file (GLOB airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/*.h)
@@ -16,17 +16,17 @@ include_directories (${Boost_INCLUDE_DIR} ${BZIP2_INCLUDE_DIR} ${ZLIB_INCLUDE_DI
 if (NOT WIN32)
   list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.h)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Updater.cpp)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/UpdateDownloader.cpp)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_WinUPnP.cpp)
 
   if (NOT CMAKE_CROSSCOMPILING)
     set (PTHREADS "pthread")
   endif (NOT CMAKE_CROSSCOMPILING)
 
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Util.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Util.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
 
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Updater.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
   add_definitions (-DNO_CLIENT_UPDATER)
 endif ()
 
@@ -75,25 +75,22 @@ if (HAVE_MNTENT_H)
 endif (HAVE_MNTENT_H)
 
 if (HAVE_POSIX_FADVISE)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/File.cpp PROPERTY COMPILE_DEFINITIONS HAVE_POSIX_FADVISE APPEND)
-		set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/File.h PROPERTY COMPILE_DEFINITIONS HAVE_POSIX_FADVISE APPEND)
+    add_definitions (-DHAVE_POSIX_FADVISE)
 endif (HAVE_POSIX_FADVISE)
 
 
 
 # LINKING
-add_library (airdcpp ${airdcpp_srcs})
+add_library (airdcpp ${airdcpp_srcs} ${airdcpp_hdrs})
 
 target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
 ${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${SNAPPY_LIBRARIES} ${LIBMAXMINDDB_LIBRARY} )
 
 set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
 
-set_target_properties(airdcpp PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "airdcpp/stdinc.h")
-if (COMMAND cotire)
-  cotire(airdcpp)
-endif()
-
+target_precompile_headers(airdcpp PUBLIC
+  "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/airdcpp/stdinc.h>"
+)
 
 
 #if (WIN32)

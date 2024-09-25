@@ -19,27 +19,27 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORY_LISTING_H
 #define DCPLUSPLUS_DCPP_DIRECTORY_LISTING_H
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "DirectoryListingListener.h"
-#include "ClientManagerListener.h"
-#include "ShareManagerListener.h"
+#include <airdcpp/DirectoryListingListener.h>
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/ShareManagerListener.h>
 
-#include "ActionHook.h"
-#include "DirectoryContentInfo.h"
-#include "DispatcherQueue.h"
-#include "DupeType.h"
-#include "GetSet.h"
-#include "HintedUser.h"
-#include "Message.h"
-#include "MerkleTree.h"
-#include "Priority.h"
-#include "QueueAddInfo.h"
-#include "Speaker.h"
-#include "StreamBase.h"
-#include "TrackableDownloadItem.h"
-#include "UserInfoBase.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/DirectoryContentInfo.h>
+#include <airdcpp/DispatcherQueue.h>
+#include <airdcpp/DupeType.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Priority.h>
+#include <airdcpp/QueueAddInfo.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/StreamBase.h>
+#include <airdcpp/TrackableDownloadItem.h>
+#include <airdcpp/UserInfoBase.h>
 
 namespace dcpp {
 

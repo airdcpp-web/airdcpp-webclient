@@ -17,7 +17,7 @@
  */
 
 #include "stdinc.h"
-#include "Mapper.h"
+#include <airdcpp/Mapper.h>
 
 namespace dcpp {
 

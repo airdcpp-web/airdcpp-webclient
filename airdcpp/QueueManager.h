@@ -19,28 +19,28 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_MANAGER_H
 #define DCPLUSPLUS_DCPP_QUEUE_MANAGER_H
 
-#include "ClientManagerListener.h"
-#include "DownloadManagerListener.h"
-#include "QueueManagerListener.h"
-#include "SearchManagerListener.h"
-#include "ShareManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/DownloadManagerListener.h>
+#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/SearchManagerListener.h>
+#include <airdcpp/ShareManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "ActionHook.h"
-#include "BundleQueue.h"
-#include "DelayedEvents.h"
-#include "DupeType.h"
-#include "Exception.h"
-#include "FileQueue.h"
-#include "HashBloom.h"
-#include "MerkleTree.h"
-#include "Message.h"
-#include "QueueAddInfo.h"
-#include "QueueDownloadInfo.h"
-#include "Singleton.h"
-#include "StringMatch.h"
-#include "TaskQueue.h"
-#include "UserQueue.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/BundleQueue.h>
+#include <airdcpp/DelayedEvents.h>
+#include <airdcpp/DupeType.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/FileQueue.h>
+#include <airdcpp/HashBloom.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/QueueAddInfo.h>
+#include <airdcpp/QueueDownloadInfo.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/StringMatch.h>
+#include <airdcpp/TaskQueue.h>
+#include <airdcpp/UserQueue.h>
 
 // For Boost 1.60
 #if defined (__clang__)

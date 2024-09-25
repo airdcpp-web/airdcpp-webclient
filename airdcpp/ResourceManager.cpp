@@ -17,14 +17,14 @@
  */
 
 #include "stdinc.h"
-#include "ResourceManager.h"
+#include <airdcpp/ResourceManager.h>
 
-#include "Exception.h"
-#include "LogManager.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/LogManager.h>
 
-#include "SimpleXML.h"
-#include "File.h"
-#include "Text.h"
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/File.h>
+#include <airdcpp/Text.h>
 
 namespace dcpp {
 	

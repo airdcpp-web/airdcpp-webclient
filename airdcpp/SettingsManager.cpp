@@ -17,24 +17,24 @@
  */
 
 #include "stdinc.h"
-#include "SettingsManager.h"
+#include <airdcpp/SettingsManager.h>
 
-#include "CID.h"
-#include "ConnectivityManager.h"
-#include "DCPlusPlus.h"
-#include "Exception.h"
-#include "File.h"
-#include "HubSettings.h"
-#include "LogManager.h"
+#include <airdcpp/CID.h>
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/DCPlusPlus.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/HubSettings.h>
+#include <airdcpp/LogManager.h>
 #include "Mapper_MiniUPnPc.h"
-#include "NetworkUtil.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "StringTokenizer.h"
-#include "SystemUtil.h"
-#include "Util.h"
-#include "version.h"
+#include <airdcpp/NetworkUtil.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/version.h>
 
 #include <thread> // thread::hardware_concurrency
 

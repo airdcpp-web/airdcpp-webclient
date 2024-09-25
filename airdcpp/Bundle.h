@@ -22,12 +22,12 @@
 #include <string>
 #include <set>
 
-#include "HintedUser.h"
-#include "MerkleTree.h"
-#include "User.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/User.h>
 
-#include "QueueDownloadInfo.h"
-#include "QueueItemBase.h"
+#include <airdcpp/QueueDownloadInfo.h>
+#include <airdcpp/QueueItemBase.h>
 
 namespace dcpp {
 

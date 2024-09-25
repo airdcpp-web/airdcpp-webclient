@@ -21,7 +21,7 @@
 #ifndef DCPLUSPLUS_DCPP_DELAYEDEVENTS_H
 #define DCPLUSPLUS_DCPP_DELAYEDEVENTS_H
 
-#include "TimerManager.h"
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

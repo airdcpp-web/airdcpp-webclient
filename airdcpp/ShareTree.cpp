@@ -17,24 +17,24 @@
  */
 
 #include "stdinc.h"
-#include "ShareTree.h"
+#include <airdcpp/ShareTree.h>
 
-#include "ClientManager.h"
-#include "DupeUtil.h"
-#include "File.h"
-#include "FilteredFile.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "SearchResult.h"
-#include "SearchQuery.h"
-#include "SharePathValidator.h"
-#include "ShareProfile.h"
-#include "ShareRefreshInfo.h"
-#include "SimpleXML.h"
-#include "StringTokenizer.h"
-#include "UserConnection.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/File.h>
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/SharePathValidator.h>
+#include <airdcpp/ShareProfile.h>
+#include <airdcpp/ShareRefreshInfo.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/UserConnection.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
 namespace dcpp {
 

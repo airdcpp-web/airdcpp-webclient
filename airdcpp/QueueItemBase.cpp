@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "QueueItemBase.h"
-#include "ResourceManager.h"
-#include "Util.h"
+#include <airdcpp/QueueItemBase.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

@@ -17,16 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "UploadBundleInfoReceiver.h"
+#include <airdcpp/UploadBundleInfoReceiver.h>
 
-#include "ConnectionManager.h"
-#include "LogManager.h"
-#include "ResourceManager.h"
-#include "Upload.h"
-#include "UploadBundle.h"
-#include "UploadBundleInfo.h"
-#include "UploadManager.h"
-#include "UserConnection.h"
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/UploadBundle.h>
+#include <airdcpp/UploadBundleInfo.h>
+#include <airdcpp/UploadManager.h>
+#include <airdcpp/UserConnection.h>
 
 #include <boost/range/numeric.hpp>
 #include <boost/range/adaptor/map.hpp>

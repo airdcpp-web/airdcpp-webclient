@@ -309,6 +309,9 @@
     <Filter Include="Source Files\core\update\updater">
       <UniqueIdentifier>{f9b8e40b-c17c-4590-a1ea-54d0f2c71611}</UniqueIdentifier>
     </Filter>
+    <Filter Include="scripts">
+      <UniqueIdentifier>{4b4f03e4-f27a-4b80-95df-7067c26148ac}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="airdcpp\DCPlusPlus.cpp">
@@ -1528,6 +1531,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="scripts\generate_stringdefs.py">
+      <Filter>scripts</Filter>
+    </None>
+    <None Include="scripts\update_languages.py">
+      <Filter>scripts</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="airdcpp\StringDefs.h">

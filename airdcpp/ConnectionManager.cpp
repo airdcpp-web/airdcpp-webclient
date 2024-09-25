@@ -17,19 +17,19 @@
  */
 
 #include "stdinc.h"
-#include "ConnectionManager.h"
+#include <airdcpp/ConnectionManager.h>
 
-#include "AutoLimitUtil.h"
-#include "ClientManager.h"
-#include "ConnectivityManager.h"
-#include "CryptoManager.h"
-#include "DownloadManager.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "ResourceManager.h"
-#include "UploadManager.h"
-#include "UserConnection.h"
-#include "ValueGenerator.h"
+#include <airdcpp/AutoLimitUtil.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/CryptoManager.h>
+#include <airdcpp/DownloadManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/UploadManager.h>
+#include <airdcpp/UserConnection.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 FastCriticalSection TokenManager::cs;

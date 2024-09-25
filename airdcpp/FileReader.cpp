@@ -18,15 +18,15 @@
 
 #include "stdinc.h"
 
-#include "FileReader.h"
+#include <airdcpp/FileReader.h>
 
-#include "debug.h"
-#include "File.h"
-#include "Exception.h"
-#include "PathUtil.h"
-#include "Text.h"
-#include "Util.h"
-#include "SystemUtil.h"
+#include <airdcpp/debug.h>
+#include <airdcpp/File.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/SystemUtil.h>
 
 namespace dcpp {
 

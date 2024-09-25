@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITE_MANAGER_H
 #define DCPLUSPLUS_DCPP_FAVORITE_MANAGER_H
 
-#include "ClientManagerListener.h"
-#include "FavoriteManagerListener.h"
-#include "SettingsManagerListener.h"
-#include "ShareProfileManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/FavoriteManagerListener.h>
+#include <airdcpp/SettingsManagerListener.h>
+#include <airdcpp/ShareProfileManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "FavHubGroup.h"
-#include "HubEntry.h"
-#include "Singleton.h"
-#include "Speaker.h"
+#include <airdcpp/FavHubGroup.h>
+#include <airdcpp/HubEntry.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
 
 namespace dcpp {
 

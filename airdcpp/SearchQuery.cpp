@@ -18,10 +18,10 @@
 
 #include "stdinc.h"
 
-#include "AdcHub.h"
-#include "SearchQuery.h"
-#include "StringTokenizer.h"
-#include "Util.h"
+#include <airdcpp/AdcHub.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/Util.h>
 
 
 namespace {

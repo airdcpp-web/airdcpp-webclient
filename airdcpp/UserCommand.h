@@ -22,9 +22,9 @@
 #include <vector>
 #include <string>
 
-#include "Flags.h"
-#include "GetSet.h"
-#include "typedefs.h"
+#include <airdcpp/Flags.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

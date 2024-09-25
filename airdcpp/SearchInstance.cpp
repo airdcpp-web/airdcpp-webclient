@@ -17,12 +17,12 @@
 */
 
 #include "stdinc.h"
-#include "SearchInstance.h"
+#include <airdcpp/SearchInstance.h>
 
-#include "ClientManager.h"
-#include "SearchManager.h"
-#include "SearchQuery.h"
-#include "TimerManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/TimerManager.h>
 
 
 namespace dcpp {

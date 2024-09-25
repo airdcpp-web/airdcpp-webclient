@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_NMDC_HUB_H
 #define DCPLUSPLUS_DCPP_NMDC_HUB_H
 
-#include "forward.h"
-#include "Client.h"
-#include "CriticalSection.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/Client.h>
+#include <airdcpp/CriticalSection.h>
 
 namespace dcpp {
 

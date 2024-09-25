@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_MAGNET_H
 #define DCPLUSPLUS_DCPP_MAGNET_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "DupeType.h"
-#include "User.h"
+#include <airdcpp/DupeType.h>
+#include <airdcpp/User.h>
 
 #include <string>
 

@@ -18,8 +18,8 @@
 
 #include "stdinc.h"
 
-#include "DualString.h"
-#include "Text.h"
+#include <airdcpp/DualString.h>
+#include <airdcpp/Text.h>
 
 using std::string;
 

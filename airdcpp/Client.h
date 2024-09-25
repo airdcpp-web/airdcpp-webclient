@@ -19,21 +19,21 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_H
 #define DCPLUSPLUS_DCPP_CLIENT_H
 
-#include "compiler.h"
-#include "forward.h"
+#include <airdcpp/compiler.h>
+#include <airdcpp/forward.h>
 
-#include "BufferedSocketListener.h"
-#include "ClientListener.h"
-#include "ShareProfileManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/BufferedSocketListener.h>
+#include <airdcpp/ClientListener.h>
+#include <airdcpp/ShareProfileManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "AdcSupports.h"
-#include "FloodCounter.h"
-#include "HubSettings.h"
-#include "MessageCache.h"
-#include "OnlineUser.h"
-#include "SearchQueue.h"
-#include "Speaker.h"
+#include <airdcpp/AdcSupports.h>
+#include <airdcpp/FloodCounter.h>
+#include <airdcpp/HubSettings.h>
+#include <airdcpp/MessageCache.h>
+#include <airdcpp/OnlineUser.h>
+#include <airdcpp/SearchQueue.h>
+#include <airdcpp/Speaker.h>
 
 #include <boost/noncopyable.hpp>
 

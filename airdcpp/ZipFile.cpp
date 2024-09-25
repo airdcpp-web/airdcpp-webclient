@@ -29,12 +29,12 @@
 */
 
 #include "stdinc.h"
-#include "ZipFile.h"
+#include <airdcpp/ZipFile.h>
 
-#include "PathUtil.h"
-#include "SystemUtil.h"
-#include "TimerManager.h"
-#include "Util.h"
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/Util.h>
 
 #include <minizip/zip.h>
 #include <sys/stat.h>

@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_HTTP_CONNECTION_H
 #define DCPLUSPLUS_DCPP_HTTP_CONNECTION_H
 
-#include "BufferedSocketListener.h"
-#include "HttpConnectionListener.h"
+#include <airdcpp/BufferedSocketListener.h>
+#include <airdcpp/HttpConnectionListener.h>
 
-#include "GetSet.h"
-#include "Speaker.h"
-#include "typedefs.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

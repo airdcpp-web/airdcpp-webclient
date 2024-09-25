@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_LINKUTIL_H
 #define DCPLUSPLUS_DCPP_LINKUTIL_H
 
-#include "compiler.h"
+#include <airdcpp/compiler.h>
 
-#include "Priority.h"
-#include "SettingsManager.h"
+#include <airdcpp/Priority.h>
+#include <airdcpp/SettingsManager.h>
 
 namespace dcpp {
 

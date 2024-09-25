@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "ValueGenerator.h"
+#include <airdcpp/ValueGenerator.h>
 
-#include "MerkleTree.h"
-#include "PathUtil.h"
-#include "Text.h"
-#include "Util.h"
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/Util.h>
 
 
 namespace dcpp {

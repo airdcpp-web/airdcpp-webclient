@@ -20,7 +20,7 @@
 #define DCPLUSPLUS_DCPP_THREAD_H
 
 #ifdef _WIN32
-#include "w.h"
+#include <airdcpp/w.h>
 #else
 #include <pthread.h>
 #include <sys/resource.h>

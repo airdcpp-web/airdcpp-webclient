@@ -18,18 +18,18 @@
 
 #include "stdinc.h"
 
-#include "HashStore.h"
-#include "DCPlusPlus.h"
-#include "File.h"
-#include "HashedFile.h"
-#include "LevelDB.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "QueueManager.h"
-#include "ShareManager.h"
-#include "ResourceManager.h"
-#include "Util.h"
-#include "version.h"
+#include <airdcpp/HashStore.h>
+#include <airdcpp/DCPlusPlus.h>
+#include <airdcpp/File.h>
+#include <airdcpp/HashedFile.h>
+#include <airdcpp/LevelDB.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/version.h>
 
 
 #define FILEINDEX_VERSION 1

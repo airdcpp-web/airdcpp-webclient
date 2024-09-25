@@ -21,8 +21,8 @@
 #define DCPLUSPLUS_DCPP_DBHANDLER_H_
 
 #include "stdinc.h"
-#include "PathUtil.h"
-#include "Text.h"
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/Text.h>
 
 #include <functional>
 

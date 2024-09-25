@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "Thread.h"
+#include <airdcpp/Thread.h>
 
-#include "Exception.h"
-#include "ResourceManager.h"
-#include "SystemUtil.h"
-#include "Util.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/Util.h>
 
 #ifdef _WIN32
 #include <process.h>

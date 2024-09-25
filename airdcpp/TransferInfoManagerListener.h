@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERINFOMANAGER_LISTENER_H_
 #define DCPLUSPLUS_DCPP_TRANSFERINFOMANAGER_LISTENER_H_
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "TransferInfo.h"
+#include <airdcpp/TransferInfo.h>
 
 namespace dcpp {
 

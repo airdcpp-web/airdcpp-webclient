@@ -19,19 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_TREE_H
 #define DCPLUSPLUS_DCPP_SHARE_TREE_H
 
-#include "CriticalSection.h"
-#include "DualString.h"
-#include "DupeType.h"
-#include "HashBloom.h"
-#include "HashedFile.h"
-#include "MerkleTree.h"
-#include "Pointer.h"
-#include "ShareDirectory.h"
-#include "ShareDirectoryInfo.h"
-#include "ShareStats.h"
-#include "SortedVector.h"
-#include "UploadFileProvider.h"
-#include "UserConnection.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/DualString.h>
+#include <airdcpp/DupeType.h>
+#include <airdcpp/HashBloom.h>
+#include <airdcpp/HashedFile.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Pointer.h>
+#include <airdcpp/ShareDirectory.h>
+#include <airdcpp/ShareDirectoryInfo.h>
+#include <airdcpp/ShareStats.h>
+#include <airdcpp/SortedVector.h>
+#include <airdcpp/UploadFileProvider.h>
+#include <airdcpp/UserConnection.h>
 
 namespace dcpp {
 

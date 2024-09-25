@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SINGLETON_H
 #define DCPLUSPLUS_DCPP_SINGLETON_H
 
-#include "debug.h"
+#include <airdcpp/debug.h>
 
 #include <boost/noncopyable.hpp>
 

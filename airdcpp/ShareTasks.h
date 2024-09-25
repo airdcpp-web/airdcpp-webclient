@@ -20,14 +20,14 @@
 #define DCPLUSPLUS_DCPP_SHARE_TASKS_H
 
 
-#include "TimerManagerListener.h"
+#include <airdcpp/TimerManagerListener.h>
 
-#include "Message.h"
-#include "ShareDirectoryInfo.h"
-#include "ShareRefreshInfo.h"
-#include "ShareRefreshTask.h"
-#include "TaskQueue.h"
-#include "Thread.h"
+#include <airdcpp/Message.h>
+#include <airdcpp/ShareDirectoryInfo.h>
+#include <airdcpp/ShareRefreshInfo.h>
+#include <airdcpp/ShareRefreshTask.h>
+#include <airdcpp/TaskQueue.h>
+#include <airdcpp/Thread.h>
 
 namespace dcpp {
 

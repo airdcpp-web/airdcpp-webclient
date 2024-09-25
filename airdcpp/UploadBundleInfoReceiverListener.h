@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_MANAGER_LISTENER_H_
 #define DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_MANAGER_LISTENER_H_
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "UploadBundle.h"
+#include <airdcpp/UploadBundle.h>
 
 namespace dcpp {
 

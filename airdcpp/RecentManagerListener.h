@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_RECENTMANAGERLISTENER_H_
 #define DCPLUSPLUS_DCPP_RECENTMANAGERLISTENER_H_
 
-#include "forward.h"
-#include "RecentEntry.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/RecentEntry.h>
 
 namespace dcpp {
 

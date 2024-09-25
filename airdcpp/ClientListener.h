@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENTLISTENER_H_
 #define DCPLUSPLUS_DCPP_CLIENTLISTENER_H_
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

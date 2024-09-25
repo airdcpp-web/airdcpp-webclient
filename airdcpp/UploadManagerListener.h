@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOADMANAGERLISTENER_H_
 #define DCPLUSPLUS_DCPP_UPLOADMANAGERLISTENER_H_
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

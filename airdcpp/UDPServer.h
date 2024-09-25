@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_UDP_SERVER_H
 #define DCPLUSPLUS_DCPP_UDP_SERVER_H
 
-#include "AdcCommand.h"
-#include "DispatcherQueue.h"
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/DispatcherQueue.h>
 
 namespace dcpp {
 

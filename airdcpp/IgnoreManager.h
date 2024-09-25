@@ -19,18 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_IGNORE_MANAGER_H_
 #define DCPLUSPLUS_DCPP_IGNORE_MANAGER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "IgnoreManagerListener.h"
-#include "SettingsManagerListener.h"
+#include <airdcpp/IgnoreManagerListener.h>
+#include <airdcpp/SettingsManagerListener.h>
 
-#include "CriticalSection.h"
-#include "GetSet.h"
-#include "SimpleXML.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "StringMatch.h"
-#include "User.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/StringMatch.h>
+#include <airdcpp/User.h>
 
 
 namespace dcpp {

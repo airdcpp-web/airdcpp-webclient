@@ -20,7 +20,7 @@
 #ifndef DCPP_PRIVATE_CHAT_LISTENER_H
 #define DCPP_PRIVATE_CHAT_LISTENER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 namespace dcpp {
 

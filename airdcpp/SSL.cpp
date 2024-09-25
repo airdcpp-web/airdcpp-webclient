@@ -17,9 +17,9 @@
  */
 
 #include "stdinc.h"
-#include "SSL.h"
+#include <airdcpp/SSL.h>
 
-#include "File.h"
+#include <airdcpp/File.h>
 
 #include <vector>
 

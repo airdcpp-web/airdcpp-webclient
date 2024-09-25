@@ -17,25 +17,20 @@
  */
 
 #include "stdinc.h"
-#include "AppUtil.h"
+#include <airdcpp/AppUtil.h>
 
 #ifdef _WIN32
-#include "shlobj.h"
+#include "ShlObj.h"
 #endif
 
-#include "Exception.h"
-#include "FastAlloc.h"
-#include "File.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "SettingsManager.h"
-#include "SimpleXML.h"
-#include "StartupParams.h"
-#include "Util.h"
-#include "ValueGenerator.h"
-
-#include <random>
+#include <airdcpp/Exception.h>
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/File.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/StartupParams.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/version.h>
 
 namespace dcpp {
 

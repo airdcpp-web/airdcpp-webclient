@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "version.h"
+#include <airdcpp/version.h>
 
-#include "HBRIValidation.h"
+#include <airdcpp/HBRIValidation.h>
 
-#include "ActivityManager.h"
-#include "AdcCommand.h"
-#include "Exception.h"
-#include "ProtocolCommandManager.h"
-#include "ScopedFunctor.h"
-#include "SettingsManager.h"
-#include "SSLSocket.h"
-#include "TimerManager.h"
+#include <airdcpp/ActivityManager.h>
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SSLSocket.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREMANAGERLISTENER_H
 #define DCPLUSPLUS_DCPP_SHAREMANAGERLISTENER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

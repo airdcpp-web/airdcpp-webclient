@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_UTIL_H
 #define DCPLUSPLUS_DCPP_UTIL_H
 
-#include "compiler.h"
-#include "constants.h"
+#include <airdcpp/compiler.h>
+#include <airdcpp/constants.h>
 
-#include "Priority.h"
-#include "Text.h"
+#include <airdcpp/Priority.h>
+#include <airdcpp/Text.h>
 
 namespace dcpp {
 

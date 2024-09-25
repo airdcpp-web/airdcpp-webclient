@@ -17,13 +17,13 @@
 */
 #include "stdinc.h"
 
-#include "PrivateChat.h"
+#include <airdcpp/PrivateChat.h>
 
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "CryptoManager.h"
-#include "LogManager.h"
-#include "Message.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/CryptoManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/Message.h>
 
 
 namespace dcpp {

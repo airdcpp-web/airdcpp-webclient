@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_ADC_COMMAND_H
 #define DCPLUSPLUS_DCPP_ADC_COMMAND_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "Exception.h"
+#include <airdcpp/Exception.h>
 
 namespace dcpp {
 

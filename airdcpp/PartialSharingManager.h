@@ -19,13 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_PARTIAL_SHARING_MANAGER_H
 #define DCPLUSPLUS_DCPP_PARTIAL_SHARING_MANAGER_H
 
-#include "Singleton.h"
+#include <airdcpp/Singleton.h>
 
-#include "PartialBundleSharingManager.h"
-#include "PartialFileSharingManager.h"
-#include "UploadFileProvider.h"
-#include "UploadManagerListener.h"
-#include "UploadSlot.h"
+#include <airdcpp/PartialBundleSharingManager.h>
+#include <airdcpp/PartialFileSharingManager.h>
+#include <airdcpp/UploadFileProvider.h>
+#include <airdcpp/UploadManagerListener.h>
+#include <airdcpp/UploadSlot.h>
 
 
 namespace dcpp {

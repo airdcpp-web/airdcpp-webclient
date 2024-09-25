@@ -17,14 +17,14 @@
  */
 
 #include "stdinc.h"
-#include "Socket.h"
+#include <airdcpp/Socket.h>
 
-#include "ConnectivityManager.h"
-#include "format.h"
-#include "SettingsManager.h"
-#include "TimerManager.h"
-#include "ResourceManager.h"
-#include "SystemUtil.h"
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/format.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SystemUtil.h>
 
 /// @todo remove when MinGW has this
 #ifdef __MINGW32__

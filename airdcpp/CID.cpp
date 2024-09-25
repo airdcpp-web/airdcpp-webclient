@@ -17,11 +17,11 @@
  */
 
 #include "stdinc.h"
-#include "CID.h"
+#include <airdcpp/CID.h>
 
-#include "Encoder.h"
-#include "Util.h"
-#include "ValueGenerator.h"
+#include <airdcpp/Encoder.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

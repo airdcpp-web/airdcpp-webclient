@@ -22,8 +22,8 @@
 #include <utility>
 #include <vector>
 
-#include "CriticalSection.h"
-#include "debug.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/debug.h>
 
 namespace dcpp {
 

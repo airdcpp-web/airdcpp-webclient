@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_DEBUGMANAGER_H
 #define DCPLUSPLUS_DCPP_DEBUGMANAGER_H
 
-#include "forward.h"
-#include "Speaker.h"
-#include "Singleton.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/Singleton.h>
 
 namespace dcpp {
 

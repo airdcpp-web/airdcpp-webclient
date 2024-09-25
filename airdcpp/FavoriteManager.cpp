@@ -17,14 +17,14 @@
  */
 
 #include "stdinc.h"
-#include "FavoriteManager.h"
+#include <airdcpp/FavoriteManager.h>
 
-#include "ClientManager.h"
-#include "HintedUser.h"
-#include "ResourceManager.h"
-#include "ShareManager.h"
-#include "ShareProfileManager.h"
-#include "SimpleXML.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/ShareProfileManager.h>
+#include <airdcpp/SimpleXML.h>
 
 namespace dcpp {
 

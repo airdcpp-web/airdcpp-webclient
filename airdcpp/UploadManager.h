@@ -19,19 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_MANAGER_H
 #define DCPLUSPLUS_DCPP_UPLOAD_MANAGER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "ActionHook.h"
-#include "CriticalSection.h"
-#include "MerkleTree.h"
-#include "Message.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "StringMatch.h"
-#include "TimerManagerListener.h"
-#include "UploadManagerListener.h"
-#include "UploadSlot.h"
-#include "UserConnectionListener.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/StringMatch.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/UploadManagerListener.h>
+#include <airdcpp/UploadSlot.h>
+#include <airdcpp/UserConnectionListener.h>
 
 namespace dcpp {
 

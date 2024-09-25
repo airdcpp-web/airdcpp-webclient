@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_FLOODCOUNTER_H
 #define DCPLUSPLUS_FLOODCOUNTER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "CriticalSection.h"
+#include <airdcpp/CriticalSection.h>
 
 namespace dcpp {
 

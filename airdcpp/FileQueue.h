@@ -20,13 +20,13 @@
 #define DCPLUSPLUS_DCPP_FILE_QUEUE_H
 
 #include "stdinc.h"
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "DirectoryListingDirectory.h"
-#include "DupeType.h"
-// #include "HashBloom.h"
-#include "QueueItem.h"
+#include <airdcpp/DirectoryListingDirectory.h>
+#include <airdcpp/DupeType.h>
+// #include <airdcpp/HashBloom.h>
+#include <airdcpp/QueueItem.h>
 
 namespace dcpp {
 

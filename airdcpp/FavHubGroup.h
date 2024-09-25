@@ -21,12 +21,12 @@
 
 #include <unordered_map>
 
-#include "HubSettings.h"
+#include <airdcpp/HubSettings.h>
 
 namespace dcpp {
 
-typedef std::unordered_map<string, HubSettings> FavHubGroups;
-typedef FavHubGroups::value_type FavHubGroup;
+using FavHubGroups = std::unordered_map<string, HubSettings>;
+using FavHubGroup = FavHubGroups::value_type;
 
 } // namespace dcpp
 

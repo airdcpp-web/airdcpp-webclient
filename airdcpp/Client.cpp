@@ -17,22 +17,22 @@
  */
 
 #include "stdinc.h"
-#include "Client.h"
+#include <airdcpp/Client.h>
 
-#include "BufferedSocket.h"
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "ConnectivityManager.h"
-#include "ProtocolCommandManager.h"
-#include "FavoriteManager.h"
-#include "LinkUtil.h"
-#include "LogManager.h"
-#include "ResourceManager.h"
-#include "ShareManager.h"
-#include "ShareProfileManager.h"
-#include "ThrottleManager.h"
-#include "TimerManager.h"
-#include "ValueGenerator.h"
+#include <airdcpp/BufferedSocket.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/ShareProfileManager.h>
+#include <airdcpp/ThrottleManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

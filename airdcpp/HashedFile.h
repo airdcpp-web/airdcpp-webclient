@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_HASHEDFILEINFO_H
 #define DCPLUSPLUS_DCPP_HASHEDFILEINFO_H
 
-#include "typedefs.h"
-#include "GetSet.h"
-#include "MerkleTree.h"
+#include <airdcpp/typedefs.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/MerkleTree.h>
 
 namespace dcpp {
 

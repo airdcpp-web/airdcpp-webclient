@@ -20,17 +20,17 @@
 #define DCPLUSPLUS_DCPP_HASH_MANAGER_H
 
 #include <functional>
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "DbHandler.h"
-#include "HasherManager.h"
-#include "HasherStats.h"
-#include "HashManagerListener.h"
-#include "MerkleTree.h"
-#include "Message.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "Thread.h"
+#include <airdcpp/DbHandler.h>
+#include <airdcpp/HasherManager.h>
+#include <airdcpp/HasherStats.h>
+#include <airdcpp/HashManagerListener.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/Thread.h>
 
 namespace dcpp {
 

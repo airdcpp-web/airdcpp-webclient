@@ -17,15 +17,15 @@
  */
 
 #include "stdinc.h"
-#include "Magnet.h"
+#include <airdcpp/Magnet.h>
 
-#include "DupeUtil.h"
-#include "LinkUtil.h"
-#include "QueueManager.h"
-#include "StringTokenizer.h"
-#include "TempShareManager.h"
-#include "Text.h"
-#include "Util.h"
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/TempShareManager.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

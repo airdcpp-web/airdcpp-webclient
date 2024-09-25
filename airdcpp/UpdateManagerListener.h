@@ -19,11 +19,11 @@
 #ifndef UPDATEMANAGER_LISTENER_H
 #define UPDATEMANAGER_LISTENER_H
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 #include <string>
 
-// #include "UpdateVersion.h"
+// #include <airdcpp/UpdateVersion.h>
 
 namespace dcpp {
 

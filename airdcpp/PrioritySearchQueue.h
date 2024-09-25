@@ -22,8 +22,8 @@
 #include "stdinc.h"
 #include <random>
 
-#include "SettingsManager.h"
-#include "TimerManager.h"
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/TimerManager.h>
 
 
 namespace dcpp {

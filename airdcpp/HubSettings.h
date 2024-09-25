@@ -21,8 +21,8 @@
 
 #include <string>
 
-#include "forward.h"
-#include "tribool.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/tribool.h>
 
 namespace dcpp {
 

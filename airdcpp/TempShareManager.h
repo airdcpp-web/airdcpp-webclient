@@ -19,14 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_TEMPSHARE_MANAGER_H
 #define DCPLUSPLUS_DCPP_TEMPSHARE_MANAGER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "CriticalSection.h"
-#include "UploadFileProvider.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "TempShareItem.h"
-#include "TempShareManagerListener.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/UploadFileProvider.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TempShareItem.h>
+#include <airdcpp/TempShareManagerListener.h>
 
 namespace dcpp {
 

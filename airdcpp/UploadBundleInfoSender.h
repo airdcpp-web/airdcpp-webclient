@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_SENDER_H_
 #define DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_SENDER_H_
 
-#include "CriticalSection.h"
-#include "Message.h"
-#include "User.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/User.h>
 
-#include "DownloadManagerListener.h"
-#include "QueueManagerListener.h"
+#include <airdcpp/DownloadManagerListener.h>
+#include <airdcpp/QueueManagerListener.h>
 
 
 

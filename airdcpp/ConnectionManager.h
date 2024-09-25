@@ -19,18 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
 #define DCPLUSPLUS_DCPP_CONNECTION_MANAGER_H
 
-#include "ClientManagerListener.h"
-#include "ConnectionManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/ConnectionManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "AdcSupports.h"
-#include "ConnectionType.h"
-#include "CriticalSection.h"
-#include "FloodCounter.h"
-#include "HintedUser.h"
-#include "QueueDownloadInfo.h"
-#include "Singleton.h"
-#include "UserConnection.h"
+#include <airdcpp/AdcSupports.h>
+#include <airdcpp/ConnectionType.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/FloodCounter.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/QueueDownloadInfo.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/UserConnection.h>
 
 namespace dcpp {
 

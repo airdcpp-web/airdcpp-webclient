@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREPATH_VALIDATOR_H
 #define DCPLUSPLUS_DCPP_SHAREPATH_VALIDATOR_H
 
-#include "ActionHook.h"
-#include "CriticalSection.h"
-#include "File.h"
-#include "StringMatch.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/File.h>
+#include <airdcpp/StringMatch.h>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

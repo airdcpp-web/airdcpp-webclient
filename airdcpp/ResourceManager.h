@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_RESOURCE_MANAGER_H
 #define DCPLUSPLUS_DCPP_RESOURCE_MANAGER_H
 
-#include "Singleton.h"
-#include "format.h"
+#include <airdcpp/Singleton.h>
+#include <airdcpp/format.h>
 
 namespace dcpp {
 
@@ -68,7 +68,7 @@ namespace dcpp {
 class ResourceManager : public Singleton<ResourceManager> {
 public:
 	
-#include "StringDefs.h"
+#include <airdcpp/StringDefs.h>
 
 	void loadLanguage(const string& aFile);
 	static const string& getString(Strings x) { dcassert(x >= 0 && x < LAST); return strings[x]; }

@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_DUPE_UTIL_H
 #define DCPLUSPLUS_DCPP_DUPE_UTIL_H
 
-#include "compiler.h"
-#include "constants.h"
-#include "typedefs.h"
+#include <airdcpp/compiler.h>
+#include <airdcpp/constants.h>
+#include <airdcpp/typedefs.h>
 
-#include "DupeType.h"
-#include "MerkleTree.h"
+#include <airdcpp/DupeType.h>
+#include <airdcpp/MerkleTree.h>
 
 namespace dcpp {
 

@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "SettingHolder.h"
+#include <airdcpp/SettingHolder.h>
 
-#include "ClientManager.h"
+#include <airdcpp/ClientManager.h>
 
 
 namespace dcpp {

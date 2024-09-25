@@ -17,7 +17,7 @@
 */
 
 #include "stdinc.h"
-#include "MessageCache.h"
+#include <airdcpp/MessageCache.h>
 
 namespace dcpp {
 	MessageCache::MessageCache(const MessageCache& aCache) noexcept : setting(aCache.setting), messages(aCache.getMessages()) {

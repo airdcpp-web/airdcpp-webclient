@@ -18,11 +18,11 @@
 
 #include "stdinc.h"
 
-#include "TrackableDownloadItem.h"
+#include <airdcpp/TrackableDownloadItem.h>
 
-#include "Download.h"
-#include "DownloadManager.h"
-#include "ResourceManager.h"
+#include <airdcpp/Download.h>
+#include <airdcpp/DownloadManager.h>
+#include <airdcpp/ResourceManager.h>
 
 namespace dcpp {
 	TrackableDownloadItem::TrackableDownloadItem(bool aDownloaded) noexcept {

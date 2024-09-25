@@ -19,7 +19,7 @@
 
 #include "stdinc.h"
 
-#include "SharedFileStream.h"
+#include <airdcpp/SharedFileStream.h>
 
 #ifdef _WIN32
 # include "Winioctl.h"

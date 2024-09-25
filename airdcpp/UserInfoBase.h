@@ -19,7 +19,7 @@
 #ifndef DCPP_USERINFOBASE_H
 #define DCPP_USERINFOBASE_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 
 namespace dcpp

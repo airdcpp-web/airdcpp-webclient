@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_USER_COMMAND_MANAGER_H
 #define DCPLUSPLUS_DCPP_USER_COMMAND_MANAGER_H
 
-#include "ClientManagerListener.h"
-#include "FavoriteManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/FavoriteManagerListener.h>
 
-#include "CriticalSection.h"
-#include "Singleton.h"
-#include "UserCommand.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/UserCommand.h>
 
 namespace dcpp {
 

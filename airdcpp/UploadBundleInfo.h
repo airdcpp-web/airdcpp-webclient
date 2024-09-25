@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_INFO_H
 #define DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_INFO_H
 
-#include "AdcCommand.h"
+#include <airdcpp/AdcCommand.h>
 
 namespace dcpp {
 

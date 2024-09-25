@@ -18,8 +18,8 @@
 
 #include "stdinc.h"
 
-#include "UpdateDownloader.h"
-#include "UpdateConstants.h"
+#include <airdcpp/UpdateDownloader.h>
+#include <airdcpp/UpdateConstants.h>
 
 #include <airdcpp/File.h>
 #include <airdcpp/Exception.h>
@@ -209,7 +209,10 @@ optional<UpdateVersion> UpdateDownloader::parseVersionInfo(SimpleXML& xml, bool 
 
 	// Info URL
 	if (xml.findChild("URL")) {
-		versionInfo.infoUrl = xml.getChildData();
+		ParamMap params;
+		params["installed_commit"] = getGitCommit();
+
+		versionInfo.infoUrl = Util::formatParams(xml.getChildData(), params);
 	}
 
 	xml.resetCurrentChild();

@@ -23,17 +23,17 @@
 
 #include <boost/noncopyable.hpp>
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "CriticalSection.h"
-#include "Flags.h"
-#include "FastAlloc.h"
-#include "GetSet.h"
-#include "HintedUser.h"
-#include "Pointer.h"
-#include "Util.h"
-#include "User.h"
-#include "UserInfoBase.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Flags.h>
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/Pointer.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/User.h>
+#include <airdcpp/UserInfoBase.h>
 
 namespace dcpp {
 

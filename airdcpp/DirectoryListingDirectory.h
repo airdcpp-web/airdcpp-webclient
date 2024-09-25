@@ -19,15 +19,15 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORY_LISTING_DIRECTORY_H
 #define DCPLUSPLUS_DCPP_DIRECTORY_LISTING_DIRECTORY_H
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "DirectoryListing.h"
-#include "DirectoryContentInfo.h"
-#include "DupeType.h"
-#include "GetSet.h"
-#include "Util.h"
-#include "QueueAddInfo.h"
+#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/DirectoryContentInfo.h>
+#include <airdcpp/DupeType.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/QueueAddInfo.h>
 
 namespace dcpp {
 

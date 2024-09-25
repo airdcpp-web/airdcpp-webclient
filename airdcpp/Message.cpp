@@ -18,10 +18,10 @@
 
 #include "stdinc.h"
 
-#include "Message.h"
-#include "ClientManager.h"
-#include "OnlineUser.h"
-#include "TimerManager.h"
+#include <airdcpp/Message.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/OnlineUser.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

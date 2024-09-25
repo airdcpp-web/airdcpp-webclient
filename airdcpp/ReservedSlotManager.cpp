@@ -17,14 +17,14 @@
  */
 
 #include "stdinc.h"
-#include "ReservedSlotManager.h"
+#include <airdcpp/ReservedSlotManager.h>
 
-#include "ClientManager.h"
-#include "LogManager.h"
-#include "ResourceManager.h"
-#include "UploadManager.h"
-#include "UploadQueueManager.h"
-#include "UserConnection.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/UploadManager.h>
+#include <airdcpp/UploadQueueManager.h>
+#include <airdcpp/UserConnection.h>
 
 
 namespace dcpp {

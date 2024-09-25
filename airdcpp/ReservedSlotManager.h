@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_USER_SLOT_MANAGER_H
 #define DCPLUSPLUS_DCPP_UPLOAD_USER_SLOT_MANAGER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "CriticalSection.h"
-#include "TimerManagerListener.h"
-#include "User.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/User.h>
 
 namespace dcpp {
 

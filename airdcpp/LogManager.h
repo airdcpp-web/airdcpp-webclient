@@ -22,15 +22,15 @@
 #include <deque>
 #include <utility>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "CID.h"
-#include "DispatcherQueue.h"
-#include "LogManagerListener.h"
-#include "Message.h"
-#include "MessageCache.h"
-#include "Singleton.h"
-#include "Speaker.h"
+#include <airdcpp/CID.h>
+#include <airdcpp/DispatcherQueue.h>
+#include <airdcpp/LogManagerListener.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/MessageCache.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
 
 namespace dcpp {
 

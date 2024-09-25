@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCH_TYPES_H
 #define DCPLUSPLUS_DCPP_SEARCH_TYPES_H
 
-#include "ResourceManager.h"
-#include "SettingsManagerListener.h"
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SettingsManagerListener.h>
 
-#include "CriticalSection.h"
-#include "GetSet.h"
-#include "Search.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Search.h>
 
 
 namespace dcpp {

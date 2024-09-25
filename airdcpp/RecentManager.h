@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_RECENT_MANAGER_H
 #define DCPLUSPLUS_DCPP_RECENT_MANAGER_H
 
-#include "RecentEntry.h"
-#include "Singleton.h"
-#include "Speaker.h"
+#include <airdcpp/RecentEntry.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
 
-#include "ClientManagerListener.h"
-#include "DirectoryListingManagerListener.h"
-#include "PrivateChatManagerListener.h"
-#include "RecentManagerListener.h"
-#include "SettingsManager.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/DirectoryListingManagerListener.h>
+#include <airdcpp/PrivateChatManagerListener.h>
+#include <airdcpp/RecentManagerListener.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/TimerManagerListener.h>
 
 
 namespace dcpp {

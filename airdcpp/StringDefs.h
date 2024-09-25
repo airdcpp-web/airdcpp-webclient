@@ -1,5 +1,5 @@
 // @Prolog: #include "stdinc.h"
-// @Prolog: #include "ResourceManager.h"
+// @Prolog: #include <airdcpp/ResourceManager.h>
 // @Strings: std::string dcpp::ResourceManager::strings[]
 // @Names: std::string dcpp::ResourceManager::names[]
 

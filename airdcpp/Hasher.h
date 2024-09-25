@@ -19,15 +19,15 @@
 #ifndef DCPLUSPLUS_DCPP_HASHER_H
 #define DCPLUSPLUS_DCPP_HASHER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "CriticalSection.h"
-#include "HasherManager.h"
-#include "PathUtil.h"
-#include "Semaphore.h"
-#include "SortedVector.h"
-#include "Thread.h"
-#include "Util.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/HasherManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/Semaphore.h>
+#include <airdcpp/SortedVector.h>
+#include <airdcpp/Thread.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 	using devid = int64_t;

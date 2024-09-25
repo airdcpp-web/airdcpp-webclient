@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREDIRECTORY_H
 #define DCPLUSPLUS_DCPP_SHAREDIRECTORY_H
 
-#include "BloomFilter.h"
-#include "DualString.h"
-#include "GetSet.h"
-#include "HashBloom.h"
-#include "MerkleTree.h"
-#include "Pointer.h"
-#include "SortedVector.h"
-#include "Util.h"
+#include <airdcpp/BloomFilter.h>
+#include <airdcpp/DualString.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/HashBloom.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Pointer.h>
+#include <airdcpp/SortedVector.h>
+#include <airdcpp/Util.h>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

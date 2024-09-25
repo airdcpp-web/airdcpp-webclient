@@ -19,14 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 #define DCPLUSPLUS_DCPP_QUEUE_ITEM_H
 
-#include "QueueItemBase.h"
-#include "QueueDownloadInfo.h"
+#include <airdcpp/QueueItemBase.h>
+#include <airdcpp/QueueDownloadInfo.h>
 
-#include "FastAlloc.h"
-#include "HintedUser.h"
-#include "MerkleTree.h"
-#include "Segment.h"
-#include "Util.h"
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Segment.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

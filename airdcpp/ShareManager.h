@@ -20,24 +20,24 @@
 #define DCPLUSPLUS_DCPP_SHARE_MANAGER_H
 
 
-#include "HashManagerListener.h"
-#include "SettingsManagerListener.h"
-#include "ShareManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/HashManagerListener.h>
+#include <airdcpp/SettingsManagerListener.h>
+#include <airdcpp/ShareManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "DupeType.h"
-#include "Exception.h"
-#include "UploadFileProvider.h"
-#include "Message.h"
-#include "MerkleTree.h"
-#include "ShareDirectory.h"
-#include "ShareDirectoryInfo.h"
-#include "ShareRefreshInfo.h"
-#include "ShareRefreshTask.h"
-#include "ShareSearchInfo.h"
-#include "ShareStats.h"
-#include "Singleton.h"
-#include "TimerManager.h"
+#include <airdcpp/DupeType.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/UploadFileProvider.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/ShareDirectory.h>
+#include <airdcpp/ShareDirectoryInfo.h>
+#include <airdcpp/ShareRefreshInfo.h>
+#include <airdcpp/ShareRefreshTask.h>
+#include <airdcpp/ShareSearchInfo.h>
+#include <airdcpp/ShareStats.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

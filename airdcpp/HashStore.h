@@ -20,11 +20,11 @@
 #define DCPLUSPLUS_DCPP_HASH_STORE_H
 
 #include <functional>
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "DbHandler.h"
-#include "MerkleTree.h"
-#include "Message.h"
+#include <airdcpp/DbHandler.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Message.h>
 
 namespace dcpp {
 

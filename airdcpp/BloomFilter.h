@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_BLOOM_FILTER_H
 #define DCPLUSPLUS_DCPP_BLOOM_FILTER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

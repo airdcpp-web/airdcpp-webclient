@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_LISTLOADER_H
 #define DCPLUSPLUS_DCPP_LISTLOADER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "DirectoryListingDirectory.h"
-#include "SimpleXMLReader.h"
+#include <airdcpp/DirectoryListingDirectory.h>
+#include <airdcpp/SimpleXMLReader.h>
 
 namespace dcpp {
 
@@ -55,7 +55,6 @@ private:
 
 	const string base;
 	const bool updating;
-	const bool checkDupe;
 	const bool partialList;
 	const time_t listDownloadDate;
 };

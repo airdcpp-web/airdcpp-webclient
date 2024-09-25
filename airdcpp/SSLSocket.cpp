@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "SSLSocket.h"
+#include <airdcpp/SSLSocket.h>
 
-#include "LogManager.h"
-#include "SettingsManager.h"
-#include "ResourceManager.h"
-#include "format.h"
-#include "StringTokenizer.h"
+#include <airdcpp/LogManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/format.h>
+#include <airdcpp/StringTokenizer.h>
 
 #include <openssl/err.h>
 

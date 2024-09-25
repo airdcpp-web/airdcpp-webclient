@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "PathUtil.h"
+#include <airdcpp/PathUtil.h>
 
-#include "File.h"
-#include "Exception.h"
-#include "Text.h"
-#include "Thread.h"
-#include "Util.h"
+#include <airdcpp/File.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/Text.h>
+#include <airdcpp/Thread.h>
+#include <airdcpp/Util.h>
 
 
 namespace dcpp {

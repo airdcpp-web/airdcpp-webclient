@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "ShareProfileManager.h"
+#include <airdcpp/ShareProfileManager.h>
 
-#include "LogManager.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "Streams.h"
-#include "Transfer.h"
-#include "UserConnection.h"
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/Streams.h>
+#include <airdcpp/Transfer.h>
+#include <airdcpp/UserConnection.h>
 
-#include "version.h"
+#include <airdcpp/version.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
 namespace dcpp {
 

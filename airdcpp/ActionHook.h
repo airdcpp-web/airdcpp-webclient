@@ -20,13 +20,13 @@
 #define DCPLUSPLUS_DCPP_ACTION_HOOK_H
 
 #include "stdinc.h"
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "CriticalSection.h"
-#include "Exception.h"
-#include "GetSet.h"
-#include "debug.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/debug.h>
 
 #include <vector>
 

@@ -18,8 +18,8 @@
 
 #include "stdinc.h"
 
-#include "LinkUtil.h"
-#include "Util.h"
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/Util.h>
 
 #include <boost/algorithm/string/trim.hpp>
 

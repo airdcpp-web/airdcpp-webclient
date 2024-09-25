@@ -22,10 +22,10 @@
 #include <string>
 #include <set>
 
-#include "Flags.h"
-#include "forward.h"
-#include "GetSet.h"
-#include "Priority.h"
+#include <airdcpp/Flags.h>
+#include <airdcpp/forward.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Priority.h>
 
 namespace dcpp {
 

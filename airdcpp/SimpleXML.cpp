@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "SimpleXML.h"
+#include <airdcpp/SimpleXML.h>
 
-#include "Exception.h"
-#include "Streams.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/Streams.h>
 
-#include "File.h"
+#include <airdcpp/File.h>
 
 namespace dcpp {
 

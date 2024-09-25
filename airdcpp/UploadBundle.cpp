@@ -17,11 +17,11 @@
  */
 
 #include "stdinc.h"
-#include "UploadBundle.h"
+#include <airdcpp/UploadBundle.h>
 
-#include "ConnectionManager.h"
-#include "PathUtil.h"
-#include "Util.h"
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

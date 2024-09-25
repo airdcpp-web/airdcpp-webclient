@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_MAPPER_WINUPNP_H
 #define DCPLUSPLUS_DCPP_MAPPER_WINUPNP_H
 
-#include "Mapper.h"
+#include <airdcpp/Mapper.h>
 
 struct IUPnPNAT;
 struct IStaticPortMappingCollection;

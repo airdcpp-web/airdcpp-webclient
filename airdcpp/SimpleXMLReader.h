@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_SIMPLEXMLREADER_H_
 #define DCPLUSPLUS_DCPP_SIMPLEXMLREADER_H_
 
-#include "typedefs.h"
-#include "File.h"
+#include <airdcpp/typedefs.h>
+#include <airdcpp/File.h>
 
 #include <boost/noncopyable.hpp>
 

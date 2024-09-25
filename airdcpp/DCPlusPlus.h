@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_DCPLUSPLUS_H
 #define DCPLUSPLUS_DCPP_DCPLUSPLUS_H
 
-#include "compiler.h"
-#include "typedefs.h"
+#include <airdcpp/compiler.h>
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

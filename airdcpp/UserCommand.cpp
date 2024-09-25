@@ -17,10 +17,10 @@
  */
 
 #include "stdinc.h"
-#include "UserCommand.h"
+#include <airdcpp/UserCommand.h>
 
-#include "StringTokenizer.h"
-#include "Util.h"
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

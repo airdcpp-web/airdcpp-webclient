@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_TIMER_MANAGER_H
 #define DCPLUSPLUS_DCPP_TIMER_MANAGER_H
 
-#include "Singleton.h"
-#include "Speaker.h"
-#include "TimerManagerListener.h"
-#include "Thread.h"
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/Thread.h>
 
 #include <boost/thread/mutex.hpp>
 

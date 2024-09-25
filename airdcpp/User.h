@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_USER_H
 #define DCPLUSPLUS_DCPP_USER_H
 
-#include "forward.h"
-#include "Pointer.h"
-#include "CID.h"
-#include "FastAlloc.h"
-#include "Flags.h"
-#include "GetSet.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/Pointer.h>
+#include <airdcpp/CID.h>
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/Flags.h>
+#include <airdcpp/GetSet.h>
 
 namespace dcpp {
 

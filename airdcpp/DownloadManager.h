@@ -19,19 +19,19 @@
 #ifndef DCPLUSPLUS_DCPP_DOWNLOAD_MANAGER_H
 #define DCPLUSPLUS_DCPP_DOWNLOAD_MANAGER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "DownloadManagerListener.h"
-#include "UserConnectionListener.h"
-#include "TimerManagerListener.h"
-#include "Singleton.h"
-#include "Speaker.h"
+#include <airdcpp/DownloadManagerListener.h>
+#include <airdcpp/UserConnectionListener.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
 
-#include "CriticalSection.h"
-#include "GetSet.h"
-#include "MerkleTree.h"
-#include "QueueItemBase.h"
-#include "Util.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/QueueItemBase.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 
