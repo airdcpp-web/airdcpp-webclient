@@ -79,6 +79,7 @@ replace_map = [
     (r'\n', '\n'),
     (r'\\', '\\'),
     (r'\"', '\"'),
+    (r'\'', '\''),
 ]
 
 # Convert StringDefs to Android resource XML file that is supported by Transifex
