@@ -17,15 +17,15 @@
  */
 
 #include "stdinc.h"
-#include "GeoIP.h"
+#include <airdcpp/GeoIP.h>
 
-#include "Exception.h"
-#include "File.h"
-#include "Localization.h"
-#include "format.h"
-#include "SettingsManager.h"
-#include "Util.h"
-#include "ZUtils.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/Localization.h>
+#include <airdcpp/format.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ZUtils.h>
 
 #include <maxminddb.h>
 

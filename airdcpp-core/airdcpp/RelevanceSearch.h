@@ -19,10 +19,10 @@
 #ifndef DCPP_RELEVANCESEARCH_H
 #define DCPP_RELEVANCESEARCH_H
 
-#include "typedefs.h"
-#include "forward.h"
+#include <airdcpp/typedefs.h>
+#include <airdcpp/forward.h>
 
-#include "SearchQuery.h"
+#include <airdcpp/SearchQuery.h>
 
 #include <string>
 

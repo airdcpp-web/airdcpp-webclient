@@ -17,7 +17,7 @@
 */
 
 #include "stdinc.h"
-#include "CriticalSection.h"
+#include <airdcpp/CriticalSection.h>
 
 namespace dcpp {
 

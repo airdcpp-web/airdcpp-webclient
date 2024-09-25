@@ -20,9 +20,9 @@
 #ifndef _SHAREDFILESTREAM_H
 #define _SHAREDFILESTREAM_H
 
-#include "CriticalSection.h"
-#include "File.h"
-#include "GetSet.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/File.h>
+#include <airdcpp/GetSet.h>
 
 namespace dcpp {
 

@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_HTTP_DOWNLOAD_H
 #define DCPLUSPLUS_DCPP_HTTP_DOWNLOAD_H
 
-#include "HttpConnection.h"
+#include <airdcpp/HttpConnection.h>
 
 namespace dcpp {
 

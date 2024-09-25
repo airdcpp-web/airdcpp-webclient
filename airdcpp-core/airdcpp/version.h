@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_VERSION_H
-#define DCPLUSPLUS_VERSION_H
+#ifndef DCPLUSPLUS_DCPP_VERSION_H
+#define DCPLUSPLUS_DCPP_VERSION_H
 
 namespace dcpp {
 	enum VersionType {
@@ -30,14 +30,15 @@ namespace dcpp {
 	extern const std::string shortVersionString;
 	extern const std::string fullVersionString;
 
-	int getBuildNumber();
-	string getBuildNumberStr();
-	string getVersionTag();
-	time_t getVersionDate();
-	const char* getAppName();
-	const char* getAppId();
-	string getConfigurationType();
-	VersionType getVersionType();
+	string getGitCommit() noexcept;
+	int getBuildNumber() noexcept;
+	string getBuildNumberStr() noexcept;
+	string getVersionTag() noexcept;
+	time_t getVersionDate() noexcept;
+	const char* getAppName() noexcept;
+	const char* getAppId() noexcept;
+	string getConfigurationType() noexcept;
+	VersionType getVersionType() noexcept;
 }
 
 #define APPNAME getAppName()

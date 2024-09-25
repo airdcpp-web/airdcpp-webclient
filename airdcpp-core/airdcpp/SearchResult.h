@@ -19,14 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHRESULT_H
 #define DCPLUSPLUS_DCPP_SEARCHRESULT_H
 
-#include "DirectoryContentInfo.h"
-#include "DupeType.h"
-#include "GetSet.h"
-#include "forward.h"
-#include "FastAlloc.h"
-#include "HintedUser.h"
-#include "MerkleTree.h"
-#include "Util.h"
+#include <airdcpp/DirectoryContentInfo.h>
+#include <airdcpp/DupeType.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/forward.h>
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

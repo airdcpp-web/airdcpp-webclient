@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_THROTTLEMANAGER_H
 #define DCPLUSPLUS_DCPP_THROTTLEMANAGER_H
 
-#include "Singleton.h"
-#include "SettingsManager.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/Singleton.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/TimerManagerListener.h>
 
 #include <condition_variable>
 #include <mutex>

@@ -17,16 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "SearchTypes.h"
+#include <airdcpp/SearchTypes.h>
 
-#include "AdcHub.h"
-#include "Exception.h"
-#include "Search.h"
-#include "SettingsManager.h"
-#include "ScopedFunctor.h"
-#include "SimpleXML.h"
-#include "StringTokenizer.h"
-#include "ValueGenerator.h"
+#include <airdcpp/AdcHub.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/Search.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

@@ -20,7 +20,7 @@
 #ifndef DCPP_IGNORE_MANAGER_LISTENER_H
 #define DCPP_IGNORE_MANAGER_LISTENER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 namespace dcpp {
 

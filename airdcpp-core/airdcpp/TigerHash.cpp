@@ -30,9 +30,9 @@
  */
 
 #include "stdinc.h"
-#include "TigerHash.h"
+#include <airdcpp/TigerHash.h>
 
-#include "debug.h"
+#include <airdcpp/debug.h>
 
 #ifdef BOOST_BIG_ENDIAN
 #define TIGER_BIG_ENDIAN

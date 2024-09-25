@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_CRYPTO_MANAGER_H
 #define DCPLUSPLUS_DCPP_CRYPTO_MANAGER_H
 
-#include "Message.h"
-#include "Singleton.h"
-#include "SSL.h"
+#include <airdcpp/Message.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/SSL.h>
 
 //This is for earlier OpenSSL versions that don't have this error code yet..
 #ifndef X509_V_ERR_UNSPECIFIED

@@ -21,7 +21,7 @@
 
 #include "stdinc.h"
 
-#include "ResourceManager.h"
+#include <airdcpp/ResourceManager.h>
 
 #include <boost/variant.hpp>
 

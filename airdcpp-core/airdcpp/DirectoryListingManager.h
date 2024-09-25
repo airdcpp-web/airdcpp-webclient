@@ -19,18 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORYLISTINGMANAGER_H_
 #define DCPLUSPLUS_DCPP_DIRECTORYLISTINGMANAGER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "QueueManagerListener.h"
-#include "DirectoryListingManagerListener.h"
+#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/DirectoryListingManagerListener.h>
 
-#include "CriticalSection.h"
-#include "DirectoryDownload.h"
-#include "DirectoryListing.h"
-#include "Message.h"
-#include "QueueAddInfo.h"
-#include "Singleton.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/DirectoryDownload.h>
+#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/QueueAddInfo.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/TimerManagerListener.h>
 
 namespace dcpp {
 	class DirectoryListingManager : public Singleton<DirectoryListingManager>, public Speaker<DirectoryListingManagerListener>, public QueueManagerListener, public TimerManagerListener {

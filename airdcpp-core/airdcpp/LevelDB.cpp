@@ -17,16 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "LevelDB.h"
+#include <airdcpp/LevelDB.h>
 
-#include "Exception.h"
-#include "File.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "Thread.h"
-#include "Util.h"
-#include "version.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/Thread.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/version.h>
 
 #include <leveldb/comparator.h>
 #include <leveldb/cache.h>

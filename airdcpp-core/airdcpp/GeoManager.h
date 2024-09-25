@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_GEO_MANAGER_H
 #define DCPLUSPLUS_DCPP_GEO_MANAGER_H
 
-#include "forward.h"
-#include "GeoIP.h"
-#include "Singleton.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/GeoIP.h>
+#include <airdcpp/Singleton.h>
 
 #include <memory>
 #include <string>

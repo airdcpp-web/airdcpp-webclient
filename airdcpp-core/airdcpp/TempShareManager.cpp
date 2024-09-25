@@ -18,14 +18,14 @@
 
 #include "stdinc.h"
 
-#include "TempShareManager.h"
+#include <airdcpp/TempShareManager.h>
 
-#include "HintedUser.h"
-#include "SearchResult.h"
-#include "ShareManager.h"
-#include "TimerManager.h"
-#include "Util.h"
-#include "ValueGenerator.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

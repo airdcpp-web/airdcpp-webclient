@@ -17,7 +17,7 @@
  */
 
 #include "stdinc.h"
-#include "HttpDownload.h"
+#include <airdcpp/HttpDownload.h>
 
 namespace dcpp {
 

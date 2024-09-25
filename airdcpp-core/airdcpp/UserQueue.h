@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_USER_QUEUE_H
 #define DCPLUSPLUS_DCPP_USER_QUEUE_H
 
-#include "forward.h"
-#include "typedefs.h"
-#include "HintedUser.h"
-#include "QueueItem.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/QueueItem.h>
 
 namespace dcpp {
 

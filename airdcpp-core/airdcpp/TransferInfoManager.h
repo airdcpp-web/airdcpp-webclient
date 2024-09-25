@@ -20,18 +20,18 @@
 #define DCPLUSPLUS_DCPP_TRANSFERINFOMANAGER_H
 
 
-#include "TransferInfo.h"
+#include <airdcpp/TransferInfo.h>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "Transfer.h"
-#include "Singleton.h"
-#include "Speaker.h"
+#include <airdcpp/Transfer.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
 
-#include "ConnectionManagerListener.h"
-#include "DownloadManagerListener.h"
-#include "TransferInfoManagerListener.h"
-#include "UploadManagerListener.h"
+#include <airdcpp/ConnectionManagerListener.h>
+#include <airdcpp/DownloadManagerListener.h>
+#include <airdcpp/TransferInfoManagerListener.h>
+#include <airdcpp/UploadManagerListener.h>
 
 
 namespace dcpp {

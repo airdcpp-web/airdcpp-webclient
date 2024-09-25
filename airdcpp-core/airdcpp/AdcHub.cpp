@@ -17,31 +17,31 @@
  */
 
 #include "stdinc.h"
-#include "version.h"
+#include <airdcpp/version.h>
 
-#include "ActivityManager.h"
-#include "AdcCommand.h"
-#include "AdcHub.h"
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "ConnectivityManager.h"
-#include "CryptoManager.h"
-#include "FavoriteManager.h"
-#include "HBRIValidation.h"
-#include "Localization.h"
-#include "LogManager.h"
-#include "Message.h"
-#include "PartialSharingManager.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "ScopedFunctor.h"
-#include "SearchManager.h"
-#include "SearchQuery.h"
-#include "ShareManager.h"
-#include "ThrottleManager.h"
-#include "UploadManager.h"
-#include "UserCommand.h"
-#include "Util.h"
+#include <airdcpp/ActivityManager.h>
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/AdcHub.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/CryptoManager.h>
+#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/HBRIValidation.h>
+#include <airdcpp/Localization.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/PartialSharingManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/ThrottleManager.h>
+#include <airdcpp/UploadManager.h>
+#include <airdcpp/UserCommand.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

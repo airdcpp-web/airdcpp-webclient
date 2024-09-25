@@ -22,15 +22,15 @@
 #include <deque>
 #include <memory>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "AddressInfo.h"
-#include "BufferedSocketListener.h"
-#include "GetSet.h"
-#include "Semaphore.h"
-#include "Thread.h"
-#include "Socket.h"
-#include "Speaker.h"
+#include <airdcpp/AddressInfo.h>
+#include <airdcpp/BufferedSocketListener.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Semaphore.h>
+#include <airdcpp/Thread.h>
+#include <airdcpp/Socket.h>
+#include <airdcpp/Speaker.h>
 
 namespace dcpp {
 

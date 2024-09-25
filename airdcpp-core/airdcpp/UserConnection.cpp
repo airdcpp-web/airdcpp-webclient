@@ -17,20 +17,20 @@
  */
 
 #include "stdinc.h"
-#include "UserConnection.h"
+#include <airdcpp/UserConnection.h>
 
-#include "ClientManager.h"
-#include "ResourceManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ResourceManager.h>
 
-#include "StringTokenizer.h"
-#include "AdcCommand.h"
-#include "Transfer.h"
-#include "ProtocolCommandManager.h"
-#include "FavoriteManager.h"
-#include "Message.h"
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/Transfer.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/Message.h>
 
 
-#include "Download.h"
+#include <airdcpp/Download.h>
 
 namespace dcpp {
 

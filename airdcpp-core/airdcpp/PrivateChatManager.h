@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_MESSAGE_MANAGER_H_
 #define DCPLUSPLUS_DCPP_MESSAGE_MANAGER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "ClientManagerListener.h"
-#include "ConnectionManagerListener.h"
-#include "PrivateChatManagerListener.h"
-#include "UserConnectionListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/ConnectionManagerListener.h>
+#include <airdcpp/PrivateChatManagerListener.h>
+#include <airdcpp/UserConnectionListener.h>
 
-#include "CriticalSection.h"
-#include "PrivateChat.h"
-#include "Singleton.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/PrivateChat.h>
+#include <airdcpp/Singleton.h>
 
 
 namespace dcpp {

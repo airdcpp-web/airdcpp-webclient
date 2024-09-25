@@ -18,12 +18,12 @@
 
 #include "stdinc.h"
 
-#include "File.h"
-#include "Localization.h"
-#include "PathUtil.h"
-#include "SettingsManager.h"
-#include "SimpleXML.h"
-#include "Util.h"
+#include <airdcpp/File.h>
+#include <airdcpp/Localization.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/Util.h>
 
 #include <boost/algorithm/string/replace.hpp>
 

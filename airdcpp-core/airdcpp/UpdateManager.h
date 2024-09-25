@@ -19,13 +19,13 @@
 #ifndef DCPLUSPLUS_DCPP_UPDATE_MANAGER_H
 #define DCPLUSPLUS_DCPP_UPDATE_MANAGER_H
 
-#include "Message.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "TimerManagerListener.h"
-#include "UpdateManagerListener.h"
+#include <airdcpp/Message.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/UpdateManagerListener.h>
 
-#include "version.h"
+#include <airdcpp/version.h>
 
 namespace dcpp {
 

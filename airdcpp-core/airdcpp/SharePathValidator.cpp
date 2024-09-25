@@ -17,12 +17,12 @@
 */
 
 #include "stdinc.h"
-#include "SharePathValidator.h"
+#include <airdcpp/SharePathValidator.h>
 
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "QueueManager.h"
-#include "SimpleXML.h"
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SimpleXML.h>
 
 #ifdef _WIN32
 # include <ShlObj.h>

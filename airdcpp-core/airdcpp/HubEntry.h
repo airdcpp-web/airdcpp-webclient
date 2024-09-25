@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_HUBENTRY_H_
 #define DCPLUSPLUS_DCPP_HUBENTRY_H_
 
-#include "GetSet.h"
-#include "Pointer.h"
-#include "typedefs.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Pointer.h>
+#include <airdcpp/typedefs.h>
 
-#include "HubSettings.h"
+#include <airdcpp/HubSettings.h>
 
 namespace dcpp {
 

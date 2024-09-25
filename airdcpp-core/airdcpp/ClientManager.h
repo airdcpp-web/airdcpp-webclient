@@ -19,20 +19,20 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_MANAGER_H
 #define DCPLUSPLUS_DCPP_CLIENT_MANAGER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "ClientManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "ActionHook.h"
-#include "AdcCommand.h"
-#include "AdcSupports.h"
-#include "ConnectionType.h"
-#include "Client.h"
-#include "CriticalSection.h"
-#include "OfflineUser.h"
-#include "Singleton.h"
-#include "TimerManager.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/AdcSupports.h>
+#include <airdcpp/ConnectionType.h>
+#include <airdcpp/Client.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/OfflineUser.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/TimerManager.h>
 
 
 namespace dcpp {

@@ -18,12 +18,12 @@
 
 #include "stdinc.h"
 
-#include "MessageHighlight.h"
+#include <airdcpp/MessageHighlight.h>
 
-#include "DupeUtil.h"
-#include "LinkUtil.h"
-#include "TempShareManager.h"
-#include "OnlineUser.h"
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/TempShareManager.h>
+#include <airdcpp/OnlineUser.h>
 
 
 namespace dcpp {

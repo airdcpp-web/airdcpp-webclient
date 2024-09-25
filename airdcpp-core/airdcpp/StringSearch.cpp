@@ -17,9 +17,9 @@
  */
 
 #include "stdinc.h"
-#include "StringSearch.h"
+#include <airdcpp/StringSearch.h>
 
-#include "Text.h"
+#include <airdcpp/Text.h>
 
 namespace dcpp {
 

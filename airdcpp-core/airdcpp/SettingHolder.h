@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SETTINGHOLDER_
 #define DCPLUSPLUS_DCPP_SETTINGHOLDER_
 
-#include "SettingsManager.h"
+#include <airdcpp/SettingsManager.h>
 
 namespace dcpp {
 

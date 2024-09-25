@@ -21,12 +21,12 @@
 
 #include "stdinc.h"
 
-#include "ClientManagerListener.h"
-#include "SearchInstanceListener.h"
-#include "SearchManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/SearchInstanceListener.h>
+#include <airdcpp/SearchManagerListener.h>
 
-#include "GroupedSearchResult.h"
-#include "Speaker.h"
+#include <airdcpp/GroupedSearchResult.h>
+#include <airdcpp/Speaker.h>
 
 
 namespace dcpp {

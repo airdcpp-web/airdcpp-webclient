@@ -17,32 +17,32 @@
  */
 
 #include "stdinc.h"
-#include "ShareManager.h"
+#include <airdcpp/ShareManager.h>
 
-#include "Bundle.h"
-#include "BZUtils.h"
-#include "DCPlusPlus.h"
-#include "ErrorCollector.h"
-#include "File.h"
-#include "FilteredFile.h"
-#include "LogManager.h"
-#include "HashManager.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "SearchQuery.h"
-#include "SearchResult.h"
-#include "SharePathValidator.h"
-#include "ShareProfileManager.h"
-#include "ShareTasks.h"
-#include "ShareTree.h"
-#include "SimpleXML.h"
-#include "Streams.h"
-#include "Transfer.h"
-#include "UserConnection.h"
+#include <airdcpp/Bundle.h>
+#include <airdcpp/BZUtils.h>
+#include <airdcpp/DCPlusPlus.h>
+#include <airdcpp/ErrorCollector.h>
+#include <airdcpp/File.h>
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/HashManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/SharePathValidator.h>
+#include <airdcpp/ShareProfileManager.h>
+#include <airdcpp/ShareTasks.h>
+#include <airdcpp/ShareTree.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/Streams.h>
+#include <airdcpp/Transfer.h>
+#include <airdcpp/UserConnection.h>
 
-#include "version.h"
+#include <airdcpp/version.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
 namespace dcpp {
 

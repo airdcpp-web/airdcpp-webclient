@@ -21,13 +21,13 @@
 
 #include <algorithm>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "StreamBase.h"
-#include "ResourceManager.h"
+#include <airdcpp/StreamBase.h>
+#include <airdcpp/ResourceManager.h>
 
-#include "SettingsManager.h"
-#include "Exception.h"
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Exception.h>
 
 namespace dcpp {
 

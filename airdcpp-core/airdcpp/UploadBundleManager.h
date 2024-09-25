@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_MANAGER_H
 #define DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_MANAGER_H
 
-#include "Singleton.h"
+#include <airdcpp/Singleton.h>
 
-#include "UploadBundleInfoReceiver.h"
-#include "UploadBundleInfoSender.h"
+#include <airdcpp/UploadBundleInfoReceiver.h>
+#include <airdcpp/UploadBundleInfoSender.h>
 
 
 namespace dcpp {

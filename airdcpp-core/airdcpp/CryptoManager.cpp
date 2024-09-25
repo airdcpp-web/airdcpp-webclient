@@ -17,37 +17,22 @@
  */
 
 #include "stdinc.h"
-#include "CryptoManager.h"
+#include <airdcpp/CryptoManager.h>
 
 #include <boost/scoped_array.hpp>
 
-#include "ClientManager.h"
-#include "Encoder.h"
-#include "File.h"
-#include "LogManager.h"
-#include "SystemUtil.h"
-#include "version.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/Encoder.h>
+#include <airdcpp/File.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/version.h>
 
 #include <openssl/bn.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 
-
-#ifdef _MSC_VER
-#   pragma comment(lib, "Crypt32.lib")
-# ifdef _DEBUG
-#   pragma comment(lib, "libcryptoMTd.lib")
-#   pragma comment(lib, "libsslMTd.lib")
-# else
-#   pragma comment(lib, "libcryptoMT.lib")
-#   pragma comment(lib, "libsslMT.lib")
-# endif
-#endif
-
-#ifdef _WIN32
-#include <openssl/applink.c>
-#endif
 
 namespace dcpp {
 

@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCH_H
 #define DCPLUSPLUS_DCPP_SEARCH_H
 
-#include "constants.h"
-#include "typedefs.h"
-#include "Priority.h"
+#include <airdcpp/constants.h>
+#include <airdcpp/typedefs.h>
+#include <airdcpp/Priority.h>
 
 namespace dcpp {
 

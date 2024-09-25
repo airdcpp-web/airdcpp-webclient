@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "Encoder.h"
+#include <airdcpp/Encoder.h>
 
-#include "Exception.h"
+#include <airdcpp/Exception.h>
 
 #include <cstring>
 
-#include "debug.h"
+#include <airdcpp/debug.h>
 
 namespace dcpp {
 

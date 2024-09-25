@@ -21,10 +21,10 @@
 
 #include <functional>
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "Task.h"
-#include "Thread.h"
+#include <airdcpp/Task.h>
+#include <airdcpp/Thread.h>
 
 namespace dcpp {
 

@@ -17,14 +17,14 @@
  */
 
 #include "stdinc.h"
-#include "LogManager.h"
+#include <airdcpp/LogManager.h>
 
-#include "Exception.h"
-#include "File.h"
-#include "PathUtil.h"
-#include "StringTokenizer.h"
-#include "TimerManager.h"
-#include "User.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/User.h>
 
 namespace dcpp {
 

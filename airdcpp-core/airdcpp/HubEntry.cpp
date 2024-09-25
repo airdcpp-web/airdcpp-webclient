@@ -17,11 +17,11 @@
  */
 
 #include "stdinc.h"
-#include "HubEntry.h"
+#include <airdcpp/HubEntry.h>
 
-#include "LinkUtil.h"
-#include "ShareManager.h"
-#include "ShareProfile.h"
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/ShareProfile.h>
 
 namespace dcpp {
 

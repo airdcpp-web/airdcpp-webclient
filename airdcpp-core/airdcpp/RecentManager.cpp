@@ -17,17 +17,17 @@
 */
 
 #include "stdinc.h"
-#include "RecentManager.h"
+#include <airdcpp/RecentManager.h>
 
-#include "ClientManager.h"
-#include "DirectoryListing.h"
-#include "DirectoryListingManager.h"
-#include "LogManager.h"
-#include "PrivateChatManager.h"
-#include "RelevanceSearch.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "UserCommand.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PrivateChatManager.h>
+#include <airdcpp/RelevanceSearch.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/UserCommand.h>
 
 namespace dcpp {
 

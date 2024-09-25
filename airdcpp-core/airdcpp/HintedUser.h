@@ -21,8 +21,8 @@
 
 #include <string>
 
-#include "forward.h"
-#include "User.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/User.h>
 
 namespace dcpp {
 

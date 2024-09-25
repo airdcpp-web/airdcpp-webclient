@@ -18,14 +18,14 @@
 
 #include "stdinc.h"
 
-#include "ViewFileManager.h"
+#include <airdcpp/ViewFileManager.h>
 
-#include "ClientManager.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "QueueManager.h"
-#include "ShareManager.h"
-#include "TempShareManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/TempShareManager.h>
 
 
 namespace dcpp {

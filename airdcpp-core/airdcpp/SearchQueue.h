@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCHQUEUE_H
 #define DCPLUSPLUS_DCPP_SEARCHQUEUE_H
 
-#include "CriticalSection.h"
-#include "GetSet.h"
-#include "Search.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Search.h>
 
 namespace dcpp {
 

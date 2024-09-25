@@ -17,19 +17,19 @@
  */
 
 #include "stdinc.h"
-#include "FavoriteUserManager.h"
+#include <airdcpp/FavoriteUserManager.h>
 
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "Download.h"
-#include "DownloadManager.h"
-#include "FavoriteManager.h"
-#include "HintedUser.h"
-#include "Message.h"
-#include "ReservedSlotManager.h"
-#include "ResourceManager.h"
-#include "SimpleXML.h"
-#include "UploadManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/DownloadManager.h>
+#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/ReservedSlotManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/UploadManager.h>
 
 namespace dcpp {
 

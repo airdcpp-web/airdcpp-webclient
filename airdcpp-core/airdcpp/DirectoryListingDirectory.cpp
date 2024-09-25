@@ -18,17 +18,17 @@
 
 #include "stdinc.h"
 
-#include "DirectoryListingDirectory.h"
+#include <airdcpp/DirectoryListingDirectory.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
-#include "DupeUtil.h"
-#include "Exception.h"
-#include "PathUtil.h"
-#include "SearchQuery.h"
-#include "SettingsManager.h"
-#include "ShareManager.h"
-#include "StringTokenizer.h"
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/StringTokenizer.h>
 
 
 namespace dcpp {

@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_VALUE_GENERATOR_H
 #define DCPLUSPLUS_DCPP_VALUE_GENERATOR_H
 
-#include "compiler.h"
-#include "constants.h"
-#include "typedefs.h"
+#include <airdcpp/compiler.h>
+#include <airdcpp/constants.h>
+#include <airdcpp/typedefs.h>
 
 #include <random>
 

@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_HASHED_FILE_PROVIDER_H
 #define DCPLUSPLUS_DCPP_HASHED_FILE_PROVIDER_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "HashBloom.h"
-#include "MerkleTree.h"
-#include "ShareSearchInfo.h"
+#include <airdcpp/HashBloom.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/ShareSearchInfo.h>
 
 namespace dcpp {
 

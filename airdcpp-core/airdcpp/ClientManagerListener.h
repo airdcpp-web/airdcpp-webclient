@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_CLIENT_MANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_CLIENT_MANAGER_LISTENER_H
 
-#include "forward.h"
-#include "OnlineUser.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/OnlineUser.h>
 
 namespace dcpp {
 

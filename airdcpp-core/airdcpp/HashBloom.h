@@ -19,7 +19,7 @@
 #ifndef HASHBLOOM_H_
 #define HASHBLOOM_H_
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 /**

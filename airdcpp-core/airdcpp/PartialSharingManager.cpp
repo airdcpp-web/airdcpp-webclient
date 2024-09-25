@@ -18,19 +18,19 @@
 
 #include "stdinc.h"
 
-#include "PartialSharingManager.h"
+#include <airdcpp/PartialSharingManager.h>
 
-#include "HintedUser.h"
-#include "QueueManager.h"
-#include "SearchResult.h"
-#include "ShareManager.h"
-#include "TimerManager.h"
-#include "Upload.h"
-#include "UploadFileParser.h"
-#include "UploadManager.h"
-#include "UserConnection.h"
-#include "Util.h"
-#include "ValueGenerator.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/UploadFileParser.h>
+#include <airdcpp/UploadManager.h>
+#include <airdcpp/UserConnection.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

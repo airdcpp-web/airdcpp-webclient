@@ -19,8 +19,8 @@
 #if !defined(FAST_ALLOC_H)
 #define FAST_ALLOC_H
 
-#include "CriticalSection.h"
-#include "debug.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/debug.h>
 #include <boost/pool/pool.hpp>
 
 namespace dcpp {

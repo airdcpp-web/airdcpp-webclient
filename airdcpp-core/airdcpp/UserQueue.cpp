@@ -18,10 +18,10 @@
 
 #include "stdinc.h"
 
-#include "Download.h"
-#include "QueueManager.h"
-#include "SettingsManager.h"
-#include "UserQueue.h"
+#include <airdcpp/Download.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/UserQueue.h>
 
 namespace dcpp {
 

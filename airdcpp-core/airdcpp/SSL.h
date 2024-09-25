@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_SSL_H
 #define DCPLUSPLUS_DCPP_SSL_H
 
-#include "w.h"
-#include "typedefs.h"
+#include <airdcpp/w.h>
+#include <airdcpp/typedefs.h>
 
 #include <openssl/ssl.h>
 #include <vector>

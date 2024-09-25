@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_MAPPER_MINIUPNPC_H
 #define DCPLUSPLUS_DCPP_MAPPER_MINIUPNPC_H
 
-#include "Mapper.h"
+#include <airdcpp/Mapper.h>
 
 namespace dcpp {
 
@@ -44,6 +44,9 @@ private:
 	string getExternalIP() override;
 
 	const string& getName() const override { return name; }
+
+	// Try to update local IP from the control URL received from upnpDiscover
+	void updateLocalIp(const string& aControlUrl) noexcept;
 
 	string url;
 	string service;

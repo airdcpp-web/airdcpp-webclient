@@ -17,9 +17,9 @@
 */
 
 #include "stdinc.h"
-#include "FloodCounter.h"
+#include <airdcpp/FloodCounter.h>
 
-#include "TimerManager.h"
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 	FloodCounter::FloodCounter(int aPeriod) : floodPeriod(aPeriod) {

@@ -17,7 +17,7 @@
 */
 
 #include "stdinc.h"
-#include "GroupedSearchResult.h"
+#include <airdcpp/GroupedSearchResult.h>
 
 #include <airdcpp/GeoManager.h>
 #include <airdcpp/DirectoryListingManager.h>

@@ -19,9 +19,9 @@
 #ifndef USERCONNECTIONLISTENER_H_
 #define USERCONNECTIONLISTENER_H_
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "AdcCommand.h"
+#include <airdcpp/AdcCommand.h>
 
 namespace dcpp {
 

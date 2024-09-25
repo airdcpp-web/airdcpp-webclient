@@ -17,21 +17,21 @@
  */
 
 #include "stdinc.h"
-#include "SearchManager.h"
+#include <airdcpp/SearchManager.h>
 
-#include "ClientManager.h"
-#include "CryptoUtil.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "ScopedFunctor.h"
-#include "SearchInstance.h"
-#include "SearchQuery.h"
-#include "SearchResult.h"
-#include "SearchTypes.h"
-#include "ShareManager.h"
-#include "TimerManager.h"
-#include "UDPServer.h"
-#include "ValueGenerator.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/CryptoUtil.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SearchInstance.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/SearchTypes.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/UDPServer.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

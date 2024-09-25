@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "UploadFileParser.h"
+#include <airdcpp/UploadFileParser.h>
 
-#include "BZUtils.h"
-#include "ClientManager.h"
-#include "File.h"
-#include "PathUtil.h"
-#include "QueueManager.h"
-#include "ResourceManager.h"
-#include "ShareManager.h"
-#include "Streams.h"
-#include "Upload.h"
-#include "UserConnection.h"
+#include <airdcpp/BZUtils.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/File.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/Streams.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/UserConnection.h>
 
 
 namespace dcpp {

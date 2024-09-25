@@ -17,9 +17,9 @@
  */
 
 #include "stdinc.h"
-#include "SearchQueue.h"
+#include <airdcpp/SearchQueue.h>
 
-#include "TimerManager.h"
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

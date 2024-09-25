@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_SHARE_PROFILE_MANAGER_H
 #define DCPLUSPLUS_DCPP_SHARE_PROFILE_MANAGER_H
 
-#include "ShareProfileManagerListener.h"
+#include <airdcpp/ShareProfileManagerListener.h>
 
-#include "CriticalSection.h"
-#include "Message.h"
-#include "Speaker.h"
-#include "ShareProfile.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/ShareProfile.h>
 
 namespace dcpp {
 

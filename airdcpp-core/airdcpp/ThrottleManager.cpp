@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "ThrottleManager.h"
+#include <airdcpp/ThrottleManager.h>
 
-#include "DownloadManager.h"
-#include "Socket.h"
-#include "TimerManager.h"
-#include "UploadManager.h"
+#include <airdcpp/DownloadManager.h>
+#include <airdcpp/Socket.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/UploadManager.h>
 
 namespace dcpp {
 	// The actual limiting code is from StrongDC++

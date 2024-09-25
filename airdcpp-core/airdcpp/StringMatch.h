@@ -19,8 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_STRING_MATCH_H
 #define DCPLUSPLUS_DCPP_STRING_MATCH_H
 
-#include "forward.h"
-#include "StringSearch.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/StringSearch.h>
 
 #include <string>
 

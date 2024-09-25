@@ -17,21 +17,21 @@
  */
 
 #include "stdinc.h"
-#include "UploadManager.h"
+#include <airdcpp/UploadManager.h>
 
 #include <cmath>
 
-#include "AdcCommand.h"
-#include "AutoLimitUtil.h"
-#include "ClientManager.h"
-#include "LogManager.h"
-#include "ResourceManager.h"
-#include "ShareManager.h"
-#include "StreamBase.h"
-#include "Upload.h"
-#include "UploadFileParser.h"
-#include "UploadQueueManager.h"
-#include "UserConnection.h"
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/AutoLimitUtil.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/StreamBase.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/UploadFileParser.h>
+#include <airdcpp/UploadQueueManager.h>
+#include <airdcpp/UserConnection.h>
 
 
 namespace dcpp {

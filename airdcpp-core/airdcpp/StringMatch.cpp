@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "StringMatch.h"
+#include <airdcpp/StringMatch.h>
 
-#include "LogManager.h"
-#include "RegexUtil.h"
-#include "ResourceManager.h"
-#include "StringTokenizer.h"
+#include <airdcpp/LogManager.h>
+#include <airdcpp/RegexUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/StringTokenizer.h>
 
 namespace dcpp {
 

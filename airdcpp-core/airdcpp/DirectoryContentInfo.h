@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_DIRECTORY_CONTENT_INFO_H
 #define DCPLUSPLUS_DCPP_DIRECTORY_CONTENT_INFO_H
 
-#include "Util.h"
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

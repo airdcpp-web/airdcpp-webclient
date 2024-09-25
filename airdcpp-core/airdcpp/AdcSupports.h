@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_ADC_SUPPORTS_H
 #define DCPLUSPLUS_DCPP_ADC_SUPPORTS_H
 
-#include "typedefs.h"
-#include "debug.h"
+#include <airdcpp/typedefs.h>
+#include <airdcpp/debug.h>
 
-#include "CriticalSection.h"
+#include <airdcpp/CriticalSection.h>
 
 namespace dcpp {
 

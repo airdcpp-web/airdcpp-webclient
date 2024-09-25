@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITE_USER_MANAGER_H
 #define DCPLUSPLUS_DCPP_FAVORITE_USER_MANAGER_H
 
-#include "ClientManagerListener.h"
-#include "ConnectionManagerListener.h"
-#include "DownloadManagerListener.h"
-#include "FavoriteManagerListener.h"
-#include "FavoriteUserManagerListener.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/ConnectionManagerListener.h>
+#include <airdcpp/DownloadManagerListener.h>
+#include <airdcpp/FavoriteManagerListener.h>
+#include <airdcpp/FavoriteUserManagerListener.h>
 
-#include "FavoriteUser.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "UploadSlot.h"
+#include <airdcpp/FavoriteUser.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/UploadSlot.h>
 
 namespace dcpp {
 

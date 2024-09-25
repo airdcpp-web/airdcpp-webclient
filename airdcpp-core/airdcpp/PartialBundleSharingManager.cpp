@@ -17,14 +17,14 @@
  */
 
 #include "stdinc.h"
-#include "PartialBundleSharingManager.h"
+#include <airdcpp/PartialBundleSharingManager.h>
 
-#include "ClientManager.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "SearchManager.h"
-#include "SearchQuery.h"
-#include "StringTokenizer.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/StringTokenizer.h>
 
 const auto ENABLE_DEBUG = false;
 

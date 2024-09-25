@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SORTEDVECTOR
 #define DCPLUSPLUS_DCPP_SORTEDVECTOR
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 /* This vector-like container is optimized for fast lookup and inserting items that are sorted already */
 

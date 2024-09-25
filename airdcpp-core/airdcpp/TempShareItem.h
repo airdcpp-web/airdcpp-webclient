@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_TEMPSHARE_ITEM_H
 #define DCPLUSPLUS_DCPP_TEMPSHARE_ITEM_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "MerkleTree.h"
+#include <airdcpp/MerkleTree.h>
 
 namespace dcpp {
 

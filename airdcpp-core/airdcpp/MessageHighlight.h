@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_MESSAGEHIGHLIGHT_H
 #define DCPLUSPLUS_DCPP_MESSAGEHIGHLIGHT_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "DupeType.h"
-#include "GetSet.h"
-#include "Magnet.h"
-#include "SortedVector.h"
+#include <airdcpp/DupeType.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Magnet.h>
+#include <airdcpp/SortedVector.h>
 
 
 namespace dcpp {

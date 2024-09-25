@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITE_USER_H
 #define DCPLUSPLUS_DCPP_FAVORITE_USER_H
 
-#include "FastAlloc.h"
-#include "User.h"
-#include "CID.h"
+#include <airdcpp/FastAlloc.h>
+#include <airdcpp/User.h>
+#include <airdcpp/CID.h>
 
 namespace dcpp {
 

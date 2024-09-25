@@ -17,7 +17,7 @@
 */
 
 #include "stdinc.h"
-#include "version.h"
+#include <airdcpp/version.h>
 
 #include "version.inc"
 
@@ -32,15 +32,17 @@
 namespace dcpp {
 	const std::string shortVersionString(APPNAME_INC " " GIT_TAG);
 	const std::string fullVersionString(APPNAME_INC " " GIT_TAG " " + getConfigurationType());
-	const char* getAppName() { return APPNAME_INC; }
-	const char* getAppId() { return APPID_INC; }
-	int getBuildNumber() { return GIT_COMMIT_COUNT; }
-	string getBuildNumberStr() { return xstrver(GIT_COMMIT_COUNT); }
-	string getVersionTag() { return GIT_TAG; }
+	const char* getAppName() noexcept { return APPNAME_INC; }
+	const char* getAppId() noexcept { return APPID_INC; }
+	string getGitCommit() noexcept { return GIT_COMMIT; }
+	int getBuildNumber() noexcept { return GIT_COMMIT_COUNT; }
+	string getBuildNumberStr() noexcept { return xstrver(GIT_COMMIT_COUNT); }
+	string getCommit() noexcept { return GIT_COMMIT; }
+	string getVersionTag() noexcept { return GIT_TAG; }
 
-	time_t getVersionDate() { return VERSION_DATE; }
+	time_t getVersionDate() noexcept { return VERSION_DATE; }
 
-	string getConfigurationType() {
+	string getConfigurationType() noexcept {
 #ifdef _WIN64
 		return "x64";
 #elif _WIN32
@@ -55,7 +57,7 @@ namespace dcpp {
 #endif
 	}
 
-	VersionType getVersionType() {
+	VersionType getVersionType() noexcept {
 		string v = GIT_TAG;
 		if (v.length() > 4 && v[4] == 'a') {
 			return VERSION_NIGHTLY;

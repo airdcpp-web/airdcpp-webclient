@@ -18,11 +18,11 @@
 
 #include "stdinc.h"
 
-#include "NetworkUtil.h"
+#include <airdcpp/NetworkUtil.h>
 
-#include "ConnectivityManager.h"
-#include "SettingsManager.h"
-#include "Util.h"
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Util.h>
 
 #ifdef _WIN32
 

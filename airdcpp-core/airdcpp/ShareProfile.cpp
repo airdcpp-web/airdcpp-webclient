@@ -18,13 +18,13 @@
 
 #include "stdinc.h"
 
-#include "AppUtil.h"
-#include "BZUtils.h"
-#include "FilteredFile.h"
-#include "ResourceManager.h"
-#include "SettingsManager.h"
-#include "ShareProfile.h"
-#include "TimerManager.h"
+#include <airdcpp/AppUtil.h>
+#include <airdcpp/BZUtils.h>
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/ShareProfile.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

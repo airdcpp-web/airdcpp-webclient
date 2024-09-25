@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_UPDATE_DOWNLOADER_H
 #define DCPLUSPLUS_DCPP_UPDATE_DOWNLOADER_H
 
-#include "UpdateVersion.h"
+#include <airdcpp/UpdateVersion.h>
 
-#include "Message.h"
+#include <airdcpp/Message.h>
 
 namespace dcpp {
 

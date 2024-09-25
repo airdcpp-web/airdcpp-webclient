@@ -74,7 +74,7 @@ public:
 #else
 
 #include <deque>
-#include "CriticalSection.h"
+#include <airdcpp/CriticalSection.h>
 
 namespace dcpp {
 

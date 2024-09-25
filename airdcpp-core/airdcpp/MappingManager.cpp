@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "MappingManager.h"
+#include <airdcpp/MappingManager.h>
 
-#include "ConnectionManager.h"
-#include "ConnectivityManager.h"
-#include "format.h"
-#include "LogManager.h"
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/format.h>
+#include <airdcpp/LogManager.h>
 #include "Mapper_MiniUPnPc.h"
 
 #ifdef HAVE_NATPMP_H
@@ -33,11 +33,11 @@
 #include "Mapper_WinUPnP.h"
 #endif
 
-#include "ScopedFunctor.h"
-#include "SearchManager.h"
-#include "ResourceManager.h"
-#include "TimerManager.h"
-#include "version.h"
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/version.h>
 
 namespace dcpp {
 

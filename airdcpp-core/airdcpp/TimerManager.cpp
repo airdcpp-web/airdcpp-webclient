@@ -17,7 +17,7 @@
  */
 
 #include "stdinc.h"
-#include "TimerManager.h"
+#include <airdcpp/TimerManager.h>
 
 #include <boost/date_time/posix_time/ptime.hpp>
 

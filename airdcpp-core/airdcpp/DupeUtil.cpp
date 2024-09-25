@@ -18,11 +18,11 @@
 
 #include "stdinc.h"
 
-#include "DupeUtil.h"
+#include <airdcpp/DupeUtil.h>
 
-#include "QueueManager.h"
-#include "ShareManager.h"
-#include "PathUtil.h"
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ShareManager.h>
+#include <airdcpp/PathUtil.h>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/trim.hpp>

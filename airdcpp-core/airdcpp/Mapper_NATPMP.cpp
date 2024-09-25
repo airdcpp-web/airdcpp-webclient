@@ -19,7 +19,7 @@
 #include "stdinc.h"
 #include "Mapper_NATPMP.h"
 
-#include "Util.h"
+#include <airdcpp/Util.h>
 
 #ifndef _WIN32
 #include <sys/socket.h>

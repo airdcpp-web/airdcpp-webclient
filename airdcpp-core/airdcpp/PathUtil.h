@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_PATH_UTIL_H
 #define DCPLUSPLUS_DCPP_PATH_UTIL_H
 
-#include "compiler.h"
-#include "constants.h"
-#include "typedefs.h"
+#include <airdcpp/compiler.h>
+#include <airdcpp/constants.h>
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

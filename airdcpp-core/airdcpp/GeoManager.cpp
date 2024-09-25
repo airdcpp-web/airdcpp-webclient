@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "GeoManager.h"
+#include <airdcpp/GeoManager.h>
 
-#include "AppUtil.h"
-#include "GeoIP.h"
-#include "SettingsManager.h"
-#include "Util.h"
+#include <airdcpp/AppUtil.h>
+#include <airdcpp/GeoIP.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

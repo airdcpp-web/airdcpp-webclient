@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_AUTOLIMIT_UTIL_H
 #define DCPLUSPLUS_DCPP_AUTOLIMIT_UTIL_H
 
-#include "compiler.h"
+#include <airdcpp/compiler.h>
 
-#include "SettingsManager.h"
+#include <airdcpp/SettingsManager.h>
 
 namespace dcpp {
 #ifdef _DEBUG

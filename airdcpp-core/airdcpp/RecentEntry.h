@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_RECENT_ENTRY_H_
 #define DCPLUSPLUS_DCPP_RECENT_ENTRY_H_
 
-#include "GetSet.h"
-#include "typedefs.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/typedefs.h>
 
-#include "HintedUser.h"
-#include "TimerManager.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

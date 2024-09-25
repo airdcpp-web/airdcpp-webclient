@@ -17,10 +17,10 @@
  */
 
 #include "stdinc.h"
-#include "BZUtils.h"
+#include <airdcpp/BZUtils.h>
 
-#include "Exception.h"
-#include "ResourceManager.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/ResourceManager.h>
 
 namespace dcpp {
 	

@@ -19,13 +19,13 @@
 #ifndef DCPP_PRIVATE_CHAT_H
 #define DCPP_PRIVATE_CHAT_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "ClientManagerListener.h"
-#include "DelayedEvents.h"
-#include "MessageCache.h"
-#include "PrivateChatListener.h"
-#include "UserConnection.h"
+#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/DelayedEvents.h>
+#include <airdcpp/MessageCache.h>
+#include <airdcpp/PrivateChatListener.h>
+#include <airdcpp/UserConnection.h>
 
 namespace dcpp {
 	class PrivateChat: public ChatHandlerBase, public Speaker<PrivateChatListener>, public UserConnectionListener,

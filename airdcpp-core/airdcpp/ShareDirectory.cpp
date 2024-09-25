@@ -17,17 +17,17 @@
 */
 
 #include "stdinc.h"
-#include "ShareDirectory.h"
+#include <airdcpp/ShareDirectory.h>
 
-#include "AppUtil.h"
-#include "File.h"
-#include "HashedFile.h"
-#include "Message.h"
-#include "PathUtil.h"
-#include "SearchQuery.h"
-#include "SearchResult.h"
-#include "SettingsManager.h"
-#include "SimpleXML.h"
+#include <airdcpp/AppUtil.h>
+#include <airdcpp/File.h>
+#include <airdcpp/HashedFile.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SearchQuery.h>
+#include <airdcpp/SearchResult.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SimpleXML.h>
 
 namespace dcpp {
 

@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "SettingItem.h"
-#include "SettingsManager.h"
-#include "Util.h"
+#include <airdcpp/SettingItem.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

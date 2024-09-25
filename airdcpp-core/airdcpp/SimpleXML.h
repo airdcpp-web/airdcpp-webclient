@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_SIMPLE_XML_H
 #define DCPLUSPLUS_DCPP_SIMPLE_XML_H
 
-#include "forward.h"
-#include "Util.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/Util.h>
 
-#include "SimpleXMLReader.h"
+#include <airdcpp/SimpleXMLReader.h>
 
 #include <boost/noncopyable.hpp>
 

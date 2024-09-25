@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_MERKLE_TREE_H
 #define DCPLUSPLUS_DCPP_MERKLE_TREE_H
 
-#include "debug.h"
-#include "typedefs.h"
-#include "TigerHash.h"
-#include "Encoder.h"
-#include "HashValue.h"
+#include <airdcpp/debug.h>
+#include <airdcpp/typedefs.h>
+#include <airdcpp/TigerHash.h>
+#include <airdcpp/Encoder.h>
+#include <airdcpp/HashValue.h>
 
 namespace dcpp {
 

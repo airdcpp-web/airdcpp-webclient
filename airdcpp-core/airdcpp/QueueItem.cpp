@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "QueueItem.h"
+#include <airdcpp/QueueItem.h>
 
-#include "ActionHook.h"
-#include "Bundle.h"
-#include "ClientManager.h"
-#include "Download.h"
-#include "File.h"
-#include "HashManager.h"
-#include "PathUtil.h"
-#include "SimpleXML.h"
-#include "Util.h"
-#include "ValueGenerator.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/Bundle.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/File.h>
+#include <airdcpp/HashManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

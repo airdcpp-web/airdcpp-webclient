@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_USER_CONNECTION_H
 #define DCPLUSPLUS_DCPP_USER_CONNECTION_H
 
-#include "AdcCommand.h"
-#include "AdcSupports.h"
-#include "forward.h"
-#include "BufferedSocketListener.h"
-#include "BufferedSocket.h"
-#include "HintedUser.h"
-#include "MerkleTree.h"
-#include "UploadSlot.h"
-#include "User.h"
-#include "UserConnectionListener.h"
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/AdcSupports.h>
+#include <airdcpp/forward.h>
+#include <airdcpp/BufferedSocketListener.h>
+#include <airdcpp/BufferedSocket.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/UploadSlot.h>
+#include <airdcpp/User.h>
+#include <airdcpp/UserConnectionListener.h>
 
 namespace dcpp {
 

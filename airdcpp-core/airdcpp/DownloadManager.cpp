@@ -17,15 +17,15 @@
  */
 
 #include "stdinc.h"
-#include "DownloadManager.h"
+#include <airdcpp/DownloadManager.h>
 
-#include "ClientManager.h"
-#include "Download.h"
-#include "LogManager.h"
-#include "QueueManager.h"
-#include "ResourceManager.h"
-#include "User.h"
-#include "UserConnection.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/QueueManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/User.h>
+#include <airdcpp/UserConnection.h>
 
 #include <limits>
 #include <cmath>

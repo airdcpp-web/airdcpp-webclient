@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include "RegexUtil.h"
+#include <airdcpp/RegexUtil.h>
 
-#include "Util.h"
+#include <airdcpp/Util.h>
 
 #include <boost/algorithm/string/replace.hpp>
 

@@ -17,17 +17,17 @@
  */
 
 #include "stdinc.h"
-#include "HttpConnection.h"
+#include <airdcpp/HttpConnection.h>
 
-#include "BufferedSocket.h"
-#include "LinkUtil.h"
-#include "format.h"
-#include "SettingsManager.h"
-#include "SystemUtil.h"
-#include "version.h"
+#include <airdcpp/BufferedSocket.h>
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/format.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/version.h>
 
-#include "ResourceManager.h"
-#include "format.h"
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/format.h>
 
 namespace dcpp {
 

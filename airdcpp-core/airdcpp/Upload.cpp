@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "Upload.h"
+#include <airdcpp/Upload.h>
 
-#include "FilteredFile.h"
-#include "ResourceManager.h"
-#include "StreamBase.h"
-#include "UserConnection.h"
-#include "ZUtils.h"
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/StreamBase.h>
+#include <airdcpp/UserConnection.h>
+#include <airdcpp/ZUtils.h>
 
 namespace dcpp {
 

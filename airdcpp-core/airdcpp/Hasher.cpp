@@ -18,20 +18,20 @@
 
 #include "stdinc.h"
 
-#include "Hasher.h"
+#include <airdcpp/Hasher.h>
 
-#include "Exception.h"
-#include "File.h"
-#include "FileReader.h"
-#include "HasherStats.h"
-#include "HashedFile.h"
-#include "MerkleTree.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "SettingsManager.h"
-#include "SFVReader.h"
-#include "TimerManager.h"
-#include "ZUtils.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/FileReader.h>
+#include <airdcpp/HasherStats.h>
+#include <airdcpp/HashedFile.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SFVReader.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/ZUtils.h>
 
 namespace dcpp {
 

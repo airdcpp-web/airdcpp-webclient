@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "User.h"
+#include <airdcpp/User.h>
 
-#include "Client.h"
-#include "StringTokenizer.h"
-#include "FavoriteUser.h"
-#include "GeoManager.h"
+#include <airdcpp/Client.h>
+#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/FavoriteUser.h>
+#include <airdcpp/GeoManager.h>
 
-#include "ClientManager.h"
-#include "ResourceManager.h"
-#include "FavoriteManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/FavoriteManager.h>
 
-#include "LogManager.h"
+#include <airdcpp/LogManager.h>
 
 namespace dcpp {
 

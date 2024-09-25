@@ -17,16 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "File.h"
+#include <airdcpp/File.h>
 
-#include "AppUtil.h"
-#include "Exception.h"
-#include "PathUtil.h"
-#include "SystemUtil.h"
-#include "Thread.h"
+#include <airdcpp/AppUtil.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SystemUtil.h>
+#include <airdcpp/Thread.h>
 
 #ifdef _WIN32
-#include "w.h"
+#include <airdcpp/w.h>
 #include <direct.h>
 #else
 #include <sys/stat.h>

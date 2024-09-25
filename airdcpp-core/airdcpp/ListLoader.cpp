@@ -18,27 +18,12 @@
 
 #include "stdinc.h"
 
-#include "ListLoader.h"
-// #include "DirectoryListingDirectory.h"
+#include <airdcpp/ListLoader.h>
 
-//#include "BZUtils.h"
-//#include "ClientManager.h"
-//#include "DirectSearch.h"
-//#include "DupeUtil.h"
-//#include "FilteredFile.h"
-//#include "LogManager.h"
-//#include "QueueManager.h"
-//#include "ResourceManager.h"
-//#include "ShareManager.h"
-//#include "SearchQuery.h"
-#include "DupeUtil.h"
-#include "PathUtil.h"
-#include "SettingsManager.h"
-#include "SimpleXML.h"
-//#include "SimpleXMLReader.h"
-//#include "Streams.h"
-//#include "StringTokenizer.h"
-//#include "User.h"
+#include <airdcpp/DupeUtil.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SimpleXML.h>
 
 
 namespace dcpp {
@@ -48,7 +33,7 @@ using ranges::find_if;
 
 ListLoader::ListLoader(DirectoryListing* aList, const string& aBase,
 	bool aUpdating, time_t aListDownloadDate) :
-	list(aList), cur(aList->getRoot().get()), base(aBase), updating(aUpdating), checkDupe(!aList->getIsOwnList() && aList->getIsClientView() && SETTING(DUPES_IN_FILELIST)),
+	list(aList), cur(aList->getRoot().get()), base(aBase), updating(aUpdating),
 	partialList(aList->getPartialList()), listDownloadDate(aListDownloadDate) {
 }
 

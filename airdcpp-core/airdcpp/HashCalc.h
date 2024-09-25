@@ -28,13 +28,13 @@
 
 #include <boost/scoped_array.hpp>
 
-#include "MerkleTree.h"
+#include <airdcpp/MerkleTree.h>
 
-#include "File.h"
-#include "Encoder.h"
-#include "Exception.h"
-#include "PathUtil.h"
-#include "Util.h"
+#include <airdcpp/File.h>
+#include <airdcpp/Encoder.h>
+#include <airdcpp/Exception.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

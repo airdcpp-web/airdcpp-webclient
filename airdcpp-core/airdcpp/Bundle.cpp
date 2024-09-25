@@ -17,21 +17,21 @@
  */
 
 #include "stdinc.h"
-#include "Bundle.h"
+#include <airdcpp/Bundle.h>
 
-#include "ActionHook.h"
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "Download.h"
-#include "File.h"
-#include "LogManager.h"
-#include "PathUtil.h"
-#include "QueueItem.h"
-#include "SimpleXML.h"
-#include "Streams.h"
-#include "TimerManager.h"
-#include "UserConnection.h"
-#include "ValueGenerator.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/Download.h>
+#include <airdcpp/File.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueItem.h>
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/Streams.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/UserConnection.h>
+#include <airdcpp/ValueGenerator.h>
 
 #include <boost/range/numeric.hpp>
 

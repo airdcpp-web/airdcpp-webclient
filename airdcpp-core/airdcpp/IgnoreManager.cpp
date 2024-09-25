@@ -18,16 +18,16 @@
 
 #include "stdinc.h"
 
-#include "IgnoreManager.h"
+#include <airdcpp/IgnoreManager.h>
 
-#include "ClientManager.h"
-#include "FavoriteUserManager.h"
-#include "LogManager.h"
-#include "PrivateChatManager.h"
-#include "SettingsManager.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/FavoriteUserManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/PrivateChatManager.h>
+#include <airdcpp/SettingsManager.h>
 
-#include "Message.h"
-#include "Util.h"
+#include <airdcpp/Message.h>
+#include <airdcpp/Util.h>
 
 #define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_NAME "IgnoredUsers.xml"

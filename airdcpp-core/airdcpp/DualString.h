@@ -21,7 +21,7 @@
 
 #include <string>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 using std::string;
 

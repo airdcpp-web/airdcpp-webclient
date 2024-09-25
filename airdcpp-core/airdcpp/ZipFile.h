@@ -31,7 +31,7 @@
 #ifndef ZIPFILE_H
 #define ZIPFILE_H
 
-#include "compiler.h"
+#include <airdcpp/compiler.h>
 
 #include <map>
 #include <memory>
@@ -42,8 +42,8 @@
 #include <boost/shared_array.hpp>
 #endif
 
-#include "Exception.h"
-#include "File.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
 
 #ifndef STRICTZIPUNZIP
 # define STRICTZIPUNZIP

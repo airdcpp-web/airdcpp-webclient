@@ -17,18 +17,18 @@
  */
 
 #include "stdinc.h"
-#include "HashManager.h"
+#include <airdcpp/HashManager.h>
 
-#include "Exception.h"
-#include "File.h"
-#include "FileReader.h"
-#include "LogManager.h"
-#include "Hasher.h"
-#include "HashStore.h"
-#include "HashedFile.h"
-#include "ResourceManager.h"
-#include "TimerManager.h"
-#include "version.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/FileReader.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/Hasher.h>
+#include <airdcpp/HashStore.h>
+#include <airdcpp/HashedFile.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/version.h>
 
 namespace dcpp {
 

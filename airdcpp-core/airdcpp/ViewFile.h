@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_VIEWFILE_H
 #define DCPLUSPLUS_DCPP_VIEWFILE_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "GetSet.h"
-#include "MerkleTree.h"
-#include "TrackableDownloadItem.h"
+#include <airdcpp/GetSet.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/TrackableDownloadItem.h>
 
 namespace dcpp {
 	class ViewFile : public TrackableDownloadItem {

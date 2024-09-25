@@ -17,11 +17,11 @@
  */
 
 #include "stdinc.h"
-#include "HashBloom.h"
+#include <airdcpp/HashBloom.h>
 
 #include <cmath>
 
-#include "MerkleTree.h"
+#include <airdcpp/MerkleTree.h>
 
 namespace dcpp {
 

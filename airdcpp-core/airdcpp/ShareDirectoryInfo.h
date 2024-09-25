@@ -21,15 +21,15 @@
 
 #include <string>
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "DirectoryContentInfo.h"
-#include "MerkleTree.h"
-#include "PathUtil.h"
-#include "SettingsManager.h"
-#include "Util.h"
-#include "ValueGenerator.h"
+#include <airdcpp/DirectoryContentInfo.h>
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 	class ShareDirectoryInfo;

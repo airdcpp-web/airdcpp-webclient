@@ -17,19 +17,19 @@
  */
 
 #include "stdinc.h"
-#include "BufferedSocket.h"
+#include <airdcpp/BufferedSocket.h>
 
 #include <algorithm>
 
 #include <boost/scoped_array.hpp>
 
-#include "ConnectivityManager.h"
-#include "SettingsManager.h"
-#include "SSLSocket.h"
-#include "StreamBase.h"
-#include "ThrottleManager.h"
-#include "TimerManager.h"
-#include "ZUtils.h"
+#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SSLSocket.h>
+#include <airdcpp/StreamBase.h>
+#include <airdcpp/ThrottleManager.h>
+#include <airdcpp/TimerManager.h>
+#include <airdcpp/ZUtils.h>
 
 namespace dcpp {
 

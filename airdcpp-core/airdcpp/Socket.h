@@ -21,7 +21,7 @@
 
 #ifdef _WIN32
 
-#include "w.h"
+#include <airdcpp/w.h>
 
 typedef int socklen_t;
 typedef SOCKET socket_t;
@@ -41,10 +41,10 @@ const int INVALID_SOCKET = -1;
 #define SOCKET_ERROR -1
 #endif
 
-#include "AddressInfo.h"
-#include "GetSet.h"
-#include "Util.h"
-#include "Exception.h"
+#include <airdcpp/AddressInfo.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/Exception.h>
 
 #include <boost/noncopyable.hpp>
 #include <memory>

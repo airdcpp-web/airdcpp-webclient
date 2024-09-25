@@ -17,21 +17,21 @@
  */
 
 #include "stdinc.h"
-#include "Download.h"
+#include <airdcpp/Download.h>
 
-#include "Bundle.h"
-#include "File.h"
-#include "FilteredFile.h"
-#include "HashManager.h"
-#include "MerkleCheckOutputStream.h"
-#include "MerkleTreeOutputStream.h"
-#include "PathUtil.h"
-#include "QueueItem.h"
-#include "SettingsManager.h"
-#include "SharedFileStream.h"
-#include "Streams.h"
-#include "UserConnection.h"
-#include "ZUtils.h"
+#include <airdcpp/Bundle.h>
+#include <airdcpp/File.h>
+#include <airdcpp/FilteredFile.h>
+#include <airdcpp/HashManager.h>
+#include <airdcpp/MerkleCheckOutputStream.h>
+#include <airdcpp/MerkleTreeOutputStream.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/QueueItem.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/SharedFileStream.h>
+#include <airdcpp/Streams.h>
+#include <airdcpp/UserConnection.h>
+#include <airdcpp/ZUtils.h>
 
 namespace dcpp {
 

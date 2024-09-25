@@ -20,10 +20,10 @@
 #define DCPLUSPLUS_DCPP_SSLSOCKET_H
 
 
-#include "CryptoManager.h"
-#include "Socket.h"
+#include <airdcpp/CryptoManager.h>
+#include <airdcpp/Socket.h>
 
-#include "SSL.h"
+#include <airdcpp/SSL.h>
 
 namespace dcpp {
 

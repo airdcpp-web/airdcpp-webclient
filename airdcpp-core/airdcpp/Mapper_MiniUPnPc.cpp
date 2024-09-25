@@ -20,11 +20,11 @@
 
 #include "Mapper_MiniUPnPc.h"
 
-#include "LinkUtil.h"
-#include "NetworkUtil.h"
+#include <airdcpp/LinkUtil.h>
+#include <airdcpp/NetworkUtil.h>
 
-#include "Util.h"
-#include "Socket.h"
+#include <airdcpp/Util.h>
+#include <airdcpp/Socket.h>
 
 extern "C" {
 #ifndef MINIUPNP_STATICLIB
@@ -126,31 +126,12 @@ bool Mapper_MiniUPnPc::init() {
 
 			// Parse router IP from the control URL address
 			auto controlUrl = string(string(data.urlbase).empty() ? urls.controlURL : data.urlbase);
-
-			string routerIp, portTmp, protoTmp, pathTmp, queryTmp, fragmentTmp;
-			LinkUtil::decodeUrl(controlUrl, protoTmp, routerIp, portTmp, pathTmp, queryTmp, fragmentTmp);
-
-			routerIp = Socket::resolve(routerIp, v6 ? AF_INET6 : AF_INET);
-			if (!routerIp.empty()) {
-				auto adapters = NetworkUtil::getNetworkAdapters(v6);
-
-				// Find a local IP that is within the same subnet
-				auto p = ranges::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); });
-				if (p != adapters.end()) {
-					localIp = p->ip;
-				}
-			}
+			updateLocalIp(controlUrl);
 		}
 
 		url = urls.controlURL;
 		service = data.first.servicetype;
-
-#ifdef _WIN32
-		device = data.CIF.friendlyName;
-#else
-		// Doesn't work on Linux
 		device = "Generic";
-#endif
 	}
 
 	if(ret) {
@@ -161,17 +142,28 @@ bool Mapper_MiniUPnPc::init() {
 	return ok;
 }
 
+void Mapper_MiniUPnPc::updateLocalIp(const string& aControlUrl) noexcept {
+	string routerIp, portTmp, protoTmp, pathTmp, queryTmp, fragmentTmp;
+	LinkUtil::decodeUrl(aControlUrl, protoTmp, routerIp, portTmp, pathTmp, queryTmp, fragmentTmp);
+
+	routerIp = Socket::resolve(routerIp, v6 ? AF_INET6 : AF_INET);
+	if (!routerIp.empty()) {
+		auto adapters = NetworkUtil::getNetworkAdapters(v6);
+
+		// Find a local IP that is within the same subnet
+		auto p = ranges::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); });
+		if (p != adapters.end()) {
+			localIp = p->ip;
+		}
+	}
+}
+
 void Mapper_MiniUPnPc::uninit() {
 }
 
 bool Mapper_MiniUPnPc::add(const string& port, const Protocol protocol, const string& description) {
-#ifdef HAVE_OLD_MINIUPNPC
-	return UPNP_AddPortMapping(url.c_str(), service.c_str(), port.c_str(), port.c_str(),
-		localIp.c_str(), description.c_str(), protocols[protocol], 0) == UPNPCOMMAND_SUCCESS;
-#else
 	return UPNP_AddPortMapping(url.c_str(), service.c_str(), port.c_str(), port.c_str(),
 		localIp.c_str(), description.c_str(), protocols[protocol], 0, 0) == UPNPCOMMAND_SUCCESS;
-#endif
 }
 
 bool Mapper_MiniUPnPc::remove(const string& port, const Protocol protocol) {

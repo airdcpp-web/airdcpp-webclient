@@ -22,7 +22,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
 namespace dcpp {
 

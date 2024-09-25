@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "CryptoUtil.h"
+#include <airdcpp/CryptoUtil.h>
 
-#include "debug.h"
+#include <airdcpp/debug.h>
 
-#include "Encoder.h"
-#include "File.h"
-#include "ScopedFunctor.h"
+#include <airdcpp/Encoder.h>
+#include <airdcpp/File.h>
+#include <airdcpp/ScopedFunctor.h>
 
 #include <openssl/evp.h>
 #include <openssl/pem.h>

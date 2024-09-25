@@ -22,11 +22,11 @@
 #include <string>
 #include <set>
 
-#include "Pointer.h"
-#include "forward.h"
-#include "GetSet.h"
-#include "Upload.h"
-#include "TimerManager.h"
+#include <airdcpp/Pointer.h>
+#include <airdcpp/forward.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Upload.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 

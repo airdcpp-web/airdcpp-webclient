@@ -19,18 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 #define DCPLUSPLUS_DCPP_SEARCH_MANAGER_H
 
-#include "SearchManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/SearchManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "ActionHook.h"
-#include "AdcCommand.h"
-#include "CriticalSection.h"
-#include "GetSet.h"
-#include "Message.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "UDPServer.h"
-#include "Util.h"
+#include <airdcpp/ActionHook.h>
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/UDPServer.h>
+#include <airdcpp/Util.h>
 
 
 namespace dcpp {

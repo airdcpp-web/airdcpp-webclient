@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_MERKLE_CHECK_OUTPUT_STREAM_H
 #define DCPLUSPLUS_DCPP_MERKLE_CHECK_OUTPUT_STREAM_H
 
-#include "MerkleTree.h"
-#include "ResourceManager.h"
-#include "StreamBase.h"
+#include <airdcpp/MerkleTree.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/StreamBase.h>
 
 namespace dcpp {
 

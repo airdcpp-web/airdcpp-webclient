@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_H_
 #define DCPLUSPLUS_DCPP_UPLOAD_H_
 
-#include "forward.h"
-#include "Transfer.h"
-#include "Flags.h"
-#include "GetSet.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/Transfer.h>
+#include <airdcpp/Flags.h>
+#include <airdcpp/GetSet.h>
 
 namespace dcpp {
 

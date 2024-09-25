@@ -17,16 +17,16 @@
  */
 
 #include "stdinc.h"
-#include "ShareTasks.h"
+#include <airdcpp/ShareTasks.h>
 
-#include "Exception.h"
-#include "LogManager.h"
-#include "HashManager.h"
-#include "PathUtil.h"
-#include "ResourceManager.h"
-#include "ScopedFunctor.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/HashManager.h>
+#include <airdcpp/PathUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/ScopedFunctor.h>
 
-#include "concurrency.h"
+#include <airdcpp/concurrency.h>
 
 namespace dcpp {
 

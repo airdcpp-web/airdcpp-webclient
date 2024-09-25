@@ -20,91 +20,69 @@
 #define DCPLUSPLUS_DCPP_TYPEDEFS_H_
 
 #include <stdint.h>
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "boost/variant.hpp"
+#include <boost/variant.hpp>
 
 namespace dcpp {
 
-typedef std::function<void ()> AsyncF;
+using AsyncF = std::function<void ()>;
 
-typedef vector<string> StringList;
-typedef StringList::iterator StringIter;
-typedef StringList::const_iterator StringIterC;
+using StringList = vector<string>;
 
-typedef pair<string, string> StringPair;
-typedef vector<StringPair> StringPairList;
-typedef StringPairList::iterator StringPairIter;
+using StringPair = pair<string, string>;
+using StringPairList = vector<StringPair>;
 
-typedef pair<int64_t, string> IntStringPair;
-typedef vector<IntStringPair> IntStringList;
+using OrderedStringMap = std::map<string, string>;
+using StringMap = std::unordered_map<string, string>;
+using StringListMap = std::unordered_map<string, StringList>;
 
-typedef std::map<string, string> OrderedStringMap;
-typedef std::unordered_map<string, string> StringMap;
-typedef StringMap::iterator StringMapIter;
-typedef std::unordered_map<string, StringList> StringListMap;
+using ProfileTokenSet = std::set<int>;
 
-typedef std::set<int> ProfileTokenSet;
+using OrderedStringSet = std::set<string>;
+using StringSet = std::unordered_set<string>;
 
-typedef std::set<string> OrderedStringSet;
-typedef std::unordered_set<string> StringSet;
-typedef StringSet::iterator StringSetIter;
+using StringIntMap = std::unordered_map<string, int>;
 
-typedef std::unordered_map <string, int> StringIntMap;
-typedef std::unordered_map <string, int64_t> StringInt64Map;
-typedef StringInt64Map::iterator StringInt64Iter;
+using WStringList = vector<wstring>;
 
-typedef vector<wstring> WStringList;
-typedef WStringList::iterator WStringIter;
-typedef WStringList::const_iterator WStringIterC;
+using WStringPair = pair<wstring, wstring>;
+using WStringPairList = vector<WStringPair>;
 
-typedef pair<wstring, wstring> WStringPair;
-typedef vector<WStringPair> WStringPairList;
-typedef WStringPairList::iterator WStringPairIter;
+using WStringMap = unordered_map<wstring, wstring>;
 
-typedef unordered_map<wstring, wstring> WStringMap;
-typedef WStringMap::iterator WStringMapIter;
+using ByteVector = vector<uint8_t>;
 
-typedef vector<uint8_t> ByteVector;
+using ProfileToken = int;
+using OptionalProfileToken = optional<ProfileToken>;
+using ProfileTokenList = vector<ProfileToken>;
+using ProfileTokenStringList = vector<pair<ProfileToken, string>>;
 
-typedef int ProfileToken;
-typedef optional<ProfileToken> OptionalProfileToken;
-typedef vector<ProfileToken> ProfileTokenList;
-typedef vector<pair<ProfileToken, string>> ProfileTokenStringList;
-
-typedef map<string, OrderedStringSet> GroupedDirectoryMap;
+using GroupedDirectoryMap = map<string, OrderedStringSet>;
 
 #ifdef UNICODE
 
-typedef wstring tstring;
-typedef WStringList TStringList;
-typedef WStringIter TStringIter;
-typedef WStringIterC TStringIterC;
+using tstring = wstring;
+using TStringList = WStringList;
 
-typedef WStringPair TStringPair;
-typedef WStringPairIter TStringPairIter;
-typedef WStringPairList TStringPairList;
+using TStringPair = WStringPair;
+using TStringPairList = WStringPairList;
 
-typedef WStringMap TStringMap;
-typedef WStringMapIter TStringMapIter;
+using TStringMap = WStringMap;
 
 #else
 
 typedef string tstring;
 typedef StringList TStringList;
-typedef StringIter TStringIter;
-typedef StringIterC TStringIterC;
 
 typedef StringPair TStringPair;
-typedef StringPairIter TStringPairIter;
 typedef StringPairList TStringPairList;
 
 typedef StringMap TStringMap;
-typedef StringMapIter TStringMapIter;
 
 #endif
 
-typedef unordered_map<string, boost::variant<string, std::function<string ()>>> ParamMap;
+using ParamMap = unordered_map<string, boost::variant<string, std::function<string ()>>>;
 
 }
 

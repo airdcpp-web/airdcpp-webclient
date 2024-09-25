@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_MAPPER_NATPMP_H
 #define DCPLUSPLUS_DCPP_MAPPER_NATPMP_H
 
-#include "Mapper.h"
+#include <airdcpp/Mapper.h>
 
 namespace dcpp {
 

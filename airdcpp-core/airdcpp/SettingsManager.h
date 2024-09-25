@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_SETTINGS_MANAGER_H
 #define DCPLUSPLUS_DCPP_SETTINGS_MANAGER_H
 
-#include "AppUtil.h"
-#include "SettingItem.h"
-#include "SettingsManagerListener.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "version.h"
+#include <airdcpp/AppUtil.h>
+#include <airdcpp/SettingItem.h>
+#include <airdcpp/SettingsManagerListener.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/version.h>
 
 namespace dcpp {
 

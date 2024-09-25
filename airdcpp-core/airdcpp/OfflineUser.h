@@ -19,8 +19,8 @@
 #ifndef OFFLINE_USER_H
 #define OFFLINE_USER_H
 
-#include "User.h"
-#include "CID.h"
+#include <airdcpp/User.h>
+#include <airdcpp/CID.h>
 
 namespace dcpp {
 

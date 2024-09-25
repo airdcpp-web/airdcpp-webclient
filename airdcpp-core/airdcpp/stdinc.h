@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_STDINC_H
 #define DCPLUSPLUS_DCPP_STDINC_H
 
-#include "compiler.h"
+#include <airdcpp/compiler.h>
 
 #ifndef _DEBUG
 # define BOOST_DISABLE_ASSERTS 1
@@ -30,7 +30,7 @@
 #endif
 
 #ifdef _WIN32
-#include "w.h"
+#include <airdcpp/w.h>
 #else
 #include <unistd.h>
 #define BOOST_PTHREAD_HAS_MUTEXATTR_SETTYPE

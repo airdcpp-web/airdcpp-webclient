@@ -19,14 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_PARTIAL_BUNDLE_SHARING_H
 #define DCPLUSPLUS_DCPP_PARTIAL_BUNDLE_SHARING_H
 
-#include "QueueManagerListener.h"
-#include "SearchManagerListener.h"
-#include "TimerManagerListener.h"
+#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/SearchManagerListener.h>
+#include <airdcpp/TimerManagerListener.h>
 
-#include "AdcCommand.h"
-#include "CriticalSection.h"
-#include "ProtocolCommandManager.h"
-#include "Message.h"
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/Message.h>
 
 
 namespace dcpp {

@@ -17,12 +17,12 @@
  */
 
 #include "stdinc.h"
-#include "UploadQueueManager.h"
+#include <airdcpp/UploadQueueManager.h>
 
-#include "ClientManager.h"
-#include "LogManager.h"
-#include "ResourceManager.h"
-#include "UserConnection.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/UserConnection.h>
 
 
 namespace dcpp {

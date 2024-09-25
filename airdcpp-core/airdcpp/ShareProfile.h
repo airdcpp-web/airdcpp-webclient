@@ -20,14 +20,14 @@
 #define DCPLUSPLUS_DCPP_SHAREPROFILE_H_
 
 #include <string>
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "File.h"
-#include "GetSet.h"
-#include "HashValue.h"
-#include "TigerHash.h"
-#include "Util.h"
-#include "ValueGenerator.h"
+#include <airdcpp/File.h>
+#include <airdcpp/GetSet.h>
+#include <airdcpp/HashValue.h>
+#include <airdcpp/TigerHash.h>
+#include <airdcpp/Util.h>
+#include <airdcpp/ValueGenerator.h>
 
 namespace dcpp {
 

@@ -17,10 +17,10 @@
  */
 
 #include "stdinc.h"
-#include "AdcCommand.h"
+#include <airdcpp/AdcCommand.h>
 
-#include "CID.h"
-#include "Util.h"
+#include <airdcpp/CID.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 

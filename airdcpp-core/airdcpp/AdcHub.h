@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_ADC_HUB_H
 #define DCPLUSPLUS_DCPP_ADC_HUB_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "Client.h"
-#include "AdcCommand.h"
+#include <airdcpp/Client.h>
+#include <airdcpp/AdcCommand.h>
 
 namespace dcpp {
 

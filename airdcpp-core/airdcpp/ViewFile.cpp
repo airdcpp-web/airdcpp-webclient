@@ -17,10 +17,10 @@
 */
 
 #include "stdinc.h"
-#include "ViewFile.h"
+#include <airdcpp/ViewFile.h>
 
-#include "File.h"
-#include "TimerManager.h"
+#include <airdcpp/File.h>
+#include <airdcpp/TimerManager.h>
 
 namespace dcpp {
 	ViewFile::ViewFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept :

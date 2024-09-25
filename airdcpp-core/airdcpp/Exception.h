@@ -21,7 +21,7 @@
 
 #include <string>
 
-#include "debug.h"
+#include <airdcpp/debug.h>
 
 namespace dcpp {
 

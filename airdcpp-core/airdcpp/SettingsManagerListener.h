@@ -20,7 +20,7 @@
 #define DCPLUSPLUS_DCPP_SETTINGSMANAGER_LISTENER_H_
 
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
 namespace dcpp {
 

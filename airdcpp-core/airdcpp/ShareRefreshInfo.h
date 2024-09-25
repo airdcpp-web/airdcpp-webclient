@@ -21,10 +21,10 @@
 
 #include <string>
 
-#include "forward.h"
-#include "typedefs.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/typedefs.h>
 
-#include "ShareDirectory.h"
+#include <airdcpp/ShareDirectory.h>
 
 namespace dcpp {
 

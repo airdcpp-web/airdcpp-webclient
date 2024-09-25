@@ -17,8 +17,8 @@
  */
 
 #include "stdinc.h"
-#include "SimpleXML.h"
-#include "HubSettings.h"
+#include <airdcpp/SimpleXML.h>
+#include <airdcpp/HubSettings.h>
 
 namespace dcpp {
 

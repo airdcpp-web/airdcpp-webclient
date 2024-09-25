@@ -19,18 +19,18 @@
 #ifndef DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_RECEIVER_H
 #define DCPLUSPLUS_DCPP_UPLOAD_BUNDLE_RECEIVER_H
 
-#include "forward.h"
+#include <airdcpp/forward.h>
 
-#include "AdcCommand.h"
-#include "CriticalSection.h"
-#include "ProtocolCommandManager.h"
-#include "HintedUser.h"
-#include "Message.h"
-#include "Speaker.h"
-#include "TimerManagerListener.h"
-#include "UploadBundle.h"
-#include "UploadBundleInfoReceiverListener.h"
-#include "UploadManagerListener.h"
+#include <airdcpp/AdcCommand.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/UploadBundle.h>
+#include <airdcpp/UploadBundleInfoReceiverListener.h>
+#include <airdcpp/UploadManagerListener.h>
 
 namespace dcpp {
 

@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_CONNECTIVITY_MANAGER_H
 #define DCPLUSPLUS_DCPP_CONNECTIVITY_MANAGER_H
 
-#include "CriticalSection.h"
-#include "SettingsManager.h"
-#include "Singleton.h"
-#include "Speaker.h"
-#include "Message.h"
-#include "MappingManager.h"
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Singleton.h>
+#include <airdcpp/Speaker.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/MappingManager.h>
 
 #include <string>
 #include <unordered_map>

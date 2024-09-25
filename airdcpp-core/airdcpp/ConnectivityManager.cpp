@@ -17,20 +17,20 @@
  */
 
 #include "stdinc.h"
-#include "ConnectivityManager.h"
+#include <airdcpp/ConnectivityManager.h>
 
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "DCPlusPlus.h"
-#include "FavoriteManager.h"
-#include "format.h"
-#include "LogManager.h"
-#include "MappingManager.h"
-#include "NetworkUtil.h"
-#include "ResourceManager.h"
-#include "SearchManager.h"
-#include "SettingsManager.h"
-#include "version.h"
+#include <airdcpp/ClientManager.h>
+#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/DCPlusPlus.h>
+#include <airdcpp/FavoriteManager.h>
+#include <airdcpp/format.h>
+#include <airdcpp/LogManager.h>
+#include <airdcpp/MappingManager.h>
+#include <airdcpp/NetworkUtil.h>
+#include <airdcpp/ResourceManager.h>
+#include <airdcpp/SearchManager.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/version.h>
 
 namespace dcpp {
 

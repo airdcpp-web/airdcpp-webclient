@@ -17,13 +17,13 @@
  */
 
 #include "stdinc.h"
-#include "ZUtils.h"
+#include <airdcpp/ZUtils.h>
 
-#include "Exception.h"
-#include "File.h"
-#include "format.h"
-#include "ScopedFunctor.h"
-#include "SettingsManager.h"
+#include <airdcpp/Exception.h>
+#include <airdcpp/File.h>
+#include <airdcpp/format.h>
+#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/SettingsManager.h>
 
 namespace dcpp {
 

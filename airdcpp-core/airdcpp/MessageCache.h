@@ -21,11 +21,11 @@
 
 #include "stdinc.h"
 
-#include "typedefs.h"
-#include "CriticalSection.h"
-#include "Message.h"
-#include "SettingsManager.h"
-#include "Util.h"
+#include <airdcpp/typedefs.h>
+#include <airdcpp/CriticalSection.h>
+#include <airdcpp/Message.h>
+#include <airdcpp/SettingsManager.h>
+#include <airdcpp/Util.h>
 
 namespace dcpp {
 	using MessageList = deque<Message>;

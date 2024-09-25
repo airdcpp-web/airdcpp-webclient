@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUE_DOWNLOAD_INFO_H_
 #define DCPLUSPLUS_DCPP_QUEUE_DOWNLOAD_INFO_H_
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "HintedUser.h"
-#include "Priority.h"
+#include <airdcpp/HintedUser.h>
+#include <airdcpp/Priority.h>
 
 namespace dcpp {
 

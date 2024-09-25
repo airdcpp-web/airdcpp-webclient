@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_HBRI_VALIDATION_H
 #define DCPLUSPLUS_DCPP_HBRI_VALIDATION_H
 
-#include "typedefs.h"
+#include <airdcpp/typedefs.h>
 
-#include "Message.h"
+#include <airdcpp/Message.h>
 
 #include <thread>
 

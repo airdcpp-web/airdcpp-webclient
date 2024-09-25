@@ -19,8 +19,8 @@
 #ifndef DIRECTORYLISTING_MANAGER_LISTENER_H
 #define DIRECTORYLISTING_MANAGER_LISTENER_H
 
-#include "forward.h"
-#include "QueueAddInfo.h"
+#include <airdcpp/forward.h>
+#include <airdcpp/QueueAddInfo.h>
 
 namespace dcpp {
 
