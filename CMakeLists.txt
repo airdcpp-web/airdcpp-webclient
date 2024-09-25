@@ -196,7 +196,7 @@ if(NOT PYTHON_EXECUTABLE)
   message(FATAL_ERROR "Could not find 'python' executable. Please install python")
 endif(NOT PYTHON_EXECUTABLE)
 
-execute_process (COMMAND ${PYTHON_EXECUTABLE} scripts/generate_stringdefs.py airdcpp-core/airdcpp/
+execute_process (COMMAND ${PYTHON_EXECUTABLE} airdcpp-core/scripts/generate_stringdefs.py airdcpp-core/airdcpp/
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             RESULT_VARIABLE SCRIPT_RESULT)
 
