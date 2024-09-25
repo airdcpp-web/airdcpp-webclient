@@ -1,16 +1,22 @@
 project(airdcpp-webapi)
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.16)
 # ######### General setup ##########
 
-file (GLOB webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
-file(GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
+file (GLOB_RECURSE webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
+file (GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
 
 set (WEBAPI_SRCS ${webapi_srcs} PARENT_SCOPE)
 set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
 
-include_directories(AIRDCPP_HDRS ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/json ${websocketpp_INCLUDE_DIR})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${webapi_srcs})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${webapi_hdrs})
 
-add_library (airdcpp-webapi ${webapi_srcs})
+include_directories(AIRDCPP_HDRS
+  ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS}
+  ${OPENSSL_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR}
+)
+
+add_library (airdcpp-webapi ${webapi_srcs} ${webapi_hdrs} )
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
   add_definitions(-D_DEBUG)
@@ -20,10 +26,10 @@ endif()
 target_link_libraries (airdcpp-webapi airdcpp ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES})
 set_target_properties(airdcpp-webapi PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp-webapi")
 
-set_target_properties(airdcpp-webapi PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdinc.h")
-if (COMMAND cotire)
-  cotire(airdcpp-webapi)
-endif()
+target_precompile_headers(airdcpp-webapi PUBLIC
+  "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/stdinc.h>"
+  "$<$<COMPILE_LANGUAGE:CXX>:<airdcpp/stdinc.h$<ANGLE-R>>"
+)
 
 if (APPLE)
   set (LIBDIR1 .)
