@@ -53,6 +53,7 @@ public:
 	int64_t getSize() const { return size; }
 	int64_t getDone() const { return done; }
 
+	const StringMap getHeaders() const noexcept { return headers; }
 private:
 	enum RequestType { TYPE_GET, TYPE_POST, TYPE_UNKNOWN };
 	enum ConnectionStates { CONN_UNKNOWN, CONN_OK, CONN_FAILED, CONN_MOVED, CONN_CHUNKED };
@@ -87,6 +88,8 @@ private:
 
 	const bool isUnique;
 	const HttpOptions options;
+
+	StringMap headers;
 };
 
 } // namespace dcpp

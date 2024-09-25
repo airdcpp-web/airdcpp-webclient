@@ -29,6 +29,8 @@
 #include <airdcpp/ResourceManager.h>
 #include <airdcpp/format.h>
 
+#include <boost/algorithm/string/trim.hpp>
+
 namespace dcpp {
 
 HttpConnection::HttpConnection(bool aIsUnique, const HttpOptions& aOptions) :
@@ -246,15 +248,28 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		if(size != -1) {
 			socket->setDataMode(size);
 		} else connState = CONN_CHUNKED;
-	} else if(Util::findSubString(aLine, "Content-Length") != string::npos) {
-		size = Util::toInt(aLine.substr(16, aLine.length() - 17));
-	} else if(mimeType.empty()) {
-		if(Util::findSubString(aLine, "Content-Encoding") != string::npos) {
-			if(aLine.substr(18, aLine.length() - 19) == "x-bzip2")
-				mimeType = "application/x-bzip2";
-		} else if(Util::findSubString(aLine, "Content-Type") != string::npos) {
-			mimeType = aLine.substr(14, aLine.length() - 15);
+	} else if (aLine.length() > 2) {
+		// Header
+		auto separator = aLine.find_first_of(':');
+		if (separator <= 1) {
+			return;
 		}
+
+		auto name = boost::algorithm::trim_copy(aLine.substr(0, separator));
+		auto value = boost::algorithm::trim_copy(aLine.substr(separator + 1));
+
+		if (name == "Content-Length") {
+			size = Util::toInt(value);
+		} else if (mimeType.empty()) {
+			if (name == "Content-Encoding") {
+				if (value == "x-bzip2")
+					mimeType = "application/x-bzip2";
+			} else if (name == "Content-Type") {
+				mimeType = value;
+			}
+		}
+
+		headers.try_emplace(name, value);
 	}
 }
 

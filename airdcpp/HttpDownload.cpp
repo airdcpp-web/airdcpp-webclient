@@ -44,6 +44,7 @@ void HttpDownload::on(HttpConnectionListener::Failed, HttpConnection*, const str
 
 void HttpDownload::on(HttpConnectionListener::Complete, HttpConnection*, const string& status_) noexcept {
 	status = status_;
+	headers = c->getHeaders();
 	f();
 }
 

@@ -30,6 +30,7 @@ struct HttpDownload : private HttpConnectionListener, private boost::noncopyable
 	HttpConnection* c;
 	string buf;
 	string status;
+	StringMap headers;
 	using CompletionF = std::function<void ()>;
 	CompletionF f;
 

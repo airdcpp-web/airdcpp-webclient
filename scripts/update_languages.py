@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import glob, os
 import shutil
@@ -32,6 +33,7 @@ replace_map = [
     (r'\n', '\n'),
     (r'\\', '\\'),
     (r'\"', '\"'),
+    (r'\'', '\''),
 ]
 
 
@@ -47,6 +49,7 @@ def convert_file(input_file, output_file):
     for child in source_root:
         string = ET.SubElement(output_strings, 'String', Name=child.attrib['name'])
 
+        text = child.text
         for str, replacement in replace_map:
             text = text.replace(str, replacement)
 
@@ -73,6 +76,9 @@ def has_changed(source_file_path, temp_file_path):
 # Iterate over the files in source_directory and convert them
 def update_translation_files(source_directory, target_directory, force = False):
     temp_directory = os.path.join(source_directory, 'previous')
+
+    Path(temp_directory).mkdir(parents=True, exist_ok=True)
+    Path(target_directory).mkdir(parents=True, exist_ok=True)
 
     converted = 0
     unchanged = 0

@@ -53,7 +53,7 @@ UpdateManager::UpdateManager() : lastIPUpdate(GET_TICK()) {
 	links.geoip = "http://geoip.airdcpp.net";
 	links.ipcheck4 = "http://checkip.dyndns.org/";
 	links.ipcheck6 = "http://checkip.dyndns.org/";
-	links.language = "http://languages.airdcpp.net/tx/checkLangVersion.php?lc=%[locale]";
+	links.language = "https://languages.airdcpp.net/tx/checkLangVersion.php?lc=%[locale]";
 
 	SettingsManager::getInstance()->registerChangeHandler({
 		SettingsManager::GET_USER_COUNTRY,
@@ -340,10 +340,14 @@ void UpdateManager::completeLanguageCheck() {
 	if(!conn->buf.empty()) {
 		if (Util::toDouble(conn->buf) > Localization::getCurLanguageVersion()) {
 			fire(UpdateManagerListener::LanguageDownloading());
-			conns[CONN_LANGUAGE_FILE] = make_unique<HttpDownload>(
-				links.language + PathUtil::getFileName(Localization::getCurLanguageFilePath()),
-				[this] { completeLanguageDownload(); }
-			);
+
+			auto url = conn->headers.find("X-File-Location");
+			if (url != conn->headers.end()) {
+				conns[CONN_LANGUAGE_FILE] = make_unique<HttpDownload>(
+					url->second,
+					[this] { completeLanguageDownload(); }
+				);
+			}
 		} else {
 			fire(UpdateManagerListener::LanguageFinished());
 		}
