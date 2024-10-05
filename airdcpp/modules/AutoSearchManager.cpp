@@ -20,19 +20,19 @@
 
 #include "AutoSearchManager.h"
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/DupeUtil.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchQuery.h>
-#include <airdcpp/SearchResult.h>
-#include <airdcpp/SearchTypes.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/User.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/util/DupeUtil.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchQuery.h>
+#include <airdcpp/search/SearchResult.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/user/User.h>
 
-#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
 
 namespace dcpp {
 

@@ -24,9 +24,9 @@
 #include "HublistManagerListener.h"
 #include "HublistEntry.h"
 
-#include <airdcpp/HttpConnection.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
+#include <airdcpp/connection/http/HttpConnection.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
 
 
 namespace dcpp {

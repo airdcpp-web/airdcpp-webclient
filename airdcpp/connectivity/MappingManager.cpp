@@ -1,0 +1,257 @@
+/*
+ * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
+#include "stdinc.h"
+#include <airdcpp/connectivity/MappingManager.h>
+
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/connectivity/ConnectivityManager.h>
+#include <airdcpp/core/header/format.h>
+#include <airdcpp/events/LogManager.h>
+
+#include <airdcpp/connectivity/mappers/Mapper_MiniUPnPc.h>
+
+#ifdef HAVE_NATPMP_H
+#include <airdcpp/connectivity/mappers/Mapper_NATPMP.h>
+#endif
+
+#ifdef WIN32
+#include <airdcpp/connectivity/mappers/Mapper_WinUPnP.h>
+#endif
+
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/core/version.h>
+
+namespace dcpp {
+
+MappingManager::MappingManager(bool v6) : renewal(0), v6(v6) {
+	busy.clear();
+	addMapper<Mapper_MiniUPnPc>();
+	if (!v6) {
+#ifdef HAVE_NATPMP_H
+		addMapper<Mapper_NATPMP>();
+#endif
+
+#ifdef WIN32
+		addMapper<Mapper_WinUPnP>();
+#endif
+	}
+}
+
+StringList MappingManager::getMappers() const {
+	StringList ret;
+	for(auto& [name, _] : mappers)
+		ret.push_back(name);
+	return ret;
+}
+
+bool MappingManager::open() {
+	if(getOpened())
+		return false;
+
+	if(mappers.empty()) {
+		log(STRING(MAPPER_NO_INTERFACE), LogMessage::SEV_ERROR);
+		return false;
+	}
+
+	if(busy.test_and_set()) {
+		log(STRING(MAPPER_IN_PROGRESS), LogMessage::SEV_INFO);
+		return false;
+	}
+
+	start();
+
+	return true;
+}
+
+void MappingManager::close() {
+	join();
+
+	if(renewal) {
+		renewal = 0;
+		TimerManager::getInstance()->removeListener(this);
+	}
+
+	if(working.get()) {
+		close(*working);
+		working.reset();
+	}
+}
+
+bool MappingManager::getOpened() const {
+	return working.get() ? true : false;
+}
+
+string MappingManager::getStatus() const {
+	if(working.get()) {
+		auto& mapper = *working;
+		return STRING_F(MAPPER_CREATING_SUCCESS, deviceString(mapper) % mapper.getName());
+	}
+	return STRING(MAPPER_CREATING_FAILED);
+}
+
+int MappingManager::run() {
+	ScopedFunctor([this] { busy.clear(); });
+
+	// cache ports
+	auto
+		conn_port = ConnectionManager::getInstance()->getPort(),
+		secure_port = ConnectionManager::getInstance()->getSecurePort(),
+		search_port = SearchManager::getInstance()->getPort();
+
+	if(renewal) {
+		Mapper& mapper = *working;
+
+		ScopedFunctor([&mapper] { mapper.uninit(); });
+		if(!mapper.init()) {
+			// can't renew; try again later.
+			renewLater(mapper);
+			return 0;
+		}
+
+		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) {
+			// just launch renewal requests - don't bother with possible failures.
+			if(!port.empty()) {
+				mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X,
+					description % port % Mapper::protocols[protocol]));
+			}
+		};
+
+		addRule(conn_port, Mapper::PROTOCOL_TCP, "Transfer");
+		addRule(secure_port, Mapper::PROTOCOL_TCP, "Encrypted transfer");
+		addRule(search_port, Mapper::PROTOCOL_UDP, "Search");
+
+		renewLater(mapper);
+		return 0;
+	}
+
+	// move the preferred mapper to the top of the stack.
+	const auto& mapperName = SETTING(MAPPER);
+	for(auto i = mappers.begin(); i != mappers.end(); ++i) {
+		if(i->first == mapperName) {
+			if(i != mappers.begin()) {
+				auto mapper = *i;
+				mappers.erase(i);
+				mappers.insert(mappers.begin(), mapper);
+			}
+			break;
+		}
+	}
+
+	for(auto const& [_, initF] : mappers) {
+		auto setting = v6 ? SettingsManager::BIND_ADDRESS6 : SettingsManager::BIND_ADDRESS;
+		auto bindAddress = SettingsManager::getInstance()->isDefault(setting) ? Util::emptyString : SettingsManager::getInstance()->get(setting);
+		unique_ptr<Mapper> pMapper(initF(bindAddress, v6));
+		Mapper& mapper = *pMapper;
+
+		ScopedFunctor([&mapper] { mapper.uninit(); });
+		if(!mapper.init()) {
+			log(STRING_F(MAPPER_INIT_FAILED, mapper.getName()), LogMessage::SEV_WARNING);
+			continue;
+		}
+
+		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) {
+			if (!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
+				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogMessage::SEV_WARNING);
+				mapper.close();
+				return false;
+			}
+			return true;
+		};
+
+		if(!(addRule(conn_port, Mapper::PROTOCOL_TCP, STRING(TRANSFER)) &&
+			addRule(secure_port, Mapper::PROTOCOL_TCP, STRING(ENCRYPTED_TRANSFER)) &&
+			addRule(search_port, Mapper::PROTOCOL_UDP, STRING(SEARCH))))
+			continue;
+
+		log(STRING_F(MAPPER_CREATING_SUCCESS_LONG, conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogMessage::SEV_INFO);
+
+		working = std::move(pMapper);
+
+		if ((!v6 && !CONNSETTING(NO_IP_OVERRIDE)) || (v6 && !CONNSETTING(NO_IP_OVERRIDE6))) {
+			setting = v6 ? SettingsManager::EXTERNAL_IP6 : SettingsManager::EXTERNAL_IP;
+			string externalIP = mapper.getExternalIP();
+			if(!externalIP.empty()) {
+				ConnectivityManager::getInstance()->set(setting, externalIP);
+			} else {
+				// no cleanup because the mappings work and hubs will likely provide the correct IP.
+				log(STRING(MAPPER_IP_FAILED), LogMessage::SEV_WARNING);
+			}
+		}
+
+		ConnectivityManager::getInstance()->mappingFinished(mapper.getName(), v6);
+
+		renewLater(mapper);
+		break;
+	}
+
+	if(!getOpened()) {
+		log(STRING(MAPPER_CREATING_FAILED), LogMessage::SEV_ERROR);
+		ConnectivityManager::getInstance()->mappingFinished(Util::emptyString, v6);
+	}
+
+	return 0;
+}
+
+void MappingManager::close(Mapper& mapper) {
+	if(mapper.hasRules()) {
+		bool ret = mapper.init() && mapper.close();
+		mapper.uninit();
+		if (ret)
+			log(STRING_F(MAPPER_REMOVING_SUCCESS, deviceString(mapper) % mapper.getName()), LogMessage::SEV_INFO);
+		else
+			log(STRING_F(MAPPER_REMOVING_FAILED, deviceString(mapper) % mapper.getName()), LogMessage::SEV_WARNING);
+	}
+}
+
+void MappingManager::log(const string& message, LogMessage::Severity sev) {
+	ConnectivityManager::getInstance()->log(STRING(PORT_MAPPING) + ": " + message, sev, v6 ? ConnectivityManager::TYPE_V6 : ConnectivityManager::TYPE_V4);
+}
+
+string MappingManager::deviceString(Mapper& mapper) const {
+	string name(mapper.getDeviceName());
+	if(name.empty())
+		name = STRING(GENERIC);
+	return '"' + name + '"';
+}
+
+void MappingManager::renewLater(Mapper& mapper) {
+	auto minutes = mapper.renewal();
+	if(minutes) {
+		bool addTimer = !renewal;
+		renewal = GET_TICK() + std::max(minutes, 10u) * 60 * 1000;
+		if(addTimer) {
+			TimerManager::getInstance()->addListener(this);
+		}
+
+	} else if(renewal) {
+		renewal = 0;
+		TimerManager::getInstance()->removeListener(this);
+	}
+}
+
+void MappingManager::on(TimerManagerListener::Minute, uint64_t tick) noexcept {
+	if(tick >= renewal && !busy.test_and_set()) {
+		try { start(); } catch(const ThreadException&) { busy.clear(); }
+	}
+}
+
+} // namespace dcpp

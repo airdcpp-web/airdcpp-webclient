@@ -20,15 +20,15 @@
 
 #include "FinishedManager.h"
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/Download.h>
-#include <airdcpp/Upload.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/UploadManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/transfer/download/Download.h>
+#include <airdcpp/transfer/upload/Upload.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/transfer/upload/UploadManager.h>
 
-#include <airdcpp/LogManager.h>
-#include <airdcpp/ResourceManager.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/core/localization/ResourceManager.h>
 
 namespace dcpp {
 

@@ -21,13 +21,13 @@
 
 #include <bitset>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Priority.h>
-#include <airdcpp/Pointer.h>
-#include <airdcpp/StringMatch.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/core/types/Priority.h>
+#include <airdcpp/core/classes/Pointer.h>
+#include <airdcpp/util/text/StringMatch.h>
+#include <airdcpp/util/Util.h>
 
 //default minimum search interval for the same item to be searched again
 #define AS_DEFAULT_SEARCH_INTERVAL 180

@@ -22,8 +22,8 @@
 
 #include "DirectSearch.h"
 
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/SearchQuery.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/search/SearchQuery.h>
 
 
 namespace dcpp {

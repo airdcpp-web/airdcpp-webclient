@@ -24,10 +24,10 @@
 #ifndef DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 #define DCPLUSPLUS_DCPP_A_D_L_SEARCH_H
 
-#include <airdcpp/DirectoryListingDirectory.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/StringMatch.h>
+#include <airdcpp/filelist/DirectoryListingDirectory.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/util/text/StringMatch.h>
 
 namespace dcpp {
 

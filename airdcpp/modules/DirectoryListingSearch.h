@@ -20,10 +20,10 @@
 #define DCPLUSPLUS_DCPP_DIRECTORY_LISTING_SEARCH_H
 
 #include <airdcpp/forward.h>
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/DirectoryListingDirectory.h>
-#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/filelist/DirectoryListingDirectory.h>
+#include <airdcpp/core/timer/TimerManagerListener.h>
 
 namespace dcpp {
 

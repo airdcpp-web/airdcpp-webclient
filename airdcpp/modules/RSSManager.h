@@ -25,20 +25,20 @@
 
 #include <airdcpp/forward.h>
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Util.h>
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/Pointer.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/util/Util.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/core/classes/Pointer.h>
 
-#include <airdcpp/DispatcherQueue.h>
-#include <airdcpp/HttpDownload.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/StringMatch.h>
-#include <airdcpp/ValueGenerator.h>
+#include <airdcpp/core/queue/DispatcherQueue.h>
+#include <airdcpp/connection/http/HttpDownload.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/util/text/StringMatch.h>
+#include <airdcpp/util/ValueGenerator.h>
 
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 namespace dcpp {
 

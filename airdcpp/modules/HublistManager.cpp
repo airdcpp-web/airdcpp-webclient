@@ -21,13 +21,13 @@
 #include "HublistManager.h"
 #include "HublistEntry.h"
 
-#include <airdcpp/AppUtil.h>
-#include <airdcpp/BZUtils.h>
-#include <airdcpp/FilteredFile.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/Streams.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/SimpleXML.h>
+#include <airdcpp/util/AppUtil.h>
+#include <airdcpp/core/io/compress/BZUtils.h>
+#include <airdcpp/core/io/stream/FilteredFile.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/core/io/stream/Streams.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
 
 
 namespace dcpp {

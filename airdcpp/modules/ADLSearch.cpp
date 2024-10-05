@@ -24,12 +24,12 @@
 #include "stdinc.h"
 #include "ADLSearch.h"
 
-#include <airdcpp/File.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/SimpleXML.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
 
 #define CONFIG_NAME "ADLSearch.xml"
 #define CONFIG_DIR AppUtil::PATH_USER_CONFIG

@@ -24,16 +24,16 @@
 #include "AutoSearchManagerListener.h"
 #include "AutoSearchQueue.h"
 
-#include <airdcpp/DirectoryListingManagerListener.h>
-#include <airdcpp/SearchManagerListener.h>
-#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/filelist/DirectoryListingManagerListener.h>
+#include <airdcpp/search/SearchManagerListener.h>
+#include <airdcpp/queue/QueueManagerListener.h>
 
-#include <airdcpp/DelayedEvents.h>
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/core/queue/DelayedEvents.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/core/timer/TimerManagerListener.h>
 
 
 namespace dcpp {

@@ -344,409 +344,409 @@
     <ClCompile Include="airdcpp\modules\ADLSearch.cpp">
       <Filter>Source Files\modules</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ShareDirectory.cpp">
+    <ClCompile Include="airdcpp\share\ShareDirectory.cpp">
       <Filter>Source Files\share</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ShareManager.cpp">
+    <ClCompile Include="airdcpp\share\ShareManager.cpp">
       <Filter>Source Files\share</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SharePathValidator.cpp">
+    <ClCompile Include="airdcpp\share\SharePathValidator.cpp">
       <Filter>Source Files\share</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ShareTasks.cpp">
+    <ClCompile Include="airdcpp\share\ShareTasks.cpp">
       <Filter>Source Files\share</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ShareTree.cpp">
+    <ClCompile Include="airdcpp\share\ShareTree.cpp">
       <Filter>Source Files\share</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\BundleQueue.cpp">
+    <ClCompile Include="airdcpp\queue\BundleQueue.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Bundle.cpp">
+    <ClCompile Include="airdcpp\queue\Bundle.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\QueueItem.cpp">
+    <ClCompile Include="airdcpp\queue\QueueItem.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\QueueItemBase.cpp">
+    <ClCompile Include="airdcpp\queue\QueueItemBase.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\QueueManager.cpp">
+    <ClCompile Include="airdcpp\queue\QueueManager.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\AdcHub.cpp">
+    <ClCompile Include="airdcpp\hub\AdcHub.cpp">
       <Filter>Source Files\hub</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Client.cpp">
+    <ClCompile Include="airdcpp\hub\Client.cpp">
       <Filter>Source Files\hub</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ClientManager.cpp">
+    <ClCompile Include="airdcpp\hub\ClientManager.cpp">
       <Filter>Source Files\hub</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\NmdcHub.cpp">
+    <ClCompile Include="airdcpp\hub\NmdcHub.cpp">
       <Filter>Source Files\hub</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Hasher.cpp">
+    <ClCompile Include="airdcpp\hash\Hasher.cpp">
       <Filter>Source Files\hash</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HashManager.cpp">
+    <ClCompile Include="airdcpp\hash\HashManager.cpp">
       <Filter>Source Files\hash</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HashStore.cpp">
+    <ClCompile Include="airdcpp\hash\HashStore.cpp">
       <Filter>Source Files\hash</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DirectoryListing.cpp">
+    <ClCompile Include="airdcpp\filelist\DirectoryListing.cpp">
       <Filter>Source Files\filelist</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DirectoryListingManager.cpp">
+    <ClCompile Include="airdcpp\filelist\DirectoryListingManager.cpp">
       <Filter>Source Files\filelist</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SearchInstance.cpp">
+    <ClCompile Include="airdcpp\search\SearchInstance.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SearchManager.cpp">
+    <ClCompile Include="airdcpp\search\SearchManager.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SearchQuery.cpp">
+    <ClCompile Include="airdcpp\search\SearchQuery.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SearchQueue.cpp">
+    <ClCompile Include="airdcpp\search\SearchQueue.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SearchResult.cpp">
+    <ClCompile Include="airdcpp\search\SearchResult.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\GroupedSearchResult.cpp">
+    <ClCompile Include="airdcpp\search\GroupedSearchResult.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\FileQueue.cpp">
+    <ClCompile Include="airdcpp\queue\FileQueue.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UserQueue.cpp">
+    <ClCompile Include="airdcpp\queue\UserQueue.cpp">
       <Filter>Source Files\queue</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Transfer.cpp">
+    <ClCompile Include="airdcpp\transfer\Transfer.cpp">
       <Filter>Source Files\transfer</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\TransferInfoManager.cpp">
+    <ClCompile Include="airdcpp\transfer\TransferInfoManager.cpp">
       <Filter>Source Files\transfer</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SearchTypes.cpp">
+    <ClCompile Include="airdcpp\search\SearchTypes.cpp">
       <Filter>Source Files\search</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\AppUtil.cpp">
+    <ClCompile Include="airdcpp\util\AppUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\AutoLimitUtil.cpp">
+    <ClCompile Include="airdcpp\util\AutoLimitUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DupeUtil.cpp">
+    <ClCompile Include="airdcpp\util\DupeUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\LinkUtil.cpp">
+    <ClCompile Include="airdcpp\util\LinkUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\PathUtil.cpp">
+    <ClCompile Include="airdcpp\util\PathUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\NetworkUtil.cpp">
+    <ClCompile Include="airdcpp\util\NetworkUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SystemUtil.cpp">
+    <ClCompile Include="airdcpp\util\SystemUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ValueGenerator.cpp">
+    <ClCompile Include="airdcpp\util\ValueGenerator.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Util.cpp">
+    <ClCompile Include="airdcpp\util\Util.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\RegexUtil.cpp">
+    <ClCompile Include="airdcpp\util\RegexUtil.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ReservedSlotManager.cpp">
+    <ClCompile Include="airdcpp\favorites\ReservedSlotManager.cpp">
       <Filter>Source Files\favorites</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\FavoriteUserManager.cpp">
+    <ClCompile Include="airdcpp\favorites\FavoriteUserManager.cpp">
       <Filter>Source Files\favorites</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\FavoriteManager.cpp">
+    <ClCompile Include="airdcpp\favorites\FavoriteManager.cpp">
       <Filter>Source Files\favorites</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HubEntry.cpp">
+    <ClCompile Include="airdcpp\favorites\HubEntry.cpp">
       <Filter>Source Files\favorites</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ConnectivityManager.cpp">
+    <ClCompile Include="airdcpp\connectivity\ConnectivityManager.cpp">
       <Filter>Source Files\connectivity</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\MappingManager.cpp">
+    <ClCompile Include="airdcpp\connectivity\MappingManager.cpp">
       <Filter>Source Files\connectivity</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Mapper.cpp">
+    <ClCompile Include="airdcpp\connectivity\Mapper.cpp">
       <Filter>Source Files\connectivity</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ConnectionManager.cpp">
+    <ClCompile Include="airdcpp\connection\ConnectionManager.cpp">
       <Filter>Source Files\connection</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UserConnection.cpp">
+    <ClCompile Include="airdcpp\connection\UserConnection.cpp">
       <Filter>Source Files\connection</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HttpDownload.cpp">
+    <ClCompile Include="airdcpp\connection\http\HttpDownload.cpp">
       <Filter>Source Files\connection\http</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HttpConnection.cpp">
+    <ClCompile Include="airdcpp\connection\http\HttpConnection.cpp">
       <Filter>Source Files\connection\http</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Socket.cpp">
+    <ClCompile Include="airdcpp\connection\socket\Socket.cpp">
       <Filter>Source Files\connection\socket</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SSLSocket.cpp">
+    <ClCompile Include="airdcpp\connection\socket\SSLSocket.cpp">
       <Filter>Source Files\connection\socket</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\BufferedSocket.cpp">
+    <ClCompile Include="airdcpp\connection\socket\BufferedSocket.cpp">
       <Filter>Source Files\connection\socket</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SettingsManager.cpp">
+    <ClCompile Include="airdcpp\settings\SettingsManager.cpp">
       <Filter>Source Files\settings</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SettingHolder.cpp">
+    <ClCompile Include="airdcpp\settings\SettingHolder.cpp">
       <Filter>Source Files\settings</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SettingItem.cpp">
+    <ClCompile Include="airdcpp\settings\SettingItem.cpp">
       <Filter>Source Files\settings</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HubSettings.cpp">
+    <ClCompile Include="airdcpp\settings\HubSettings.cpp">
       <Filter>Source Files\settings</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\File.cpp">
+    <ClCompile Include="airdcpp\core\io\File.cpp">
       <Filter>Source Files\core\io</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\FileReader.cpp">
+    <ClCompile Include="airdcpp\core\io\FileReader.cpp">
       <Filter>Source Files\core\io</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SFVReader.cpp">
+    <ClCompile Include="airdcpp\core\io\SFVReader.cpp">
       <Filter>Source Files\core\io</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\BZUtils.cpp">
+    <ClCompile Include="airdcpp\core\io\compress\BZUtils.cpp">
       <Filter>Source Files\core\io\compress</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ZipFile.cpp">
+    <ClCompile Include="airdcpp\core\io\compress\ZipFile.cpp">
       <Filter>Source Files\core\io\compress</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\LevelDB.cpp">
+    <ClCompile Include="airdcpp\core\io\db\LevelDB.cpp">
       <Filter>Source Files\core\io\db</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SharedFileStream.cpp">
+    <ClCompile Include="airdcpp\core\io\stream\SharedFileStream.cpp">
       <Filter>Source Files\core\io\stream</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SimpleXMLReader.cpp">
+    <ClCompile Include="airdcpp\core\io\xml\SimpleXMLReader.cpp">
       <Filter>Source Files\core\io\xml</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SimpleXML.cpp">
+    <ClCompile Include="airdcpp\core\io\xml\SimpleXML.cpp">
       <Filter>Source Files\core\io\xml</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\MessageCache.cpp">
+    <ClCompile Include="airdcpp\message\MessageCache.cpp">
       <Filter>Source Files\message</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\MessageHighlight.cpp">
+    <ClCompile Include="airdcpp\message\MessageHighlight.cpp">
       <Filter>Source Files\message</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Message.cpp">
+    <ClCompile Include="airdcpp\message\Message.cpp">
       <Filter>Source Files\message</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ThrottleManager.cpp">
+    <ClCompile Include="airdcpp\connection\ThrottleManager.cpp">
       <Filter>Source Files\connection</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\User.cpp">
+    <ClCompile Include="airdcpp\user\User.cpp">
       <Filter>Source Files\user</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Text.cpp">
+    <ClCompile Include="airdcpp\util\text\Text.cpp">
       <Filter>Source Files\util\text</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\StringSearch.cpp">
+    <ClCompile Include="airdcpp\util\text\StringSearch.cpp">
       <Filter>Source Files\util\text</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\StringMatch.cpp">
+    <ClCompile Include="airdcpp\util\text\StringMatch.cpp">
       <Filter>Source Files\util\text</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DualString.cpp">
+    <ClCompile Include="airdcpp\util\text\DualString.cpp">
       <Filter>Source Files\util\text</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\CID.cpp">
+    <ClCompile Include="airdcpp\user\CID.cpp">
       <Filter>Source Files\user</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ViewFileManager.cpp">
+    <ClCompile Include="airdcpp\viewed_files\ViewFileManager.cpp">
       <Filter>Source Files\viewed_files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ViewFile.cpp">
+    <ClCompile Include="airdcpp\viewed_files\ViewFile.cpp">
       <Filter>Source Files\viewed_files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\PrivateChatManager.cpp">
+    <ClCompile Include="airdcpp\private_chat\PrivateChatManager.cpp">
       <Filter>Source Files\private_chat</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\PrivateChat.cpp">
+    <ClCompile Include="airdcpp\private_chat\PrivateChat.cpp">
       <Filter>Source Files\private_chat</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HashBloom.cpp">
+    <ClCompile Include="airdcpp\hash\value\HashBloom.cpp">
       <Filter>Source Files\hash\value</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\TigerHash.cpp">
+    <ClCompile Include="airdcpp\hash\value\TigerHash.cpp">
       <Filter>Source Files\hash\value</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Encoder.cpp">
+    <ClCompile Include="airdcpp\hash\value\Encoder.cpp">
       <Filter>Source Files\hash\value</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\IgnoreManager.cpp">
+    <ClCompile Include="airdcpp\user\ignore\IgnoreManager.cpp">
       <Filter>Source Files\user\ignore</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UserCommandManager.cpp">
+    <ClCompile Include="airdcpp\hub\user_command\UserCommandManager.cpp">
       <Filter>Source Files\hub\user_command</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UserCommand.cpp">
+    <ClCompile Include="airdcpp\hub\user_command\UserCommand.cpp">
       <Filter>Source Files\hub\user_command</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\CryptoManager.cpp">
+    <ClCompile Include="airdcpp\core\crypto\CryptoManager.cpp">
       <Filter>Source Files\core\crypto</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\SSL.cpp">
+    <ClCompile Include="airdcpp\core\crypto\SSL.cpp">
       <Filter>Source Files\core\crypto</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ResourceManager.cpp">
+    <ClCompile Include="airdcpp\core\localization\ResourceManager.cpp">
       <Filter>Source Files\core\localization</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\StringDefs.cpp">
+    <ClCompile Include="airdcpp\core\localization\StringDefs.cpp">
       <Filter>Source Files\core\localization</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Localization.cpp">
+    <ClCompile Include="airdcpp\core\localization\Localization.cpp">
       <Filter>Source Files\core\localization</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UpdateManager.cpp">
+    <ClCompile Include="airdcpp\core\update\UpdateManager.cpp">
       <Filter>Source Files\core\update</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\RecentManager.cpp">
+    <ClCompile Include="airdcpp\recents\RecentManager.cpp">
       <Filter>Source Files\recents</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UDPServer.cpp">
+    <ClCompile Include="airdcpp\connection\UDPServer.cpp">
       <Filter>Source Files\connection</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\LogManager.cpp">
+    <ClCompile Include="airdcpp\events\LogManager.cpp">
       <Filter>Source Files\events</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\GeoManager.cpp">
+    <ClCompile Include="airdcpp\core\geo\GeoManager.cpp">
       <Filter>Source Files\core\geo</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\GeoIP.cpp">
+    <ClCompile Include="airdcpp\core\geo\GeoIP.cpp">
       <Filter>Source Files\core\geo</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\TimerManager.cpp">
+    <ClCompile Include="airdcpp\core\timer\TimerManager.cpp">
       <Filter>Source Files\core\timer</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Thread.cpp">
+    <ClCompile Include="airdcpp\core\thread\Thread.cpp">
       <Filter>Source Files\core\thread</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\CriticalSection.cpp">
+    <ClCompile Include="airdcpp\core\thread\CriticalSection.cpp">
       <Filter>Source Files\core\thread</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ErrorCollector.cpp">
+    <ClCompile Include="airdcpp\core\classes\ErrorCollector.cpp">
       <Filter>Source Files\util\classes</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\FloodCounter.cpp">
+    <ClCompile Include="airdcpp\core\classes\FloodCounter.cpp">
       <Filter>Source Files\util\classes</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Magnet.cpp">
+    <ClCompile Include="airdcpp\core\classes\Magnet.cpp">
       <Filter>Source Files\util\classes</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\AdcCommand.cpp">
+    <ClCompile Include="airdcpp\protocol\AdcCommand.cpp">
       <Filter>Source Files\protocol</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ActivityManager.cpp">
+    <ClCompile Include="airdcpp\hub\activity\ActivityManager.cpp">
       <Filter>Source Files\hub\activity</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ZUtils.cpp">
+    <ClCompile Include="airdcpp\core\io\compress\ZUtils.cpp">
       <Filter>Source Files\core\io\compress</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadBundleInfoSender.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\upload_bundles\UploadBundleInfoSender.cpp">
       <Filter>Source Files\transfer\upload\upload_bundles</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadBundle.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\upload_bundles\UploadBundle.cpp">
       <Filter>Source Files\transfer\upload\upload_bundles</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadBundleInfoReceiver.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\upload_bundles\UploadBundleInfoReceiver.cpp">
       <Filter>Source Files\transfer\upload\upload_bundles</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\TrackableDownloadItem.cpp">
+    <ClCompile Include="airdcpp\transfer\download\TrackableDownloadItem.cpp">
       <Filter>Source Files\transfer\download</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Download.cpp">
+    <ClCompile Include="airdcpp\transfer\download\Download.cpp">
       <Filter>Source Files\transfer\download</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DownloadManager.cpp">
+    <ClCompile Include="airdcpp\transfer\download\DownloadManager.cpp">
       <Filter>Source Files\transfer\download</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadQueueManager.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\UploadQueueManager.cpp">
       <Filter>Source Files\transfer\upload</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Upload.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\Upload.cpp">
       <Filter>Source Files\transfer\upload</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadFileParser.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\UploadFileParser.cpp">
       <Filter>Source Files\transfer\upload</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UploadManager.cpp">
+    <ClCompile Include="airdcpp\transfer\upload\UploadManager.cpp">
       <Filter>Source Files\transfer\upload</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ShareProfileManager.cpp">
+    <ClCompile Include="airdcpp\share\profiles\ShareProfileManager.cpp">
       <Filter>Source Files\share\profiles</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ShareProfile.cpp">
+    <ClCompile Include="airdcpp\share\profiles\ShareProfile.cpp">
       <Filter>Source Files\share\profiles</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\TempShareManager.cpp">
+    <ClCompile Include="airdcpp\share\temp_share\TempShareManager.cpp">
       <Filter>Source Files\share\temp_share</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\PartialSharingManager.cpp">
+    <ClCompile Include="airdcpp\queue\partial_sharing\PartialSharingManager.cpp">
       <Filter>Source Files\queue\partial_sharing</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\PartialBundleSharingManager.cpp">
+    <ClCompile Include="airdcpp\queue\partial_sharing\PartialBundleSharingManager.cpp">
       <Filter>Source Files\queue\partial_sharing</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\PartialFileSharingManager.cpp">
+    <ClCompile Include="airdcpp\queue\partial_sharing\PartialFileSharingManager.cpp">
       <Filter>Source Files\queue\partial_sharing</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Mapper_WinUPnP.cpp">
+    <ClCompile Include="airdcpp\connectivity\mappers\Mapper_WinUPnP.cpp">
       <Filter>Source Files\connectivity\mappers</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Mapper_MiniUPnPc.cpp">
+    <ClCompile Include="airdcpp\connectivity\mappers\Mapper_MiniUPnPc.cpp">
       <Filter>Source Files\connectivity\mappers</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\Mapper_NATPMP.cpp">
+    <ClCompile Include="airdcpp\connectivity\mappers\Mapper_NATPMP.cpp">
       <Filter>Source Files\connectivity\mappers</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\stdinc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\version.cpp">
+    <ClCompile Include="airdcpp\core\version.cpp">
       <Filter>Source Files\core</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\HBRIValidation.cpp">
+    <ClCompile Include="airdcpp\hub\HBRIValidation.cpp">
       <Filter>Source Files\hub</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\updater\Updater.cpp">
+    <ClCompile Include="airdcpp\core\update\updater\Updater.cpp">
       <Filter>Source Files\core\update\updater</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\updater\UpdaterCreator.cpp">
+    <ClCompile Include="airdcpp\core\update\updater\UpdaterCreator.cpp">
       <Filter>Source Files\core\update\updater</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\UpdateDownloader.cpp">
+    <ClCompile Include="airdcpp\core\update\UpdateDownloader.cpp">
       <Filter>Source Files\core\update</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\CryptoUtil.cpp">
+    <ClCompile Include="airdcpp\util\CryptoUtil.cpp">
       <Filter>Source Files\core\crypto</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\DirectoryListingDirectory.cpp">
+    <ClCompile Include="airdcpp\filelist\DirectoryListingDirectory.cpp">
       <Filter>Source Files\filelist</Filter>
     </ClCompile>
-    <ClCompile Include="airdcpp\ListLoader.cpp">
+    <ClCompile Include="airdcpp\filelist\ListLoader.cpp">
       <Filter>Source Files\filelist</Filter>
     </ClCompile>
     <ClCompile Include="airdcpp\modules\DirectoryListingSearch.cpp">
@@ -805,721 +805,712 @@
     <ClInclude Include="airdcpp\modules\ADLSearch.h">
       <Filter>Header Files\modules</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareDirectory.h">
+    <ClInclude Include="airdcpp\share\ShareDirectory.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareDirectoryInfo.h">
+    <ClInclude Include="airdcpp\share\ShareDirectoryInfo.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareManager.h">
+    <ClInclude Include="airdcpp\share\ShareManager.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareManagerListener.h">
+    <ClInclude Include="airdcpp\share\ShareManagerListener.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SharePathValidator.h">
+    <ClInclude Include="airdcpp\share\SharePathValidator.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareRefreshInfo.h">
+    <ClInclude Include="airdcpp\share\ShareRefreshInfo.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareRefreshTask.h">
+    <ClInclude Include="airdcpp\share\ShareRefreshTask.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareStats.h">
+    <ClInclude Include="airdcpp\share\ShareStats.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareTasks.h">
+    <ClInclude Include="airdcpp\share\ShareTasks.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareTree.h">
+    <ClInclude Include="airdcpp\share\ShareTree.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Bundle.h">
+    <ClInclude Include="airdcpp\queue\Bundle.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\BundleQueue.h">
+    <ClInclude Include="airdcpp\queue\BundleQueue.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\QueueManagerListener.h">
+    <ClInclude Include="airdcpp\queue\QueueManagerListener.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\QueueManager.h">
+    <ClInclude Include="airdcpp\queue\QueueManager.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\QueueItemBase.h">
+    <ClInclude Include="airdcpp\queue\QueueItemBase.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\QueueItem.h">
+    <ClInclude Include="airdcpp\queue\QueueItem.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\QueueAddInfo.h">
+    <ClInclude Include="airdcpp\queue\QueueAddInfo.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AdcHub.h">
+    <ClInclude Include="airdcpp\hub\AdcHub.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ClientListener.h">
+    <ClInclude Include="airdcpp\hub\ClientListener.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Client.h">
+    <ClInclude Include="airdcpp\hub\Client.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ClientManager.h">
+    <ClInclude Include="airdcpp\hub\ClientManager.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ClientManagerListener.h">
+    <ClInclude Include="airdcpp\hub\ClientManagerListener.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\NmdcHub.h">
+    <ClInclude Include="airdcpp\hub\NmdcHub.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryListingManagerListener.h">
+    <ClInclude Include="airdcpp\filelist\DirectoryListingManagerListener.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryListing.h">
+    <ClInclude Include="airdcpp\filelist\DirectoryListing.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryListingListener.h">
+    <ClInclude Include="airdcpp\filelist\DirectoryListingListener.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryListingManager.h">
+    <ClInclude Include="airdcpp\filelist\DirectoryListingManager.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashedFile.h">
+    <ClInclude Include="airdcpp\hash\HashedFile.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Hasher.h">
+    <ClInclude Include="airdcpp\hash\Hasher.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashManager.h">
+    <ClInclude Include="airdcpp\hash\HashManager.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashManagerListener.h">
+    <ClInclude Include="airdcpp\hash\HashManagerListener.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashStore.h">
+    <ClInclude Include="airdcpp\hash\HashStore.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchResult.h">
+    <ClInclude Include="airdcpp\search\SearchResult.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Search.h">
+    <ClInclude Include="airdcpp\search\Search.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchInstance.h">
+    <ClInclude Include="airdcpp\search\SearchInstance.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchInstanceListener.h">
+    <ClInclude Include="airdcpp\search\SearchInstanceListener.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchManager.h">
+    <ClInclude Include="airdcpp\search\SearchManager.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchManagerListener.h">
+    <ClInclude Include="airdcpp\search\SearchManagerListener.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchQuery.h">
+    <ClInclude Include="airdcpp\search\SearchQuery.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchQueue.h">
+    <ClInclude Include="airdcpp\search\SearchQueue.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\GroupedSearchResult.h">
+    <ClInclude Include="airdcpp\search\GroupedSearchResult.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FileQueue.h">
+    <ClInclude Include="airdcpp\queue\FileQueue.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UserQueue.h">
+    <ClInclude Include="airdcpp\queue\UserQueue.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TransferInfoManager.h">
+    <ClInclude Include="airdcpp\transfer\TransferInfoManager.h">
       <Filter>Header Files\transfer</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TransferInfo.h">
+    <ClInclude Include="airdcpp\transfer\TransferInfo.h">
       <Filter>Header Files\transfer</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Transfer.h">
+    <ClInclude Include="airdcpp\transfer\Transfer.h">
       <Filter>Header Files\transfer</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RelevanceSearch.h">
+    <ClInclude Include="airdcpp\search\RelevanceSearch.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HasherManager.h">
+    <ClInclude Include="airdcpp\hash\HasherManager.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HasherStats.h">
+    <ClInclude Include="airdcpp\hash\HasherStats.h">
       <Filter>Header Files\hash</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SearchTypes.h">
+    <ClInclude Include="airdcpp\search\SearchTypes.h">
       <Filter>Header Files\search</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AutoLimitUtil.h">
+    <ClInclude Include="airdcpp\util\AutoLimitUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AppUtil.h">
+    <ClInclude Include="airdcpp\util\AppUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ValueGenerator.h">
+    <ClInclude Include="airdcpp\util\ValueGenerator.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SystemUtil.h">
+    <ClInclude Include="airdcpp\util\SystemUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\NetworkUtil.h">
+    <ClInclude Include="airdcpp\util\NetworkUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\LinkUtil.h">
+    <ClInclude Include="airdcpp\util\LinkUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DupeUtil.h">
+    <ClInclude Include="airdcpp\util\DupeUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Util.h">
+    <ClInclude Include="airdcpp\util\Util.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PathUtil.h">
+    <ClInclude Include="airdcpp\util\PathUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RegexUtil.h">
+    <ClInclude Include="airdcpp\util\RegexUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ReservedSlotManager.h">
+    <ClInclude Include="airdcpp\favorites\ReservedSlotManager.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavHubGroup.h">
+    <ClInclude Include="airdcpp\favorites\FavHubGroup.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteManager.h">
+    <ClInclude Include="airdcpp\favorites\FavoriteManager.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteManagerListener.h">
+    <ClInclude Include="airdcpp\favorites\FavoriteManagerListener.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteUser.h">
+    <ClInclude Include="airdcpp\favorites\FavoriteUser.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteUserManager.h">
+    <ClInclude Include="airdcpp\favorites\FavoriteUserManager.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FavoriteUserManagerListener.h">
+    <ClInclude Include="airdcpp\favorites\FavoriteUserManagerListener.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HubEntry.h">
+    <ClInclude Include="airdcpp\favorites\HubEntry.h">
       <Filter>Header Files\favorites</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\QueueDownloadInfo.h">
+    <ClInclude Include="airdcpp\queue\QueueDownloadInfo.h">
       <Filter>Header Files\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ConnectivityManager.h">
+    <ClInclude Include="airdcpp\connectivity\ConnectivityManager.h">
       <Filter>Header Files\connectivity</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Mapper.h">
+    <ClInclude Include="airdcpp\connectivity\Mapper.h">
       <Filter>Header Files\connectivity</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MappingManager.h">
+    <ClInclude Include="airdcpp\connectivity\MappingManager.h">
       <Filter>Header Files\connectivity</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ConnectionType.h">
+    <ClInclude Include="airdcpp\connection\ConnectionType.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ConnectionManager.h">
+    <ClInclude Include="airdcpp\connection\ConnectionManager.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ConnectionManagerListener.h">
+    <ClInclude Include="airdcpp\connection\ConnectionManagerListener.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UserConnectionListener.h">
+    <ClInclude Include="airdcpp\connection\UserConnectionListener.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UserConnection.h">
+    <ClInclude Include="airdcpp\connection\UserConnection.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HttpConnection.h">
+    <ClInclude Include="airdcpp\connection\http\HttpConnection.h">
       <Filter>Header Files\connection\http</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HttpConnectionListener.h">
+    <ClInclude Include="airdcpp\connection\http\HttpConnectionListener.h">
       <Filter>Header Files\connection\http</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HttpDownload.h">
+    <ClInclude Include="airdcpp\connection\http\HttpDownload.h">
       <Filter>Header Files\connection\http</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\BufferedSocketListener.h">
+    <ClInclude Include="airdcpp\connection\socket\BufferedSocketListener.h">
       <Filter>Header Files\connection\socket</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\BufferedSocket.h">
+    <ClInclude Include="airdcpp\connection\socket\BufferedSocket.h">
       <Filter>Header Files\connection\socket</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Socket.h">
+    <ClInclude Include="airdcpp\connection\socket\Socket.h">
       <Filter>Header Files\connection\socket</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SSLSocket.h">
+    <ClInclude Include="airdcpp\connection\socket\SSLSocket.h">
       <Filter>Header Files\connection\socket</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SettingHolder.h">
+    <ClInclude Include="airdcpp\settings\SettingHolder.h">
       <Filter>Header Files\settings</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SettingItem.h">
+    <ClInclude Include="airdcpp\settings\SettingItem.h">
       <Filter>Header Files\settings</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SettingsManager.h">
+    <ClInclude Include="airdcpp\settings\SettingsManager.h">
       <Filter>Header Files\settings</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SettingsManagerListener.h">
+    <ClInclude Include="airdcpp\settings\SettingsManagerListener.h">
       <Filter>Header Files\settings</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HubSettings.h">
+    <ClInclude Include="airdcpp\settings\HubSettings.h">
       <Filter>Header Files\settings</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\File.h">
+    <ClInclude Include="airdcpp\core\io\File.h">
       <Filter>Header Files\core\io</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FileReader.h">
+    <ClInclude Include="airdcpp\core\io\FileReader.h">
       <Filter>Header Files\core\io</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SFVReader.h">
+    <ClInclude Include="airdcpp\core\io\SFVReader.h">
       <Filter>Header Files\core\io</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\LevelDB.h">
+    <ClInclude Include="airdcpp\core\io\db\LevelDB.h">
       <Filter>Header Files\core\io\db</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DbHandler.h">
+    <ClInclude Include="airdcpp\core\io\db\DbHandler.h">
       <Filter>Header Files\core\io\db</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Streams.h">
+    <ClInclude Include="airdcpp\core\io\stream\Streams.h">
       <Filter>Header Files\core\io\stream</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\StreamBase.h">
+    <ClInclude Include="airdcpp\core\io\stream\StreamBase.h">
       <Filter>Header Files\core\io\stream</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SharedFileStream.h">
+    <ClInclude Include="airdcpp\core\io\stream\SharedFileStream.h">
       <Filter>Header Files\core\io\stream</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FilteredFile.h">
+    <ClInclude Include="airdcpp\core\io\stream\FilteredFile.h">
       <Filter>Header Files\core\io\stream</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SimpleXMLReader.h">
+    <ClInclude Include="airdcpp\core\io\xml\SimpleXMLReader.h">
       <Filter>Header Files\core\io\xml</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SimpleXML.h">
+    <ClInclude Include="airdcpp\core\io\xml\SimpleXML.h">
       <Filter>Header Files\core\io\xml</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ZipFile.h">
+    <ClInclude Include="airdcpp\core\io\compress\ZipFile.h">
       <Filter>Header Files\core\io\compress</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\BZUtils.h">
+    <ClInclude Include="airdcpp\core\io\compress\BZUtils.h">
       <Filter>Header Files\core\io\compress</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MessageCache.h">
+    <ClInclude Include="airdcpp\message\MessageCache.h">
       <Filter>Header Files\message</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MessageHighlight.h">
+    <ClInclude Include="airdcpp\message\MessageHighlight.h">
       <Filter>Header Files\message</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Message.h">
+    <ClInclude Include="airdcpp\message\Message.h">
       <Filter>Header Files\message</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ThrottleManager.h">
+    <ClInclude Include="airdcpp\connection\ThrottleManager.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HintedUser.h">
+    <ClInclude Include="airdcpp\user\HintedUser.h">
       <Filter>Header Files\user</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\OnlineUser.h">
+    <ClInclude Include="airdcpp\user\OnlineUser.h">
       <Filter>Header Files\user</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\OfflineUser.h">
+    <ClInclude Include="airdcpp\user\OfflineUser.h">
       <Filter>Header Files\user</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\User.h">
+    <ClInclude Include="airdcpp\user\User.h">
       <Filter>Header Files\user</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Text.h">
+    <ClInclude Include="airdcpp\util\text\Text.h">
       <Filter>Header Files\util\text</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\StringTokenizer.h">
+    <ClInclude Include="airdcpp\util\text\StringTokenizer.h">
       <Filter>Header Files\util\text</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\StringSearch.h">
+    <ClInclude Include="airdcpp\util\text\StringSearch.h">
       <Filter>Header Files\util\text</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\StringMatch.h">
+    <ClInclude Include="airdcpp\util\text\StringMatch.h">
       <Filter>Header Files\util\text</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DualString.h">
+    <ClInclude Include="airdcpp\util\text\DualString.h">
       <Filter>Header Files\util\text</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\CID.h">
+    <ClInclude Include="airdcpp\user\CID.h">
       <Filter>Header Files\user</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UserInfoBase.h">
+    <ClInclude Include="airdcpp\user\UserInfoBase.h">
       <Filter>Header Files\user</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ViewFileManagerListener.h">
+    <ClInclude Include="airdcpp\viewed_files\ViewFileManagerListener.h">
       <Filter>Header Files\viewed_files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ViewFile.h">
+    <ClInclude Include="airdcpp\viewed_files\ViewFile.h">
       <Filter>Header Files\viewed_files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ViewFileManager.h">
+    <ClInclude Include="airdcpp\viewed_files\ViewFileManager.h">
       <Filter>Header Files\viewed_files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PrivateChat.h">
+    <ClInclude Include="airdcpp\private_chat\PrivateChat.h">
       <Filter>Header Files\private_chat</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PrivateChatListener.h">
+    <ClInclude Include="airdcpp\private_chat\PrivateChatListener.h">
       <Filter>Header Files\private_chat</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PrivateChatManager.h">
+    <ClInclude Include="airdcpp\private_chat\PrivateChatManager.h">
       <Filter>Header Files\private_chat</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PrivateChatManagerListener.h">
+    <ClInclude Include="airdcpp\private_chat\PrivateChatManagerListener.h">
       <Filter>Header Files\private_chat</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Encoder.h">
+    <ClInclude Include="airdcpp\hash\value\Encoder.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashValue.h">
+    <ClInclude Include="airdcpp\hash\value\HashValue.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashCalc.h">
+    <ClInclude Include="airdcpp\hash\value\HashCalc.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HashBloom.h">
+    <ClInclude Include="airdcpp\hash\value\HashBloom.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MerkleTree.h">
+    <ClInclude Include="airdcpp\hash\value\MerkleTree.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MerkleCheckOutputStream.h">
+    <ClInclude Include="airdcpp\hash\value\MerkleCheckOutputStream.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\MerkleTreeOutputStream.h">
+    <ClInclude Include="airdcpp\hash\value\MerkleTreeOutputStream.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TigerHash.h">
+    <ClInclude Include="airdcpp\hash\value\TigerHash.h">
       <Filter>Header Files\hash\value</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\IgnoreManagerListener.h">
+    <ClInclude Include="airdcpp\user\ignore\IgnoreManagerListener.h">
       <Filter>Header Files\user\ignore</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\IgnoreManager.h">
+    <ClInclude Include="airdcpp\user\ignore\IgnoreManager.h">
       <Filter>Header Files\user\ignore</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UserCommandManager.h">
+    <ClInclude Include="airdcpp\hub\user_command\UserCommandManager.h">
       <Filter>Header Files\hub\user_command</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UserCommand.h">
+    <ClInclude Include="airdcpp\hub\user_command\UserCommand.h">
       <Filter>Header Files\hub\user_command</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AddressInfo.h">
+    <ClInclude Include="airdcpp\connection\socket\AddressInfo.h">
       <Filter>Header Files\connection\socket</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\CryptoManager.h">
+    <ClInclude Include="airdcpp\core\crypto\CryptoManager.h">
       <Filter>Header Files\core\crypto</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SSL.h">
+    <ClInclude Include="airdcpp\core\crypto\SSL.h">
       <Filter>Header Files\core\crypto</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\pubkey.h">
+    <ClInclude Include="airdcpp\core\crypto\pubkey.h">
       <Filter>Header Files\core\crypto</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Localization.h">
+    <ClInclude Include="airdcpp\core\localization\Localization.h">
       <Filter>Header Files\core\localization</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ResourceManager.h">
+    <ClInclude Include="airdcpp\core\localization\ResourceManager.h">
       <Filter>Header Files\core\localization</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UpdateManagerListener.h">
+    <ClInclude Include="airdcpp\core\update\UpdateManagerListener.h">
       <Filter>Header Files\core\update</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UpdateManager.h">
+    <ClInclude Include="airdcpp\core\update\UpdateManager.h">
       <Filter>Header Files\core\update</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryDownload.h">
+    <ClInclude Include="airdcpp\filelist\DirectoryDownload.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RecentEntry.h">
+    <ClInclude Include="airdcpp\recents\RecentEntry.h">
       <Filter>Header Files\recents</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RecentManager.h">
+    <ClInclude Include="airdcpp\recents\RecentManager.h">
       <Filter>Header Files\recents</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\RecentManagerListener.h">
+    <ClInclude Include="airdcpp\recents\RecentManagerListener.h">
       <Filter>Header Files\recents</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UDPServer.h">
+    <ClInclude Include="airdcpp\connection\UDPServer.h">
       <Filter>Header Files\connection</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\LogManagerListener.h">
+    <ClInclude Include="airdcpp\events\LogManagerListener.h">
       <Filter>Header Files\events</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\LogManager.h">
+    <ClInclude Include="airdcpp\events\LogManager.h">
       <Filter>Header Files\events</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\GeoIP.h">
+    <ClInclude Include="airdcpp\core\geo\GeoIP.h">
       <Filter>Header Files\core\geo</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\GeoManager.h">
+    <ClInclude Include="airdcpp\core\geo\GeoManager.h">
       <Filter>Header Files\core\geo</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TimerManagerListener.h">
+    <ClInclude Include="airdcpp\core\timer\TimerManagerListener.h">
       <Filter>Header Files\core\timer</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TimerManager.h">
+    <ClInclude Include="airdcpp\core\timer\TimerManager.h">
       <Filter>Header Files\core\timer</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\CriticalSection.h">
+    <ClInclude Include="airdcpp\core\thread\CriticalSection.h">
       <Filter>Header Files\core\thread</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\concurrency.h">
+    <ClInclude Include="airdcpp\core\thread\concurrency.h">
       <Filter>Header Files\core\thread</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Thread.h">
+    <ClInclude Include="airdcpp\core\thread\Thread.h">
       <Filter>Header Files\core\thread</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Semaphore.h">
+    <ClInclude Include="airdcpp\core\thread\Semaphore.h">
       <Filter>Header Files\core\thread</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\BloomFilter.h">
+    <ClInclude Include="airdcpp\core\classes\BloomFilter.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ErrorCollector.h">
+    <ClInclude Include="airdcpp\core\classes\ErrorCollector.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FloodCounter.h">
+    <ClInclude Include="airdcpp\core\classes\FloodCounter.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Magnet.h">
+    <ClInclude Include="airdcpp\core\classes\Magnet.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DupeType.h">
+    <ClInclude Include="airdcpp\core\types\DupeType.h">
       <Filter>Header Files\util\types</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryContentInfo.h">
+    <ClInclude Include="airdcpp\core\types\DirectoryContentInfo.h">
       <Filter>Header Files\util\types</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Priority.h">
+    <ClInclude Include="airdcpp\core\types\Priority.h">
       <Filter>Header Files\util\types</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\GetSet.h">
+    <ClInclude Include="airdcpp\core\types\GetSet.h">
       <Filter>Header Files\util\types</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Segment.h">
+    <ClInclude Include="airdcpp\core\classes\Segment.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Flags.h">
+    <ClInclude Include="airdcpp\core\classes\Flags.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\tribool.h">
+    <ClInclude Include="airdcpp\core\classes\tribool.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\SortedVector.h">
+    <ClInclude Include="airdcpp\core\classes\SortedVector.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ScopedFunctor.h">
+    <ClInclude Include="airdcpp\core\classes\ScopedFunctor.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Pointer.h">
+    <ClInclude Include="airdcpp\core\classes\Pointer.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\FastAlloc.h">
+    <ClInclude Include="airdcpp\core\classes\FastAlloc.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Exception.h">
+    <ClInclude Include="airdcpp\core\classes\Exception.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Speaker.h">
+    <ClInclude Include="airdcpp\core\Speaker.h">
       <Filter>Header Files\core</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Singleton.h">
+    <ClInclude Include="airdcpp\core\Singleton.h">
       <Filter>Header Files\core</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ActionHook.h">
+    <ClInclude Include="airdcpp\core\ActionHook.h">
       <Filter>Header Files\core</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AdcCommand.h">
+    <ClInclude Include="airdcpp\protocol\AdcCommand.h">
       <Filter>Header Files\protocol</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\AdcSupports.h">
+    <ClInclude Include="airdcpp\protocol\AdcSupports.h">
       <Filter>Header Files\protocol</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ProtocolCommandManager.h">
+    <ClInclude Include="airdcpp\protocol\ProtocolCommandManager.h">
       <Filter>Header Files\protocol</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DispatcherQueue.h">
+    <ClInclude Include="airdcpp\core\queue\DispatcherQueue.h">
       <Filter>Header Files\core\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DelayedEvents.h">
+    <ClInclude Include="airdcpp\core\queue\DelayedEvents.h">
       <Filter>Header Files\core\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TaskQueue.h">
+    <ClInclude Include="airdcpp\core\queue\TaskQueue.h">
       <Filter>Header Files\core\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Task.h">
+    <ClInclude Include="airdcpp\core\queue\Task.h">
       <Filter>Header Files\core\queue</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PrioritySearchQueue.h">
+    <ClInclude Include="airdcpp\util\classes\PrioritySearchQueue.h">
       <Filter>Header Files\util\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ActivityManager.h">
+    <ClInclude Include="airdcpp\hub\activity\ActivityManager.h">
       <Filter>Header Files\hub\activity</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ZUtils.h">
+    <ClInclude Include="airdcpp\core\io\compress\ZUtils.h">
       <Filter>Header Files\core\io\compress</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadFileProvider.h">
+    <ClInclude Include="airdcpp\share\UploadFileProvider.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareSearchInfo.h">
+    <ClInclude Include="airdcpp\share\ShareSearchInfo.h">
       <Filter>Header Files\share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadBundleManager.h">
+    <ClInclude Include="airdcpp\transfer\upload\upload_bundles\UploadBundleManager.h">
       <Filter>Header Files\transfer\upload\upload_bundles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadBundle.h">
+    <ClInclude Include="airdcpp\transfer\upload\upload_bundles\UploadBundle.h">
       <Filter>Header Files\transfer\upload\upload_bundles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadBundleInfo.h">
+    <ClInclude Include="airdcpp\transfer\upload\upload_bundles\UploadBundleInfo.h">
       <Filter>Header Files\transfer\upload\upload_bundles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadBundleInfoReceiver.h">
+    <ClInclude Include="airdcpp\transfer\upload\upload_bundles\UploadBundleInfoReceiver.h">
       <Filter>Header Files\transfer\upload\upload_bundles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadBundleInfoReceiverListener.h">
+    <ClInclude Include="airdcpp\transfer\upload\upload_bundles\UploadBundleInfoReceiverListener.h">
       <Filter>Header Files\transfer\upload\upload_bundles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadBundleInfoSender.h">
+    <ClInclude Include="airdcpp\transfer\upload\upload_bundles\UploadBundleInfoSender.h">
       <Filter>Header Files\transfer\upload\upload_bundles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TrackableDownloadItem.h">
+    <ClInclude Include="airdcpp\transfer\download\TrackableDownloadItem.h">
       <Filter>Header Files\transfer\download</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Download.h">
+    <ClInclude Include="airdcpp\transfer\download\Download.h">
       <Filter>Header Files\transfer\download</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DownloadManager.h">
+    <ClInclude Include="airdcpp\transfer\download\DownloadManager.h">
       <Filter>Header Files\transfer\download</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DownloadManagerListener.h">
+    <ClInclude Include="airdcpp\transfer\download\DownloadManagerListener.h">
       <Filter>Header Files\transfer\download</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadSlot.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadSlot.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Upload.h">
+    <ClInclude Include="airdcpp\transfer\upload\Upload.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadFileParser.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadFileParser.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadManager.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadManager.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadManagerListener.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadManagerListener.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadQueueManager.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadQueueManager.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadQueueManagerListener.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadQueueManagerListener.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UploadRequest.h">
+    <ClInclude Include="airdcpp\transfer\upload\UploadRequest.h">
       <Filter>Header Files\transfer\upload</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareProfileManagerListener.h">
+    <ClInclude Include="airdcpp\share\profiles\ShareProfileManagerListener.h">
       <Filter>Header Files\share\profiles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareProfile.h">
+    <ClInclude Include="airdcpp\share\profiles\ShareProfile.h">
       <Filter>Header Files\share\profiles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ShareProfileManager.h">
+    <ClInclude Include="airdcpp\share\profiles\ShareProfileManager.h">
       <Filter>Header Files\share\profiles</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TempShareManagerListener.h">
+    <ClInclude Include="airdcpp\share\temp_share\TempShareManagerListener.h">
       <Filter>Header Files\share\temp_share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TempShareItem.h">
+    <ClInclude Include="airdcpp\share\temp_share\TempShareItem.h">
       <Filter>Header Files\share\temp_share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TempShareManager.h">
+    <ClInclude Include="airdcpp\share\temp_share\TempShareManager.h">
       <Filter>Header Files\share\temp_share</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PartialSharingManager.h">
+    <ClInclude Include="airdcpp\queue\partial_sharing\PartialSharingManager.h">
       <Filter>Header Files\queue\partial_sharing</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PartialBundleSharingManager.h">
+    <ClInclude Include="airdcpp\queue\partial_sharing\PartialBundleSharingManager.h">
       <Filter>Header Files\queue\partial_sharing</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\PartialFileSharingManager.h">
+    <ClInclude Include="airdcpp\queue\partial_sharing\PartialFileSharingManager.h">
       <Filter>Header Files\queue\partial_sharing</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Mapper_WinUPnP.h">
+    <ClInclude Include="airdcpp\connectivity\mappers\Mapper_WinUPnP.h">
       <Filter>Header Files\connectivity\mappers</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Mapper_MiniUPnPc.h">
+    <ClInclude Include="airdcpp\connectivity\mappers\Mapper_MiniUPnPc.h">
       <Filter>Header Files\connectivity\mappers</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\Mapper_NATPMP.h">
+    <ClInclude Include="airdcpp\connectivity\mappers\Mapper_NATPMP.h">
       <Filter>Header Files\connectivity\mappers</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\version.h">
+    <ClInclude Include="airdcpp\core\version.h">
       <Filter>Header Files\core</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\stdinc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\compiler.h">
+    <ClInclude Include="airdcpp\core\header\compiler.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\constants.h">
+    <ClInclude Include="airdcpp\core\header\constants.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\debug.h">
+    <ClInclude Include="airdcpp\core\header\debug.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\format.h">
+    <ClInclude Include="airdcpp\core\header\format.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\typedefs.h">
+    <ClInclude Include="airdcpp\core\header\typedefs.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\w.h">
+    <ClInclude Include="airdcpp\core\header\w.h">
       <Filter>Header Files\core\header</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\TransferInfoManagerListener.h">
+    <ClInclude Include="airdcpp\transfer\TransferInfoManagerListener.h">
       <Filter>Header Files\transfer</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\StartupParams.h">
+    <ClInclude Include="airdcpp\core\classes\StartupParams.h">
       <Filter>Header Files\core\classes</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\HBRIValidation.h">
+    <ClInclude Include="airdcpp\hub\HBRIValidation.h">
       <Filter>Header Files\hub</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\updater\UpdateVersion.h">
+    <ClInclude Include="airdcpp\core\update\UpdateDownloader.h">
       <Filter>Header Files\core\update</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\updater\Updater.h">
-      <Filter>Header Files\core\update\updater</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\updater\UpdaterCreator.h">
-      <Filter>Header Files\core\update\updater</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\UpdateDownloader.h">
+    <ClInclude Include="airdcpp\core\update\UpdateConstants.h">
       <Filter>Header Files\core\update</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\UpdateConstants.h">
-      <Filter>Header Files\core\update</Filter>
-    </ClInclude>
-    <ClInclude Include="airdcpp\CryptoUtil.h">
+    <ClInclude Include="airdcpp\util\CryptoUtil.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\DirectoryListingDirectory.h">
+    <ClInclude Include="airdcpp\filelist\DirectoryListingDirectory.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
-    <ClInclude Include="airdcpp\ListLoader.h">
+    <ClInclude Include="airdcpp\filelist\ListLoader.h">
       <Filter>Header Files\filelist</Filter>
     </ClInclude>
     <ClInclude Include="airdcpp\modules\DirectoryListingSearch.h">
@@ -1527,6 +1518,15 @@
     </ClInclude>
     <ClInclude Include="airdcpp\modules\DirectSearch.h">
       <Filter>Header Files\modules</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\core\update\updater\Updater.h">
+      <Filter>Header Files\core\update\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\core\update\updater\UpdaterCreator.h">
+      <Filter>Header Files\core\update\updater</Filter>
+    </ClInclude>
+    <ClInclude Include="airdcpp\core\update\UpdateVersion.h">
+      <Filter>Header Files\core\update</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1539,7 +1539,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="airdcpp\StringDefs.h">
+    <CustomBuild Include="airdcpp\core\localization\StringDefs.h">
       <Filter>Header Files\core\localization</Filter>
     </CustomBuild>
   </ItemGroup>

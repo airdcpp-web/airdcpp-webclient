@@ -22,18 +22,18 @@
 #include "AutoSearchManager.h"
 #include "RSSManager.h"
 
-#include <airdcpp/HttpConnection.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchTypes.h>
-#include <airdcpp/ClientManager.h>
+#include <airdcpp/connection/http/HttpConnection.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/hub/ClientManager.h>
 
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/SimpleXMLReader.h>
-#include <airdcpp/Streams.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/core/io/xml/SimpleXMLReader.h>
+#include <airdcpp/core/io/stream/Streams.h>
 
 #include <boost/algorithm/string/trim.hpp>
 

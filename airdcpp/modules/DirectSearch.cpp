@@ -20,9 +20,9 @@
 
 #include "DirectSearch.h"
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/search/SearchManager.h>
 
 
 namespace dcpp {
