@@ -170,7 +170,7 @@ static void setPidFilePath(const string& aConfigPath, const dcpp::StartupParams&
     if (pidParam) {
         pidFileName = *pidParam;
     } else {
-        pidFileName = File::makeAbsolutePath(aConfigPath) + "airdcppd.pid";
+        pidFileName = aConfigPath + "airdcppd.pid";
     }
 }
 
@@ -343,7 +343,7 @@ int main(int argc, char* argv[]) {
 
     {
         auto customConfigDir = startupParams.getValue("-c");
-        initializeUtil(customConfigDir ? *customConfigDir : "");
+        initializeUtil(customConfigDir ? AppUtil::formatCustomConfigPath(*customConfigDir) : "");
     }
 	auto configF = airdcppd::ConfigPrompt::checkArgs(startupParams);
 	if (configF) {
