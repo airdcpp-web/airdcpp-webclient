@@ -21,7 +21,7 @@
 
 #include "forward.h"
 
-#include <airdcpp/debug.h>
+#include <airdcpp/core/header/debug.h>
 
 namespace webserver {
 	class Timer : public boost::noncopyable {

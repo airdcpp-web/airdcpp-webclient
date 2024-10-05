@@ -18,9 +18,9 @@
 
 #include "stdinc.h"
 
-#include <airdcpp/Exception.h>
-#include <airdcpp/HashedFile.h>
-#include <airdcpp/SettingsManager.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/hash/HashedFile.h>
+#include <airdcpp/settings/SettingsManager.h>
 
 #include <web-server/JsonUtil.h>
 #include <web-server/Timer.h>

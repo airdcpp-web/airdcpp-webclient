@@ -21,8 +21,8 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/ShareProfileManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/share/profiles/ShareProfileManagerListener.h>
 
 namespace dcpp {
 	class ShareProfileManager;

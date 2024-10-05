@@ -24,10 +24,10 @@
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebUserManager.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/Thread.h>
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/thread/Thread.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 
 namespace webserver {

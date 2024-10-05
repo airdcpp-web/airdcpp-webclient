@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUEAPI_H
 #define DCPLUSPLUS_DCPP_QUEUEAPI_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/DownloadManagerListener.h>
-#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/transfer/download/DownloadManagerListener.h>
+#include <airdcpp/queue/QueueManagerListener.h>
 
 #include <api/common/ListViewController.h>
 #include <api/base/HookApiModule.h>

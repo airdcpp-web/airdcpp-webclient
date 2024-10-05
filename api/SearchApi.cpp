@@ -26,10 +26,10 @@
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebUser.h>
 
-#include <airdcpp/SearchInstance.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchQuery.h>
-#include <airdcpp/SearchTypes.h>
+#include <airdcpp/search/SearchInstance.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchQuery.h>
+#include <airdcpp/search/SearchTypes.h>
 
 
 #define DEFAULT_INSTANCE_EXPIRATION_MINUTES 30

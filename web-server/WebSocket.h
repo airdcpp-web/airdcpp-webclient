@@ -23,7 +23,7 @@
 
 #include "forward.h"
 
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/types/GetSet.h>
 
 namespace webserver {
 	// WebSockets are owned by SocketManager and API modules

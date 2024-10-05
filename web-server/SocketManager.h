@@ -26,7 +26,7 @@
 #include "WebSocket.h"
 #include "WebUserManagerListener.h"
 
-#include <airdcpp/Speaker.h>
+#include <airdcpp/core/Speaker.h>
 
 
 namespace webserver {

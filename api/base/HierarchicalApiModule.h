@@ -25,7 +25,7 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/CriticalSection.h>
+#include <airdcpp/core/thread/CriticalSection.h>
 
 namespace webserver {
 	class WebSocket;

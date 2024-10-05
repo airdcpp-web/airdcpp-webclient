@@ -21,9 +21,9 @@
 
 #include "forward.h"
 
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/FloodCounter.h>
-#include <airdcpp/Speaker.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/core/classes/FloodCounter.h>
+#include <airdcpp/core/Speaker.h>
 
 #include <web-server/Session.h>
 #include <web-server/WebServerManagerListener.h>
@@ -76,6 +76,8 @@ namespace webserver {
 			TIMEOUT,
 		};
 	private:
+		static string generateUUID() noexcept;
+
 		enum class AuthType {
 			UNKNOWN,
 			BASIC,

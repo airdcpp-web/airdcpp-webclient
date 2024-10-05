@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_PRIVATEMESSAGE_H
 #define DCPLUSPLUS_DCPP_PRIVATEMESSAGE_H
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/types/GetSet.h>
 
-#include <airdcpp/Message.h>
-#include <airdcpp/PrivateChat.h>
-#include <airdcpp/User.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/private_chat/PrivateChat.h>
+#include <airdcpp/user/User.h>
 
 #include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>

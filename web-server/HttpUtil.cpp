@@ -20,9 +20,9 @@
 
 #include <web-server/HttpUtil.h>
 
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/Util.h>
 
 #include "boost/algorithm/string/replace.hpp"
 

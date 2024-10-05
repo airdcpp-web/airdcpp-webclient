@@ -22,7 +22,7 @@
 #include <api/FilelistItemInfo.h>
 #include <api/common/Property.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 
 namespace webserver {

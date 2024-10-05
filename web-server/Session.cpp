@@ -46,8 +46,8 @@
 #include <api/WebUserApi.h>
 #include <api/ViewFileApi.h>
 
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/ValueGenerator.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 
 namespace webserver {

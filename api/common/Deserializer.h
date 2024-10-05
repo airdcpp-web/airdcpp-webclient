@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_DESERIALIZER_H
 #define DCPLUSPLUS_DCPP_DESERIALIZER_H
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/HintedUser.h>
-#include <airdcpp/MerkleTree.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Priority.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/user/HintedUser.h>
+#include <airdcpp/hash/value/MerkleTree.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/types/Priority.h>
 
 #include <web-server/JsonUtil.h>
 

@@ -25,7 +25,7 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/ClientManager.h>
+#include <airdcpp/hub/ClientManager.h>
 
 
 namespace webserver {

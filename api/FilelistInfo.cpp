@@ -24,9 +24,9 @@
 #include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Client.h>
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/PathUtil.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/util/PathUtil.h>
 
 
 namespace webserver {

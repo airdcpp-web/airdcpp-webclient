@@ -23,8 +23,8 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/ShareProfileManager.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/share/profiles/ShareProfileManager.h>
 
 namespace webserver {
 	ShareProfileApi::ShareProfileApi(Session* aSession) : 

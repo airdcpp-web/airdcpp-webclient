@@ -1,32 +1,65 @@
-project(airdcpp-webapi)
+project(
+	"airdcpp-webapi"
+	DESCRIPTION "AirDC++ Web API"
+)
 cmake_minimum_required(VERSION 3.16)
+#cmake_policy(SET CMP0167 NEW) # The FindBoost module is removed.
+
 # ######### General setup ##########
+
+
+find_package (websocketpp REQUIRED)
+find_package (nlohmann_json 3.0.0 REQUIRED)
+
 
 file (GLOB_RECURSE webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
 file (GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
 
-set (WEBAPI_SRCS ${webapi_srcs} PARENT_SCOPE)
-set (WEBAPI_HDRS ${webapi_hdrs} PARENT_SCOPE)
+add_library (${PROJECT_NAME} ${webapi_srcs} ${webapi_hdrs} )
 
+# Project file generation
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${webapi_srcs})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${webapi_hdrs})
 
-include_directories(AIRDCPP_HDRS
-  ${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR} ${Boost_INCLUDE_DIRS}
-  ${OPENSSL_INCLUDE_DIRS} ${websocketpp_INCLUDE_DIR}
-)
 
-add_library (airdcpp-webapi ${webapi_srcs} ${webapi_hdrs} )
+target_include_directories(${PROJECT_NAME}
+    #PUBLIC
+    #    ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC
+        # where top-level project will look for the library's public headers
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        # where external projects will look for the library's public headers
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
   add_definitions(-D_DEBUG)
 endif()
 
+if (WIN32)
+	target_compile_definitions(${PROJECT_NAME}
+		PRIVATE
+			"_UNICODE"
+			"UNICODE"
+	)
+		
+	target_link_libraries (${PROJECT_NAME} 
+		bcrypt # for Boost::uuid
+		# ${OPENSSL_LIBRARIES} 
+		# ${Boost_LIBRARIES}
+	)
 
-target_link_libraries (airdcpp-webapi airdcpp ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES})
-set_target_properties(airdcpp-webapi PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp-webapi")
+	# C1128	number of sections exceeded object file format limit: compile with /bigobj (WebServerManager.cpp)
+	target_compile_options(${PROJECT_NAME} PRIVATE "/bigobj")
+endif()
 
-target_precompile_headers(airdcpp-webapi PUBLIC
+
+target_link_libraries (${PROJECT_NAME} 
+	airdcpp 
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${VERSION} OUTPUT_NAME "airdcpp-webapi")
+
+target_precompile_headers(${PROJECT_NAME} PUBLIC
   "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/stdinc.h>"
   "$<$<COMPILE_LANGUAGE:CXX>:<airdcpp/stdinc.h$<ANGLE-R>>"
 )
@@ -38,7 +71,7 @@ endif(APPLE)
 
 
 if (BUILD_SHARED_LIBS)
-  install (TARGETS airdcpp-webapi
+  install (TARGETS ${PROJECT_NAME}
             LIBRARY DESTINATION "${LIBDIR}" NAMELINK_SKIP
             BUNDLE DESTINATION ${LIBDIR1})
 endif ()

@@ -29,10 +29,10 @@
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebUserManager.h>
 
-#include <airdcpp/ActivityManager.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/version.h>
+#include <airdcpp/hub/activity/ActivityManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/settings/SettingsManager.h>
+#include <airdcpp/core/version.h>
 
 namespace webserver {
 	SessionApi::SessionApi(Session* aSession) : 

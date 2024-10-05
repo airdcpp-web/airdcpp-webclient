@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_HUBINFO_H
 #define DCPLUSPLUS_DCPP_HUBINFO_H
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/types/GetSet.h>
 
-#include <airdcpp/Client.h>
-#include <airdcpp/Message.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/message/Message.h>
 
 #include <api/base/HierarchicalApiModule.h>
 #include <api/base/HookApiModule.h>

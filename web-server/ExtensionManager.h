@@ -21,11 +21,11 @@
 
 #include "forward.h"
 
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/UpdateManagerListener.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/core/update/UpdateManagerListener.h>
 
 #include <web-server/ExtensionListener.h>
 #include <web-server/ExtensionManagerListener.h>

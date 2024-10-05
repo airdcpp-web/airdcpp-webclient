@@ -21,8 +21,8 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/ConnectivityManager.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/connectivity/ConnectivityManager.h>
 
 namespace webserver {
 	class ConnectivityApi : public SubscribableApiModule, private ConnectivityManagerListener {

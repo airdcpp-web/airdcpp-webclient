@@ -28,7 +28,7 @@
 #include <api/common/Serializer.h>
 #include <api/common/MessageUtils.h>
 
-#include <airdcpp/StringTokenizer.h>
+#include <airdcpp/util/text/StringTokenizer.h>
 
 namespace webserver {
 	class ChatController {

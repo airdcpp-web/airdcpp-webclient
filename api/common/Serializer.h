@@ -23,14 +23,14 @@
 
 #include <web-server/Access.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/tribool.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/classes/tribool.h>
 
-#include <airdcpp/DirectoryContentInfo.h>
-#include <airdcpp/DirectoryDownload.h>
-#include <airdcpp/DupeType.h>
-#include <airdcpp/QueueItemBase.h>
-#include <airdcpp/TrackableDownloadItem.h>
+#include <airdcpp/core/types/DirectoryContentInfo.h>
+#include <airdcpp/filelist/DirectoryDownload.h>
+#include <airdcpp/core/types/DupeType.h>
+#include <airdcpp/queue/QueueItemBase.h>
+#include <airdcpp/transfer/download/TrackableDownloadItem.h>
 
 
 namespace dcpp {

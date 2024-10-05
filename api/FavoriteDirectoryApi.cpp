@@ -24,9 +24,9 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/FavoriteManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/ValueGenerator.h>
+#include <airdcpp/favorites/FavoriteManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 namespace webserver {
 	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : 

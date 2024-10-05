@@ -24,10 +24,10 @@
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/Util.h>
 
 #ifdef _WIN32
 #include <Wincrypt.h>
@@ -93,7 +93,7 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		auto uuid = generateUUID();
 		return authenticateSession(aUserName, aPassword, aType, aMaxInactivityMinutes, aIP, uuid);
 	}
 
@@ -117,7 +117,7 @@ namespace webserver {
 
 		setDirty();
 
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		auto uuid = generateUUID();
 		return createSession(user, uuid, aType, aMaxInactivityMinutes, aIP);
 	}
 
@@ -166,7 +166,7 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::createExtensionSession(const string& aExtensionName) noexcept {
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		auto uuid = generateUUID();
 
 		// For internal use only (can't be used for logging in)
 		auto user = std::make_shared<WebUser>(aExtensionName, Util::emptyString, true);
@@ -344,8 +344,13 @@ namespace webserver {
 		return user->second;
 	}
 
-	string WebUserManager::createRefreshToken(const WebUserPtr& aUser) noexcept {
+	string WebUserManager::generateUUID() noexcept {
 		const auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		return uuid;
+	}
+
+	string WebUserManager::createRefreshToken(const WebUserPtr& aUser) noexcept {
+		const auto uuid = generateUUID();
 		const time_t expiration = GET_TIME() + static_cast<time_t>(REFRESH_TOKEN_VALIDITY_DAYS * 24ULL * 60ULL * 60ULL * 1000ULL);
 
 		{

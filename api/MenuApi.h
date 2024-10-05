@@ -31,7 +31,7 @@
 #include <web-server/Session.h>
 #include <web-server/WebUser.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 
 namespace webserver {

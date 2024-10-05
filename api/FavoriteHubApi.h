@@ -24,8 +24,8 @@
 #include <api/base/ApiModule.h>
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/FavoriteManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/favorites/FavoriteManagerListener.h>
 
 
 namespace webserver {

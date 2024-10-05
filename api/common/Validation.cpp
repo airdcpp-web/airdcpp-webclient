@@ -22,7 +22,7 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/PathUtil.h>
+#include <airdcpp/util/PathUtil.h>
 
 namespace webserver {
 	const string& Validation::validateAdcDirectoryPath(const string& aPath) {

@@ -19,7 +19,7 @@
 #include "stdinc.h"
 #include <web-server/SystemUtil.h>
 
-#include <airdcpp/Text.h>
+#include <airdcpp/util/text/Text.h>
 
 namespace webserver {
 	string SystemUtil::getHostname() noexcept {

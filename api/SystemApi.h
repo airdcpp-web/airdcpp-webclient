@@ -21,7 +21,7 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/ActivityManager.h>
+#include <airdcpp/hub/activity/ActivityManager.h>
 
 
 namespace webserver {

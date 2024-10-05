@@ -32,14 +32,14 @@
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/Bundle.h>
+#include <airdcpp/queue/Bundle.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/DirectoryListing.h>
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/PrivateChatManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchInstance.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/filelist/DirectoryListing.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/private_chat/PrivateChatManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchInstance.h>
 
 #define MYMACRO(...) __VA_ARGS__
 

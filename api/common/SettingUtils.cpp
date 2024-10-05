@@ -23,9 +23,9 @@
 #include <api/common/SettingUtils.h>
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/HintedUser.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/user/HintedUser.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/util/Util.h>
 
 
 namespace webserver {

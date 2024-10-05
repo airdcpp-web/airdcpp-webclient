@@ -21,18 +21,18 @@
 #include <web-server/ApiSettingItem.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AutoLimitUtil.h>
-#include <airdcpp/ConnectionManager.h>
-#include <airdcpp/ConnectivityManager.h>
-#include <airdcpp/Localization.h>
-#include <airdcpp/NetworkUtil.h>
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SettingHolder.h>
-#include <airdcpp/SettingItem.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/SystemUtil.h>
+#include <airdcpp/util/AutoLimitUtil.h>
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/connectivity/ConnectivityManager.h>
+#include <airdcpp/core/localization/Localization.h>
+#include <airdcpp/util/NetworkUtil.h>
+#include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/settings/SettingHolder.h>
+#include <airdcpp/settings/SettingItem.h>
+#include <airdcpp/settings/SettingsManager.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/SystemUtil.h>
 
 namespace webserver {
 	string ApiSettingItem::formatTitle(const string& aDesc, ResourceManager::Strings aUnit) noexcept {

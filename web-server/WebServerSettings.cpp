@@ -22,8 +22,8 @@
 #include <web-server/WebServerSettings.h>
 #include <api/common/SettingUtils.h>
 
-#include <airdcpp/File.h>
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 namespace webserver {
 

@@ -23,7 +23,7 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/PathUtil.h>
+#include <airdcpp/util/PathUtil.h>
 
 
 namespace webserver {

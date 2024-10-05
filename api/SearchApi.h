@@ -24,8 +24,8 @@
 #include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/SearchManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/search/SearchManagerListener.h>
 
 namespace webserver {
 	class SearchApi: public ParentApiModule<SearchInstanceToken, SearchEntity, HookApiModule>, public SearchManagerListener {

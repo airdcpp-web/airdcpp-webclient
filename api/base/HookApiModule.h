@@ -22,9 +22,9 @@
 #include <web-server/Access.h>
 #include <web-server/SessionListener.h>
 
-#include <airdcpp/ActionHook.h>
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/Semaphore.h>
+#include <airdcpp/core/ActionHook.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/core/thread/Semaphore.h>
 
 #include <api/base/ApiModule.h>
 #include <api/common/Deserializer.h>

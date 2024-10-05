@@ -24,7 +24,7 @@
 #include <web-server/ApiSettingItem.h>
 #include <web-server/WebServerManagerListener.h>
 
-#include <airdcpp/SettingsManager.h>
+#include <airdcpp/settings/SettingsManager.h>
 
 namespace webserver {
 	class WebServerSettings : private WebServerManagerListener {

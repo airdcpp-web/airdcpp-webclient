@@ -21,9 +21,9 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/RecentEntry.h>
-#include <airdcpp/SettingsManager.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/recents/RecentEntry.h>
+#include <airdcpp/settings/SettingsManager.h>
 
 namespace webserver {
 	class HistoryApi : public ApiModule {

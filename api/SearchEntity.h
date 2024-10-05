@@ -25,8 +25,8 @@
 #include <api/base/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/SearchInstanceListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/search/SearchInstanceListener.h>
 
 
 namespace webserver {

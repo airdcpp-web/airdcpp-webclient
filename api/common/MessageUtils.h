@@ -21,12 +21,12 @@
 
 #include "forward.h"
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/DupeType.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/MessageHighlight.h>
-#include <airdcpp/SortedVector.h>
+#include <airdcpp/core/types/DupeType.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/message/MessageHighlight.h>
+#include <airdcpp/core/classes/SortedVector.h>
 
 
 namespace dcpp {

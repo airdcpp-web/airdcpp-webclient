@@ -22,9 +22,9 @@
 #include "forward.h"
 #include "stdinc.h"
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/SettingItem.h>
-#include <airdcpp/ResourceManager.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/settings/SettingItem.h>
+#include <airdcpp/core/localization/ResourceManager.h>
 
 namespace webserver {
 #define MAX_INT_VALUE std::numeric_limits<int>::max()
