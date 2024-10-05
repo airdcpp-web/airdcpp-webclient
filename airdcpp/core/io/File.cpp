@@ -365,7 +365,7 @@ std::string File::makeAbsolutePath(const std::string& aPath, const std::string& 
 	auto res = _wfullpath(&ret[0], Text::toT(aFilename).c_str(), UNC_MAX_PATH);
 	if (!res) {
 		dcassert(0);
-		return aFilename + aPath;
+		return aPath + aFilename;
 	}
 
 	return Text::fromT(res);
@@ -709,10 +709,11 @@ std::string File::makeAbsolutePath(const std::string& aPath, const std::string& 
 	ret.reserve(PATH_MAX + 1);
 
 	string input = aFilename + aPath;
+
+	// Note: realpath fails with non-existing files/directories but there's no better alternative
 	auto res = realpath(input.c_str(), &ret[0]);
 	if (!res) {
-		dcassert(0);
-		return aFilename + aPath;
+		return aPath + aFilename;
 	}
 
 	return string(res);
