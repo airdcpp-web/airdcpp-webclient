@@ -19,12 +19,12 @@
 #include "stdinc.h"
 
 #include <airdcpp/DCPlusPlus.h>
-#include <airdcpp/AppUtil.h>
-#include <airdcpp/Exception.h>
-#include <airdcpp/Util.h>
-#include <airdcpp/SystemUtil.h>
-#include <airdcpp/version.h>
-#include <airdcpp/File.h>
+#include <airdcpp/util/AppUtil.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/util/Util.h>
+#include <airdcpp/util/SystemUtil.h>
+#include <airdcpp/core/version.h>
+#include <airdcpp/core/io/File.h>
 
 #include <web-server/WebServerManager.h>
 
@@ -170,7 +170,7 @@ static void setPidFilePath(const string& aConfigPath, const dcpp::StartupParams&
     if (pidParam) {
         pidFileName = *pidParam;
     } else {
-        pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
+        pidFileName = File::makeAbsolutePath(aConfigPath) + "airdcppd.pid";
     }
 }
 

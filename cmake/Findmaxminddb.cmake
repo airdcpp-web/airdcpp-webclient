@@ -13,7 +13,7 @@
 #  LIBMAXMINDDB_LIBRARY                 The GeoIP library
 #  LIBMAXMINDDB_INCLUDE_DIR             The location of GeoIP headers
 
-find_path(LIBMAXMINDDB_INCLUDE_DIR
+find_path(LIBMAXMINDDB_INCLUDE_DIRS
     NAMES maxminddb.h
     HINTS ${LIBMAXMINDDB_ROOT_DIR}/include
 )
@@ -27,14 +27,25 @@ find_library(LIBMAXMINDDB_LIBRARY
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(MaxMindDB DEFAULT_MSG
+find_package_handle_standard_args(maxminddb DEFAULT_MSG
     LIBMAXMINDDB_LIBRARY
-    LIBMAXMINDDB_INCLUDE_DIR
+    LIBMAXMINDDB_INCLUDE_DIRS
 )
 
 mark_as_advanced(
     LibMaxMindDB_ROOT_DIR
     LIBMAXMINDDB_LIBRARY
-    LIBMAXMINDDB_INCLUDE_DIR
+    LIBMAXMINDDB_INCLUDE_DIRS
 )
 
+if(MAXMINDDB_FOUND)
+    message(STATUS "Found maxminddb  (include: ${LIBMAXMINDDB_INCLUDE_DIR}, library: ${LIBMAXMINDDB_LIBRARIES})")
+    if(NOT TARGET maxminddb::maxminddb)
+      add_library(maxminddb::maxminddb UNKNOWN IMPORTED)
+      set_target_properties(maxminddb::maxminddb PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${LIBMAXMINDDB_INCLUDE_DIRS}")
+
+        set_property(TARGET maxminddb::maxminddb APPEND PROPERTY
+          IMPORTED_LOCATION "${LIBMAXMINDDB_LIBRARY}")
+    endif()
+endif()

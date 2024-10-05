@@ -20,9 +20,9 @@
 
 #include <airdcpp/stdinc.h>
 
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/StartupParams.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/core/classes/StartupParams.h>
+#include <airdcpp/util/Util.h>
 
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>

@@ -33,9 +33,9 @@
 #
 #  SNAPPY_FOUND              System has Snappy libs/headers
 #  SNAPPY_LIBRARIES          The Snappy libraries
-#  SNAPPY_INCLUDE_DIR        The location of Snappy headers
+#  SNAPPY_INCLUDE_DIRS       The location of Snappy headers
 
-find_path(SNAPPY_INCLUDE_DIR
+find_path(SNAPPY_INCLUDE_DIRS
     NAMES snappy.h
     HINTS ${SNAPPY_ROOT_DIR}/include)
 
@@ -46,9 +46,21 @@ find_library(SNAPPY_LIBRARIES
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Snappy DEFAULT_MSG
     SNAPPY_LIBRARIES
-    SNAPPY_INCLUDE_DIR)
+    SNAPPY_INCLUDE_DIRS)
 
 mark_as_advanced(
     SNAPPY_ROOT_DIR
     SNAPPY_LIBRARIES
-    SNAPPY_INCLUDE_DIR)
+    SNAPPY_INCLUDE_DIRS)
+
+if(SNAPPY_FOUND)
+    message(STATUS "Found Snappy  (include: ${SNAPPY_INCLUDE_DIR}, library: ${SNAPPY_LIBRARIES})")
+    if(NOT TARGET Snappy::snappy)
+      add_library(Snappy::snappy UNKNOWN IMPORTED)
+      set_target_properties(Snappy::snappy PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${SNAPPY_INCLUDE_DIRS}")
+
+      set_property(TARGET Snappy::snappy APPEND PROPERTY
+        IMPORTED_LOCATION "${SNAPPY_LIBRARIES}")
+    endif()
+endif()

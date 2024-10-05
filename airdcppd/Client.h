@@ -21,10 +21,10 @@
 
 #include "CDMDebug.h"
 
-#include <airdcpp/ClientManagerListener.h>
-#include <airdcpp/DirectoryListingManagerListener.h>
-#include <airdcpp/Semaphore.h>
-#include <airdcpp/StartupParams.h>
+#include <airdcpp/hub/ClientManagerListener.h>
+#include <airdcpp/filelist/DirectoryListingManagerListener.h>
+#include <airdcpp/core/thread/Semaphore.h>
+#include <airdcpp/core/classes/StartupParams.h>
 
 
 namespace airdcppd {

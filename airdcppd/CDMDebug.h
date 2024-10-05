@@ -19,7 +19,7 @@
 #ifndef AIRDCPPD_CDMDEBUG_H
 #define AIRDCPPD_CDMDEBUG_H
 
-#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/protocol/ProtocolCommandManager.h>
 
 namespace dcpp {
         class SimpleXML;

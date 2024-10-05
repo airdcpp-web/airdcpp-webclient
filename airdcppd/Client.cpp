@@ -20,18 +20,19 @@
 #include "Client.h"
 
 #include <airdcpp/DCPlusPlus.h>
-#include <airdcpp/AppUtil.h>
+#include <airdcpp/util/AppUtil.h>
 
-#include <airdcpp/ActivityManager.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/ConnectivityManager.h>
-#include <airdcpp/DirectoryListing.h>
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/FavoriteManager.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/UpdateManager.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/core/update/UpdateManager.h>
+
+#include <airdcpp/connectivity/ConnectivityManager.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/favorites/FavoriteManager.h>
+#include <airdcpp/filelist/DirectoryListing.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/hub/activity/ActivityManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/settings/SettingsManager.h>
 
 #include <web-server/FileServer.h>
 #include <web-server/HttpManager.h>
