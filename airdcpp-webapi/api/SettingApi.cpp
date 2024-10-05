@@ -30,7 +30,7 @@
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/SettingHolder.h>
+#include <airdcpp/settings/SettingHolder.h>
 
 namespace webserver {
 	SettingApi::SettingApi(Session* aSession) : ApiModule(aSession) {

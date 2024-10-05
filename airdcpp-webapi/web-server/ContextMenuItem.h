@@ -25,9 +25,9 @@
 
 #include <web-server/ApiSettingItem.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/ActionHook.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/ActionHook.h>
+#include <airdcpp/core/types/GetSet.h>
 
 
 namespace webserver {

@@ -26,9 +26,9 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/format.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/header/format.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/Util.h>
 
 
 namespace webserver {

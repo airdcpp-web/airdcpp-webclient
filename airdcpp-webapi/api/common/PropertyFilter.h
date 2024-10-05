@@ -19,7 +19,7 @@
 #ifndef DCPP_PROPERTYFILTER_H
 #define DCPP_PROPERTYFILTER_H
 
-#include <airdcpp/CriticalSection.h>
+#include <airdcpp/core/thread/CriticalSection.h>
 
 #include <api/common/Property.h>
 

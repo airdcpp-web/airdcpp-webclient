@@ -23,9 +23,9 @@
 #include <api/base/HookApiModule.h>
 #include <api/FilelistInfo.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/DirectoryListingManagerListener.h>
-#include <airdcpp/QueueItem.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/filelist/DirectoryListingManagerListener.h>
+#include <airdcpp/queue/QueueItem.h>
 
 namespace webserver {
 	class FilelistApi : public ParentApiModule<CID, FilelistInfo, HookApiModule>, private DirectoryListingManagerListener {

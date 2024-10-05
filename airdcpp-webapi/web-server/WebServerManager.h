@@ -24,9 +24,9 @@
 #include "Timer.h"
 #include "WebServerManagerListener.h"
 
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
 
 #include <iostream>
 #include <boost/thread/thread.hpp>

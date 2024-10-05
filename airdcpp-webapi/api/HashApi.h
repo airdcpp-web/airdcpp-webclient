@@ -21,8 +21,8 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/HashManager.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/hash/HashManager.h>
 
 namespace webserver {
 	class HashApi : public SubscribableApiModule, private HashManagerListener {

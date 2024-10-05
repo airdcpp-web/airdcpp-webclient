@@ -22,15 +22,15 @@
 
 #include <api/TransferApi.h>
 
-#include <airdcpp/Download.h>
-#include <airdcpp/Upload.h>
+#include <airdcpp/transfer/download/Download.h>
+#include <airdcpp/transfer/upload/Upload.h>
 
-#include <airdcpp/DownloadManager.h>
-#include <airdcpp/ConnectionManager.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/ThrottleManager.h>
-#include <airdcpp/TransferInfoManager.h>
-#include <airdcpp/UploadManager.h>
+#include <airdcpp/transfer/download/DownloadManager.h>
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/connection/ThrottleManager.h>
+#include <airdcpp/transfer/TransferInfoManager.h>
+#include <airdcpp/transfer/upload/UploadManager.h>
 
 
 namespace webserver {

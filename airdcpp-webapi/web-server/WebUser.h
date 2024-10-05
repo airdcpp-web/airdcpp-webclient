@@ -22,8 +22,8 @@
 #include "forward.h"
 #include <web-server/Access.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/types/GetSet.h>
 
 namespace webserver {
 	class WebUser {

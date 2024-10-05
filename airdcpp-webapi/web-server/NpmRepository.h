@@ -21,9 +21,9 @@
 
 #include "forward.h"
 
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
 
 namespace dcpp {
 	struct HttpDownload;

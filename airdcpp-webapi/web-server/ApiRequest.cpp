@@ -20,11 +20,11 @@
 #include <web-server/version.h>
 #include <web-server/ApiRequest.h>
 
-#include <airdcpp/CID.h>
-#include <airdcpp/MerkleTree.h>
+#include <airdcpp/user/CID.h>
+#include <airdcpp/hash/value/MerkleTree.h>
 
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/Util.h>
 
 namespace webserver {
 	ApiRequest::ApiRequest(const string& aUrl, const string& aMethod, json&& aBody, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler, json& output_, json& error_) :

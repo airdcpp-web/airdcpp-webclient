@@ -23,9 +23,9 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Exception.h>
-#include <airdcpp/File.h>
-#include <airdcpp/PathUtil.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/util/PathUtil.h>
 
 #ifdef _WIN32
 #include <api/platform/windows/Filesystem.h>

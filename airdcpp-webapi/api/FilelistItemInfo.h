@@ -19,9 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_FILELIST_ITEMINFO_H
 #define DCPLUSPLUS_DCPP_FILELIST_ITEMINFO_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/DirectoryListingDirectory.h>
+#include <airdcpp/filelist/DirectoryListingDirectory.h>
 
 
 namespace webserver {

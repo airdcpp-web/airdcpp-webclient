@@ -28,9 +28,9 @@
 #include "WebServerManager.h"
 #include "WebUserManager.h"
 
-#include <airdcpp/format.h>
-#include <airdcpp/AppUtil.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/header/format.h>
+#include <airdcpp/util/AppUtil.h>
+#include <airdcpp/util/Util.h>
 
 
 namespace webserver {

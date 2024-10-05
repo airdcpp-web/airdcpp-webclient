@@ -21,9 +21,9 @@
 
 #include <api/common/Property.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/StringMatch.h>
-#include <airdcpp/ShareDirectoryInfo.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/util/text/StringMatch.h>
+#include <airdcpp/share/ShareDirectoryInfo.h>
 
 
 namespace webserver {

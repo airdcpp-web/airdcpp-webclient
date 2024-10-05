@@ -21,11 +21,11 @@
 
 #include <api/base/HookApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/ShareDirectory.h>
-#include <airdcpp/ShareManagerListener.h>
-#include <airdcpp/TempShareManagerListener.h>
-#include <airdcpp/ShareRefreshTask.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/share/ShareDirectory.h>
+#include <airdcpp/share/ShareManagerListener.h>
+#include <airdcpp/share/temp_share/TempShareManagerListener.h>
+#include <airdcpp/share/ShareRefreshTask.h>
 
 namespace webserver {
 	class ShareApi : public HookApiModule, private ShareManagerListener, private TempShareManagerListener {

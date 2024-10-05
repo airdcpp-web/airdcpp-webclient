@@ -23,8 +23,8 @@
 
 #include <api/common/Serializer.h>
 
-#include <airdcpp/ConnectionManager.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/search/SearchManager.h>
 
 namespace webserver {
 	ConnectivityApi::ConnectivityApi(Session* aSession) : 

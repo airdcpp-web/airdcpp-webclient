@@ -22,13 +22,13 @@
 #include <api/base/HookApiModule.h>
 #include <api/HubInfo.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/AdcCommand.h>
-#include <airdcpp/AdcSupports.h>
-#include <airdcpp/Client.h>
-#include <airdcpp/ClientManagerListener.h>
-#include <airdcpp/ProtocolCommandManager.h>
+#include <airdcpp/protocol/AdcCommand.h>
+#include <airdcpp/protocol/AdcSupports.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/hub/ClientManagerListener.h>
+#include <airdcpp/protocol/ProtocolCommandManager.h>
 
 namespace webserver {
 	class AdcCommandApi : public FilterableHookApiModule<AdcCommand::CommandType>, private ClientManagerListener, private ProtocolCommandManagerListener {

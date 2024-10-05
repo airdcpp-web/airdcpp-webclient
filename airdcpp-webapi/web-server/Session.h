@@ -26,10 +26,10 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/GetSet.h>
-#include <airdcpp/typedefs.h>
-#include <airdcpp/Speaker.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/Speaker.h>
 
 namespace webserver {
 	// Sessions are owned by WebUserManager and WebSockets (websockets are closed when session is removed)

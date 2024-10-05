@@ -21,8 +21,8 @@
 
 #include <api/common/Property.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GroupedSearchResult.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/search/GroupedSearchResult.h>
 
 
 namespace webserver {

@@ -29,11 +29,11 @@
 #include <api/SystemApi.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/ActivityManager.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/Localization.h>
-#include <airdcpp/Thread.h>
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/hub/activity/ActivityManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/core/localization/Localization.h>
+#include <airdcpp/core/thread/Thread.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 namespace webserver {
 	SystemApi::SystemApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY, { "away_state" }) {

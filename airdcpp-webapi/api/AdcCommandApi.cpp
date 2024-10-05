@@ -23,8 +23,8 @@
 #include <web-server/JsonUtil.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/ConnectionManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/connection/ConnectionManager.h>
 
 namespace webserver {
 

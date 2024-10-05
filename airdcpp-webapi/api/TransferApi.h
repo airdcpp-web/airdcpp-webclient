@@ -24,9 +24,9 @@
 
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/TransferInfoManagerListener.h>
+#include <airdcpp/transfer/TransferInfoManagerListener.h>
 
 
 namespace webserver {

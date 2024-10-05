@@ -23,7 +23,7 @@
 #include <web-server/JsonUtil.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/RecentManager.h>
+#include <airdcpp/recents/RecentManager.h>
 
 
 namespace webserver {

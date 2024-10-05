@@ -24,10 +24,10 @@
 #include <web-server/ExtensionListener.h>
 #include <web-server/ApiSettingItem.h>
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/User.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/user/User.h>
+#include <airdcpp/util/Util.h>
 
 namespace webserver {
 #define EXTENSION_DIR_ROOT AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "extensions" + PATH_SEPARATOR_STR

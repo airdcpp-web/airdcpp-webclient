@@ -25,7 +25,7 @@
 #include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 #include <api/base/ApiModule.h>
 #include <api/common/PropertyFilter.h>

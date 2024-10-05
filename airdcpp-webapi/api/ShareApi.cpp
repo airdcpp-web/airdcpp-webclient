@@ -32,18 +32,18 @@
 #include <web-server/JsonUtil.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/HashManager.h>
-#include <airdcpp/HubEntry.h>
-#include <airdcpp/Magnet.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/SearchQuery.h>
-#include <airdcpp/SearchResult.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/SharePathValidator.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/TempShareManager.h>
-#include <airdcpp/ValueGenerator.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/hash/HashManager.h>
+#include <airdcpp/favorites/HubEntry.h>
+#include <airdcpp/core/classes/Magnet.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/search/SearchQuery.h>
+#include <airdcpp/search/SearchResult.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/share/SharePathValidator.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/share/temp_share/TempShareManager.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 namespace webserver {
 	ShareApi::ShareApi(Session* aSession) : 

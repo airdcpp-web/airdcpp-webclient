@@ -26,9 +26,9 @@
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/DownloadManager.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/transfer/download/DownloadManager.h>
+#include <airdcpp/search/SearchManager.h>
 
 
 

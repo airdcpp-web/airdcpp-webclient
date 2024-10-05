@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_VIEWTASKS_H
 #define DCPLUSPLUS_DCPP_VIEWTASKS_H
 
-#include <airdcpp/CriticalSection.h>
+#include <airdcpp/core/thread/CriticalSection.h>
 
 
 namespace webserver {

@@ -22,10 +22,10 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/Bundle.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/QueueItem.h>
-#include <airdcpp/QueueManager.h>
+#include <airdcpp/queue/Bundle.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/queue/QueueItem.h>
+#include <airdcpp/queue/QueueManager.h>
 
 
 namespace webserver {

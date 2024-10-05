@@ -25,21 +25,21 @@
 
 #include <web-server/WebUser.h>
 
-#include <airdcpp/Bundle.h>
-#include <airdcpp/Client.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/DirectoryListing.h>
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/DupeUtil.h>
-#include <airdcpp/GeoManager.h>
-#include <airdcpp/OnlineUser.h>
-#include <airdcpp/QueueItem.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchResult.h>
-#include <airdcpp/SearchTypes.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/ShareProfile.h>
+#include <airdcpp/queue/Bundle.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/filelist/DirectoryListing.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/util/DupeUtil.h>
+#include <airdcpp/core/geo/GeoManager.h>
+#include <airdcpp/user/OnlineUser.h>
+#include <airdcpp/queue/QueueItem.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchResult.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/share/profiles/ShareProfile.h>
 
 namespace webserver {
 	// USERS

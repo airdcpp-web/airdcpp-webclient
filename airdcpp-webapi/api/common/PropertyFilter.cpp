@@ -20,8 +20,8 @@
 
 #include <api/common/PropertyFilter.h>
 
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/Util.h>
 
 namespace webserver {
 	FilterToken lastFilterToken = 0;

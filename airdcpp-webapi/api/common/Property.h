@@ -19,7 +19,7 @@
 #ifndef DCPP_PROPERTY_H
 #define DCPP_PROPERTY_H
 
-#include <airdcpp/StringMatch.h>
+#include <airdcpp/util/text/StringMatch.h>
 
 namespace webserver {
 

@@ -24,8 +24,8 @@
 
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/share/ShareManager.h>
 
 namespace webserver {
 	CID Deserializer::parseCID(const string& aCID) {

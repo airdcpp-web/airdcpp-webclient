@@ -23,9 +23,9 @@
 #include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Encoder.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchTypes.h>
+#include <airdcpp/hash/value/Encoder.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchTypes.h>
 
 namespace webserver {
 	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {

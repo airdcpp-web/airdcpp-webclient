@@ -22,8 +22,8 @@
 #include "forward.h"
 #include "stdinc.h"
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/types/GetSet.h>
 
 #define TOKEN_PARAM_ID "id_param"
 #define TTH_PARAM_ID "tth_param"

@@ -21,8 +21,8 @@
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/LogManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/events/LogManagerListener.h>
 
 namespace webserver {
 	class EventApi : public SubscribableApiModule, private LogManagerListener {

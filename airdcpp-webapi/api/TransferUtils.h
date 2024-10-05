@@ -21,7 +21,7 @@
 
 #include <api/common/Property.h>
 
-#include <airdcpp/TransferInfo.h>
+#include <airdcpp/transfer/TransferInfo.h>
 
 namespace webserver {
 	class TransferUtils {

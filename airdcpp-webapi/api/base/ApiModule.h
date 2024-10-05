@@ -25,7 +25,7 @@
 #include <web-server/ApiRequest.h>
 #include <web-server/SessionListener.h>
 
-#include <airdcpp/debug.h>
+#include <airdcpp/core/header/debug.h>
 
 namespace webserver {
 	using boost::regex;

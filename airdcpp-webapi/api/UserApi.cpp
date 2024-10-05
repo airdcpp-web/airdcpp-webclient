@@ -24,8 +24,8 @@
 #include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/IgnoreManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/user/ignore/IgnoreManager.h>
 
 
 namespace webserver {

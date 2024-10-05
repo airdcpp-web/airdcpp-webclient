@@ -23,11 +23,11 @@
 #include <api/common/Deserializer.h>
 #include <api/common/FileSearchParser.h>
 
-#include <airdcpp/QueueAddInfo.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchInstance.h>
-#include <airdcpp/ValueGenerator.h>
+#include <airdcpp/queue/QueueAddInfo.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchInstance.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 
 namespace webserver {

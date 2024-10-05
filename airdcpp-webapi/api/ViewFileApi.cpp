@@ -26,10 +26,10 @@
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/File.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/ViewFileManager.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/viewed_files/ViewFileManager.h>
 
 namespace webserver {
 	ViewFileApi::ViewFileApi(Session* aSession) : 

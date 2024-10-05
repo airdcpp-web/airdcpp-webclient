@@ -26,18 +26,18 @@
 
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/DupeUtil.h>
-#include <airdcpp/Exception.h>
-#include <airdcpp/File.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/Thread.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/util/DupeUtil.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/core/thread/Thread.h>
+#include <airdcpp/util/Util.h>
 
-#include <airdcpp/LinkUtil.h>
-#include <airdcpp/HttpDownload.h>
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/ValueGenerator.h>
-#include <airdcpp/ViewFileManager.h>
+#include <airdcpp/util/LinkUtil.h>
+#include <airdcpp/connection/http/HttpDownload.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/util/ValueGenerator.h>
+#include <airdcpp/viewed_files/ViewFileManager.h>
 
 #include <sstream>
 

@@ -25,9 +25,9 @@
 #include "ContextMenuItem.h"
 #include "ContextMenuManagerListener.h"
 
-#include <airdcpp/ActionHook.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
+#include <airdcpp/core/ActionHook.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
 
 
 

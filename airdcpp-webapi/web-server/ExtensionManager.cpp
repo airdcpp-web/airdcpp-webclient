@@ -28,21 +28,21 @@
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebSocket.h>
 
-#include <airdcpp/CryptoUtil.h>
-#include <airdcpp/Encoder.h>
-#include <airdcpp/Exception.h>
-#include <airdcpp/File.h>
-#include <airdcpp/HttpDownload.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/SystemUtil.h>
-#include <airdcpp/Thread.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/UpdateManager.h>
-#include <airdcpp/ZUtils.h>
+#include <airdcpp/util/CryptoUtil.h>
+#include <airdcpp/hash/value/Encoder.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/connection/http/HttpDownload.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/SystemUtil.h>
+#include <airdcpp/core/thread/Thread.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/core/update/UpdateManager.h>
+#include <airdcpp/core/io/compress/ZUtils.h>
 
 
 namespace webserver {

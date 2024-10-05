@@ -26,9 +26,9 @@
 #include <web-server/JsonUtil.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/QueueManager.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/queue/QueueManager.h>
 
 namespace webserver {
 

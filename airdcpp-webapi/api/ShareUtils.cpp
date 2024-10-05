@@ -23,7 +23,7 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/share/ShareManager.h>
 
 
 namespace webserver {

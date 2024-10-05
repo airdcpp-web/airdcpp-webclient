@@ -26,9 +26,9 @@
 
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/PrivateChatManager.h>
-#include <airdcpp/ScopedFunctor.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/private_chat/PrivateChatManager.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
 
 namespace webserver {
 	StringList PrivateChatApi::subscriptionList = {

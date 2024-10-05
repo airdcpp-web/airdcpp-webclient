@@ -19,10 +19,10 @@
 #include "stdinc.h"
 #include <web-server/WebUser.h>
 
-#include <airdcpp/Encoder.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/MerkleTree.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/hash/value/Encoder.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/hash/value/MerkleTree.h>
+#include <airdcpp/util/Util.h>
 
 #include <boost/range/numeric.hpp>
 #include <boost/range/adaptor/map.hpp>

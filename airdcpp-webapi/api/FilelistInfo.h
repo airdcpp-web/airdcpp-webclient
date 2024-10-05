@@ -26,8 +26,8 @@
 #include <api/base/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/DirectoryListingListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/filelist/DirectoryListingListener.h>
 
 
 namespace webserver {

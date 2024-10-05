@@ -20,7 +20,7 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/debug.h>
+#include <airdcpp/core/header/debug.h>
 
 namespace webserver {
 

@@ -22,9 +22,9 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/FavoriteManager.h>
-#include <airdcpp/LinkUtil.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/favorites/FavoriteManager.h>
+#include <airdcpp/util/LinkUtil.h>
+#include <airdcpp/share/ShareManager.h>
 
 
 namespace webserver {

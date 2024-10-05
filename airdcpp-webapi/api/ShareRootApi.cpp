@@ -24,9 +24,9 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/HashManager.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/hash/HashManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/share/ShareManager.h>
 
 namespace webserver {
 	ShareRootApi::ShareRootApi(Session* aSession) : 

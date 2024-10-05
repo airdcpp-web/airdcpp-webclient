@@ -21,8 +21,8 @@
 
 #include "forward.h"
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/CriticalSection.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/thread/CriticalSection.h>
 
 
 namespace webserver {

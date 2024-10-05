@@ -28,8 +28,8 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/Exception.h>
-#include <airdcpp/File.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
 
 
 namespace webserver {

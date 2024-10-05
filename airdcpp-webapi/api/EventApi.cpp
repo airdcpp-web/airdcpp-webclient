@@ -26,7 +26,7 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/LogManager.h>
+#include <airdcpp/events/LogManager.h>
 
 namespace webserver {
 	EventApi::EventApi(Session* aSession) : 

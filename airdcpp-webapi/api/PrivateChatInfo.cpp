@@ -24,8 +24,8 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Client.h>
-#include <airdcpp/PrivateChat.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/private_chat/PrivateChat.h>
 
 namespace webserver {
 	StringList PrivateChatInfo::subscriptionList = {
