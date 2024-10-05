@@ -82,6 +82,8 @@ public:
 
 	static bool usingLocalMode() noexcept { return localMode; }
 	static bool wasUncleanShutdown;
+
+	static string formatCustomConfigPath(const string& aPath) noexcept;
 private:
 	/** In local mode, all config and temp files are kept in the same dir as the executable */
 	static bool localMode;
@@ -89,6 +91,7 @@ private:
 	static string paths[PATH_LAST];
 	
 	static bool loadBootConfig(const string& aDirectoryPath) noexcept;
+	static ParamMap getSystemPathParams() noexcept;
 
 	static int osMinor;
 	static int osMajor;

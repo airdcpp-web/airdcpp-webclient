@@ -27,13 +27,31 @@ file (GLOB_RECURSE airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/*.cpp ${PROJECT_SO
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${airdcpp_srcs})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${airdcpp_hdrs})
 
+
+# Remove non-wanted files
 if (NOT BUILD_CORE_MODULES)
   list(FILTER airdcpp_srcs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/modules/.*" )
   list(FILTER airdcpp_hdrs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/modules/.*" )
 endif ()
 
-add_library (${PROJECT_NAME} ${airdcpp_srcs} ${airdcpp_hdrs})
+if (NOT WIN32)
+  list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.h)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.cpp)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_WinUPnP.cpp)
+  
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.cpp)
+  list(FILTER airdcpp_srcs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/core/update/updater/.*" )
 
+  #set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
+  #set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
+
+  # set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
+
+  # add_definitions (-DNO_CLIENT_UPDATER)
+endif ()
+
+# Library
+add_library (${PROJECT_NAME} ${airdcpp_srcs} ${airdcpp_hdrs})
 
 # Dependencies
 find_package (BZip2 REQUIRED)
@@ -49,48 +67,23 @@ if (NOT BUILD_SHARED_LIBS)
   # We need to link against Snappy manually when making portable builds
   # (old hash databases wouldn't work otherwise)
   find_package (Snappy REQUIRED)
+  
+  if (SNAPPY_FOUND)
+    list (APPEND airdcpp_extra_libs Snappy::snappy)
+  endif ()
 endif ()
 
-if(ENABLE_NATPMP)
-  find_package (natpmp)
-endif()
-
-if(ENABLE_TBB)
-  find_package (TBB)
-endif()
-
-# Version information for the client
-execute_process (COMMAND python scripts/generate_version.py ./airdcpp/core/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            RESULT_VARIABLE SCRIPT_RESULT)
-
-# WINDOWS
 if (NOT WIN32)
-  list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.h)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_WinUPnP.cpp)
-
+  find_package (Threads REQUIRED)
+  find_package (Iconv REQUIRED)
+    
   if (NOT CMAKE_CROSSCOMPILING)
 	list (APPEND airdcpp_extra_libs pthread)
   endif (NOT CMAKE_CROSSCOMPILING)
-
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
-
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
-  add_definitions (-DNO_CLIENT_UPDATER)
 else ()
-	target_compile_definitions(${PROJECT_NAME}
-		PRIVATE
-			"_UNICODE"
-			"UNICODE"
-	)
-
-	find_package (unofficial-minizip REQUIRED)
-	list (APPEND airdcpp_extra_libs unofficial::minizip::minizip)
-endif ()
-
+  find_package (unofficial-minizip REQUIRED)
+  list (APPEND airdcpp_extra_libs unofficial::minizip::minizip)
+endif()
 
 # APPLE
 if (APPLE)
@@ -99,12 +92,19 @@ endif (APPLE)
 
 
 # OPTIONAL LIBRARIES
-if (TBB_FOUND)
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
-  list (APPEND airdcpp_extra_libs ${TBB_LIBRARIES})
-endif (TBB_FOUND)
+if(ENABLE_TBB)
+  find_package (TBB)
+  if (TBB_FOUND)
+    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
+    list (APPEND airdcpp_extra_libs ${TBB_LIBRARIES})
+  endif (TBB_FOUND)
+endif()
 
-if (natpmp_FOUND )
+if(ENABLE_NATPMP)
+  find_package (natpmp)
+endif()
+
+if (natpmp_FOUND)
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/MappingManager.cpp PROPERTY COMPILE_DEFINITIONS HAVE_NATPMP_H)
 
   list (APPEND airdcpp_extra_libs natpmp)
@@ -112,6 +112,33 @@ else ()
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_NATPMP.cpp)
 endif ()
 
+
+# PYTHON SCRIPTS
+
+find_program(PYTHON_EXECUTABLE NAMES python3 python PATHS /sw/bin)
+if(NOT PYTHON_EXECUTABLE)
+  message(FATAL_ERROR "Could not find 'python' executable. Please install python")
+endif(NOT PYTHON_EXECUTABLE)
+
+# Version information for the client
+find_package (Git)
+
+execute_process (COMMAND ${PYTHON_EXECUTABLE} scripts/generate_version.py ./airdcpp/core/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
+
+if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to generate version file")
+endif()
+
+# Stringdefs
+execute_process (COMMAND ${PYTHON_EXECUTABLE} scripts/generate_stringdefs.py ./airdcpp/core/localization/
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
+
+if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
+    message(FATAL_ERROR "Failed to generate string definitions")
+endif()
 
 # GENERIC COMPILING PROPERTIES
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -125,17 +152,25 @@ if (ICONV_SECOND_ARGUMENT_IS_CONST)
 endif (ICONV_SECOND_ARGUMENT_IS_CONST)
 
 if (HAVE_IFADDRS_H)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
 endif (HAVE_IFADDRS_H)
 
 if (HAVE_MNTENT_H)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/io/File.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/io/File.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
 endif (HAVE_MNTENT_H)
 
 if (HAVE_POSIX_FADVISE)
-    add_definitions (-DHAVE_POSIX_FADVISE)
+  add_definitions (-DHAVE_POSIX_FADVISE)
 endif (HAVE_POSIX_FADVISE)
 
+if (WIN32)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE "_UNICODE" "UNICODE")
+else()
+  target_compile_definitions(${PROJECT_NAME} PRIVATE "NO_CLIENT_UPDATER")
+
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
+endif()
 
 
 target_sources(${PROJECT_NAME}
@@ -163,7 +198,6 @@ target_link_libraries (${PROJECT_NAME}
 	OpenSSL::Crypto
 	miniupnpc::miniupnpc
 	leveldb::leveldb
-	Snappy::snappy
 	maxminddb::maxminddb
 	
 	Boost::thread
