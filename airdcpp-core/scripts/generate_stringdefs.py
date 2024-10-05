@@ -58,7 +58,7 @@ def generate_stringdefs(directory, force = False):
         f.write(textwrap.dedent(
               '''\
               #include "stdinc.h"
-              #include <airdcpp/ResourceManager.h>
+              #include "ResourceManager.h"
 
               '''
         ))

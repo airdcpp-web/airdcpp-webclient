@@ -21,12 +21,12 @@
 
 #include <airdcpp/forward.h>
 
-#include <airdcpp/ClientManagerListener.h>
-#include <airdcpp/SearchManagerListener.h>
+#include <airdcpp/hub/ClientManagerListener.h>
+#include <airdcpp/search/SearchManagerListener.h>
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/SearchResult.h>
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/search/SearchResult.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 namespace dcpp {
 

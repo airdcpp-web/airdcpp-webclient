@@ -1,33 +1,94 @@
-project (airdcpp)
-include_directories(${PROJECT_BINARY_DIR})
+project (
+	"airdcpp"
+	DESCRIPTION "AirDC++ Core"
+)
 cmake_minimum_required (VERSION 3.16)
 
-aux_source_directory(${PROJECT_SOURCE_DIR}/airdcpp airdcpp_srcs)
-file (GLOB airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/*.h)
+# cmake_policy(SET CMP0167 NEW) # The FindBoost module is removed.
 
-set (AIRDCPP_SRCS ${airdcpp_srcs} PARENT_SCOPE)
-set (AIRDCPP_HDRS ${airdcpp_hdrs} PARENT_SCOPE)
 
-include_directories (${Boost_INCLUDE_DIR} ${BZIP2_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR}
-			${LevelDB_INCLUDE_DIR})
+# Options
+OPTION(ENABLE_NATPMP "Enable support for the NAT-PMP protocol via libnatpmp" ON)
 
+if (WIN32)
+  OPTION(BUILD_CORE_MODULES "Build optional core modules" ON)
+  # OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance" OFF)
+else ()
+  OPTION(BUILD_CORE_MODULES "Build optional core modules" OFF)
+  OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance" ON)
+endif ()
+
+
+# Get files
+file (GLOB_RECURSE airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/*.h)
+file (GLOB_RECURSE airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
+
+# Project file generation
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${airdcpp_srcs})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${airdcpp_hdrs})
+
+if (NOT BUILD_CORE_MODULES)
+  list(FILTER airdcpp_srcs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/modules/.*" )
+  list(FILTER airdcpp_hdrs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/modules/.*" )
+endif ()
+
+add_library (${PROJECT_NAME} ${airdcpp_srcs} ${airdcpp_hdrs})
+
+
+# Dependencies
+find_package (BZip2 REQUIRED)
+find_package (ZLIB REQUIRED)
+find_package (OpenSSL REQUIRED)
+find_package (miniupnpc REQUIRED)
+find_package (leveldb REQUIRED)
+find_package (maxminddb REQUIRED)
+find_package (Boost 1.67.0 COMPONENTS regex system thread REQUIRED)
+
+if (NOT BUILD_SHARED_LIBS)
+  # Shared LevelDB libraries are linked against Snappy already
+  # We need to link against Snappy manually when making portable builds
+  # (old hash databases wouldn't work otherwise)
+  find_package (Snappy REQUIRED)
+endif ()
+
+if(ENABLE_NATPMP)
+  find_package (natpmp)
+endif()
+
+if(ENABLE_TBB)
+  find_package (TBB)
+endif()
+
+# Version information for the client
+execute_process (COMMAND python scripts/generate_version.py ./airdcpp/core/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            RESULT_VARIABLE SCRIPT_RESULT)
 
 # WINDOWS
 if (NOT WIN32)
-  list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.h)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/ZipFile.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/UpdateDownloader.cpp)
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_WinUPnP.cpp)
+  list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.h)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.cpp)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.cpp)
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_WinUPnP.cpp)
 
   if (NOT CMAKE_CROSSCOMPILING)
-    set (PTHREADS "pthread")
+	list (APPEND airdcpp_extra_libs pthread)
   endif (NOT CMAKE_CROSSCOMPILING)
 
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
 
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
   add_definitions (-DNO_CLIENT_UPDATER)
+else ()
+	target_compile_definitions(${PROJECT_NAME}
+		PRIVATE
+			"_UNICODE"
+			"UNICODE"
+	)
+
+	find_package (unofficial-minizip REQUIRED)
+	list (APPEND airdcpp_extra_libs unofficial::minizip::minizip)
 endif ()
 
 
@@ -39,21 +100,18 @@ endif (APPLE)
 
 # OPTIONAL LIBRARIES
 if (TBB_FOUND)
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
   list (APPEND airdcpp_extra_libs ${TBB_LIBRARIES})
 endif (TBB_FOUND)
 
-if (LibNatpmp_FOUND )
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/MappingManager.cpp PROPERTY COMPILE_DEFINITIONS HAVE_NATPMP_H)
+if (natpmp_FOUND )
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/MappingManager.cpp PROPERTY COMPILE_DEFINITIONS HAVE_NATPMP_H)
 
-  list (APPEND airdcpp_extra_libs ${LibNatpmp_LIBRARY})
-else (LibNatpmp_FOUND )
-  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/Mapper_NATPMP.cpp)
-endif (LibNatpmp_FOUND )
+  list (APPEND airdcpp_extra_libs natpmp)
+else ()
+  list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_NATPMP.cpp)
+endif ()
 
-#if (SNAPPY_FOUND)
-#  list (APPEND airdcpp_extra_libs ${SNAPPY_LIBRARIES})
-#endif (SNAPPY_FOUND)
 
 # GENERIC COMPILING PROPERTIES
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -63,15 +121,15 @@ endif()
 set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
 
 if (ICONV_SECOND_ARGUMENT_IS_CONST)
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/text/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
 endif (ICONV_SECOND_ARGUMENT_IS_CONST)
 
 if (HAVE_IFADDRS_H)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
+    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
 endif (HAVE_IFADDRS_H)
 
 if (HAVE_MNTENT_H)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/File.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
+    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/io/File.cpp PROPERTY COMPILE_DEFINITIONS HAVE_MNTENT_H APPEND)
 endif (HAVE_MNTENT_H)
 
 if (HAVE_POSIX_FADVISE)
@@ -80,24 +138,46 @@ endif (HAVE_POSIX_FADVISE)
 
 
 
-# LINKING
-add_library (airdcpp ${airdcpp_srcs} ${airdcpp_hdrs})
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${airdcpp_srcs}
+)
 
-target_link_libraries (airdcpp ${PTHREADS} ${BZIP2_LIBRARIES} ${ZLIB_LIBRARIES} ${MINIUPNP_LIBRARY}
-${OPENSSL_LIBRARIES} ${ICONV_LIBRARIES} ${airdcpp_extra_libs} ${UPNP} ${Boost_LIBRARIES} ${LevelDB_LIBRARY} ${SNAPPY_LIBRARIES} ${LIBMAXMINDDB_LIBRARY} )
-
-set_target_properties(airdcpp PROPERTIES VERSION ${SOVERSION} OUTPUT_NAME "airdcpp")
-
-target_precompile_headers(airdcpp PUBLIC
-  "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/airdcpp/stdinc.h>"
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp
+    PUBLIC
+        # where top-level project will look for the library's public headers
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        # where external projects will look for the library's public headers
+        #$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 
-#if (WIN32)
-#   set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS)
-#else(WIN32)
-#   set_property(TARGET airdcpp PROPERTY COMPILE_FLAGS -fPIC)
-#endif (WIN32)
+# LINKING
+
+target_link_libraries (${PROJECT_NAME} 
+	BZip2::BZip2
+	ZLIB::ZLIB
+	OpenSSL::SSL
+	OpenSSL::Crypto
+	miniupnpc::miniupnpc
+	leveldb::leveldb
+	Snappy::snappy
+	maxminddb::maxminddb
+	
+	Boost::thread
+	Boost::system
+	Boost::regex
+
+	${airdcpp_extra_libs} 
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${VERSION} OUTPUT_NAME "airdcpp")
+
+target_precompile_headers(${PROJECT_NAME} PUBLIC
+  "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/airdcpp/stdinc.h>"
+)
 
 
 # INSTALLATION
@@ -107,7 +187,7 @@ if (APPLE)
 endif(APPLE)
 
 if (BUILD_SHARED_LIBS)
-  install (TARGETS airdcpp
+  install (TARGETS ${PROJECT_NAME}
             LIBRARY DESTINATION "${LIBDIR}" NAMELINK_SKIP
             BUNDLE DESTINATION ${LIBDIR1})
 endif ()

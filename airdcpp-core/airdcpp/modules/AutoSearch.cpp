@@ -20,17 +20,17 @@
 
 #include "AutoSearch.h"
 
-#include <airdcpp/ActionHook.h>
-#include <airdcpp/Bundle.h>
-#include <airdcpp/PathUtil.h>
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/SearchQuery.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchTypes.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/ValueGenerator.h>
+#include <airdcpp/core/ActionHook.h>
+#include <airdcpp/queue/Bundle.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/search/SearchQuery.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/settings/SettingsManager.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 

@@ -23,9 +23,9 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/Singleton.h>
+#include <airdcpp/settings/SettingsManager.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/core/Singleton.h>
 
 #include "ColorSettings.h"
 
