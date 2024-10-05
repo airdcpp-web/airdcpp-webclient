@@ -306,7 +306,6 @@ string AppUtil::formatCustomConfigPath(const string& aPath) noexcept {
 		path = File::makeAbsolutePath(path);
 	}
 
-	path = Util::formatParams(path, getSystemPathParams());
 	return path;
 }
 
