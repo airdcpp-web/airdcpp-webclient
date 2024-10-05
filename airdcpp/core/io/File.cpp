@@ -706,11 +706,16 @@ time_t File::getLastWriteTime(const string& aPath) noexcept {
 
 std::string File::makeAbsolutePath(const std::string& aPath, const std::string& aFilename) {
 	string ret;
-	ret.reserve(MAX_PATH);
+	ret.reserve(PATH_MAX + 1);
 
 	string input = aFilename + aPath;
-	realpath(input.c_str(), &ret[0]);
-	return ret;
+	auto res = realpath(input.c_str(), &ret[0]);
+	if (!res) {
+		dcassert(0);
+		return aFilename + aPath;
+	}
+
+	return string(res);
 }
 
 
@@ -721,6 +726,10 @@ File::~File() {
 }
 
 std::string File::makeAbsolutePath(const std::string& aFilename) {
+	if (isAbsolutePath(aFilename)) {
+		return aFilename;
+	}
+
 	return makeAbsolutePath(AppUtil::getAppFilePath(), aFilename);
 }
 

@@ -296,6 +296,35 @@ void AppUtil::migrate(const string& aNewDir, const string& aPattern) noexcept {
 	}
 }
 
+string AppUtil::formatCustomConfigPath(const string& aPath) noexcept {
+	if (aPath.empty()) {
+		return aPath;
+	}
+
+	auto path = Util::formatParams(PathUtil::ensureTrailingSlash(aPath), getSystemPathParams());
+	if (!File::isAbsolutePath(path)) {
+		path = File::makeAbsolutePath(path);
+	}
+
+	path = Util::formatParams(path, getSystemPathParams());
+	return path;
+}
+
+ParamMap AppUtil::getSystemPathParams() noexcept {
+	ParamMap params;
+#ifdef _WIN32
+	// @todo load environment variables instead? would make it more useful on *nix
+	TCHAR tmpPath[MAX_PATH];
+
+	params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
+	params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
+#else
+	const char* home_ = getenv("HOME");
+	params["HOME"] = home_ ? home_ : "/tmp/";
+#endif
+	return params;
+}
+
 bool AppUtil::loadBootConfig(const string& aDirectoryPath) noexcept {
 	string xmlFilePath;
 	if (PathUtil::fileExists(aDirectoryPath + "dcppboot.xml.user")) {
@@ -313,40 +342,14 @@ bool AppUtil::loadBootConfig(const string& aDirectoryPath) noexcept {
 			localMode = boot.getChildData() != "0";
 		}
 		boot.resetCurrentChild();
-
-		auto validatePath = [](Paths aPathType) {
-			if (!paths[aPathType].empty()) {
-				paths[aPathType] = PathUtil::ensureTrailingSlash(paths[aPathType]);
-				if (!File::isAbsolutePath(paths[aPathType])) {
-					paths[aPathType] = File::makeAbsolutePath(paths[aPathType]);
-				}
-			}
-		};
-
-		auto getSystemPathParams = []() {
-			ParamMap params;
-#ifdef _WIN32
-			// @todo load environment variables instead? would make it more useful on *nix
-			TCHAR tmpPath[MAX_PATH];
-
-			params["APPDATA"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
-			params["PERSONAL"] = Text::fromT((::SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, tmpPath), tmpPath));
-#else
-			const char* home_ = getenv("HOME");
-			params["HOME"] = home_ ? home_ : "/tmp/";
-#endif
-			return params;
-		};
 	
 		if (boot.findChild("ConfigPath")) {
-			paths[PATH_USER_CONFIG] = Util::formatParams(boot.getChildData(), getSystemPathParams());
-			validatePath(PATH_USER_CONFIG);
+			paths[PATH_USER_CONFIG] = formatCustomConfigPath(boot.getChildData());
 		}
 		boot.resetCurrentChild();
 
 		if (boot.findChild("TempPath")) {
-			paths[PATH_TEMP] = Util::formatParams(boot.getChildData(), getSystemPathParams());
-			validatePath(PATH_TEMP);
+			paths[PATH_TEMP] = formatCustomConfigPath(boot.getChildData());
 		}
 
 		boot.resetCurrentChild();
