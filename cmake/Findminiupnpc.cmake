@@ -1,14 +1,3 @@
-#find_path(MINIUPNP_INCLUDE_DIR miniupnpc/miniupnpc.h
-#   PATH_SUFFIXES miniupnpc)
-#find_library(MINIUPNP_LIBRARY miniupnpc)
-
-#INCLUDE(FindPackageHandleStandardArgs)
-#FIND_PACKAGE_HANDLE_STANDARD_ARGS(Miniupnpc DEFAULT_MSG MINIUPNP_LIBRARY MINIUPNP_INCLUDE_DIR)
-
-#MARK_AS_ADVANCED(
-#  MINIUPNP_INCLUDE_DIR
-#  MINIUPNP_LIBRARY
-#)
 
 if(UNIX)
     find_package(PkgConfig QUIET)
@@ -24,8 +13,8 @@ find_library(MINIUPNPC_LIBRARY
         libminiupnpc
     HINTS ${_MINIUPNPC_LIBDIR})
 
-#set(MINIUPNPC_INCLUDE_DIRS ${MINIUPNPC_INCLUDE_DIR})
-#set(MINIUPNPC_LIBRARIES ${MINIUPNPC_LIBRARY})
+set(MINIUPNPC_INCLUDE_DIRS ${MINIUPNPC_INCLUDE_DIR})
+set(MINIUPNPC_LIBRARIES ${MINIUPNPC_LIBRARY})
 
 include(FindPackageHandleStandardArgs)
 
@@ -37,7 +26,7 @@ find_package_handle_standard_args(miniupnpc
 mark_as_advanced(MINIUPNPC_INCLUDE_DIR MINIUPNPC_LIBRARY)
 
 if(MINIUPNPC_FOUND)
-    message(STATUS "Found miniupnpc  (include: ${MINIUPNPC_INCLUDE_DIR}, library: ${MINIUPNPC_LIBRARY})")
+    # message(STATUS "Found miniupnpc  (include: ${MINIUPNPC_INCLUDE_DIR}, library: ${MINIUPNPC_LIBRARY})")
     if(NOT TARGET miniupnpc::miniupnpc)
       add_library(miniupnpc::miniupnpc UNKNOWN IMPORTED)
       set_target_properties(miniupnpc::miniupnpc PROPERTIES

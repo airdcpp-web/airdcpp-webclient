@@ -172,6 +172,11 @@ endif()
 
 
 # FILES TO COMPILE
+
+# Remove possible old generated files
+execute_process(COMMAND rm airdcpp-core/airdcpp/StringDefs.cpp OUTPUT_QUIET ERROR_QUIET)
+execute_process(COMMAND rm airdcpp-core/airdcpp/version.inc OUTPUT_QUIET ERROR_QUIET)
+
 add_subdirectory (airdcpp-core)
 add_subdirectory (airdcpp-webapi)
 add_subdirectory (airdcppd)

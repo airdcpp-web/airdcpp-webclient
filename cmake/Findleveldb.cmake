@@ -39,7 +39,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(leveldb DEFAULT_MSG LEVELDB_INCLUDE_DIRS LEVELDB_LIBRARIES)
 
 if(LEVELDB_FOUND)
-  message(STATUS "Found LevelDB (include: ${LEVELDB_INCLUDE_DIRS}, library: ${LEVELDB_LIBRARIES})")
+  # message(STATUS "Found LevelDB (include: ${LEVELDB_INCLUDE_DIRS}, library: ${LEVELDB_LIBRARIES})")
   mark_as_advanced(LEVELDB_INCLUDE_DIRS LEVELDB_LIBRARIES)
 
   if(EXISTS "${LEVELDB_INCLUDE_DIRS}/leveldb/db.h")

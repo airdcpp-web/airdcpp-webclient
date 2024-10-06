@@ -39,7 +39,7 @@ mark_as_advanced(
 )
 
 if(MAXMINDDB_FOUND)
-    message(STATUS "Found maxminddb  (include: ${LIBMAXMINDDB_INCLUDE_DIR}, library: ${LIBMAXMINDDB_LIBRARIES})")
+    # message(STATUS "Found maxminddb  (include: ${LIBMAXMINDDB_INCLUDE_DIR}, library: ${LIBMAXMINDDB_LIBRARIES})")
     if(NOT TARGET maxminddb::maxminddb)
       add_library(maxminddb::maxminddb UNKNOWN IMPORTED)
       set_target_properties(maxminddb::maxminddb PROPERTIES
