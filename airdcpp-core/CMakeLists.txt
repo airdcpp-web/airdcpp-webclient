@@ -87,7 +87,7 @@ if(ENABLE_TBB)
   find_package (TBB)
   if (TBB_FOUND)
     add_definitions ( -DHAVE_INTEL_TBB )
-    list (APPEND airdcpp_extra_libs tbb)
+    list (APPEND airdcpp_extra_libs TBB::tbb)
   endif (TBB_FOUND)
 endif()
 
