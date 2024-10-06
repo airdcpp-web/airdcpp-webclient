@@ -33,7 +33,7 @@ if __name__ == "__main__":
     commitCount=0
     commit=""
 
-    result = subprocess.run(["git", "ls-remote"], stdout=subprocess.DEVNULL) 
+    result = subprocess.run(["git", "ls-remote"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) 
     if result.returncode != 0:
         print("-- Not using a Git version")
     # else:
