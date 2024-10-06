@@ -4,7 +4,9 @@ project (
 )
 cmake_minimum_required (VERSION 3.16)
 
-# cmake_policy(SET CMP0167 NEW) # The FindBoost module is removed.
+if (POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW) # The FindBoost module is removed.
+endif()
 
 
 # Options
@@ -12,7 +14,7 @@ OPTION(ENABLE_NATPMP "Enable support for the NAT-PMP protocol via libnatpmp" ON)
 
 if (WIN32)
   OPTION(BUILD_CORE_MODULES "Build optional core modules" ON)
-  # OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance" OFF)
+  OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance" OFF) # MSVC provides the same features
 else ()
   OPTION(BUILD_CORE_MODULES "Build optional core modules" OFF)
   OPTION(ENABLE_TBB "Enable support of the TBB library to improve performance" ON)
@@ -41,13 +43,6 @@ if (NOT WIN32)
   
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.cpp)
   list(FILTER airdcpp_srcs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/core/update/updater/.*" )
-
-  #set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS RESOURCE_DIRECTORY="${RESOURCE_DIRECTORY}")
-  #set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AppUtil.cpp APPEND PROPERTY COMPILE_DEFINITIONS GLOBAL_CONFIG_DIRECTORY="${GLOBAL_CONFIG_DIRECTORY}")
-
-  # set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/update/UpdateDownloader.h PROPERTY COMPILE_DEFINITIONS NO_CLIENT_UPDATER)
-
-  # add_definitions (-DNO_CLIENT_UPDATER)
 endif ()
 
 # Library
@@ -79,24 +74,20 @@ if (NOT WIN32)
     
   if (NOT CMAKE_CROSSCOMPILING)
 	list (APPEND airdcpp_extra_libs pthread)
+    list (APPEND airdcpp_extra_libs Iconv::Iconv)
   endif (NOT CMAKE_CROSSCOMPILING)
 else ()
   find_package (unofficial-minizip REQUIRED)
   list (APPEND airdcpp_extra_libs unofficial::minizip::minizip)
 endif()
 
-# APPLE
-if (APPLE)
-  list (APPEND airdcpp_extra_libs ${ICONV_LIBRARIES})
-endif (APPLE)
-
 
 # OPTIONAL LIBRARIES
 if(ENABLE_TBB)
   find_package (TBB)
   if (TBB_FOUND)
-    set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/core/concurrency.h PROPERTY COMPILE_DEFINITIONS HAVE_INTEL_TBB)
-    list (APPEND airdcpp_extra_libs ${TBB_LIBRARIES})
+    add_definitions ( -DHAVE_INTEL_TBB )
+    list (APPEND airdcpp_extra_libs tbb)
   endif (TBB_FOUND)
 endif()
 
@@ -146,10 +137,6 @@ if (CMAKE_BUILD_TYPE STREQUAL Debug)
 endif()
 
 set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
-
-if (ICONV_SECOND_ARGUMENT_IS_CONST)
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/text/Text.cpp PROPERTY COMPILE_DEFINITIONS ICONV_CONST=const)
-endif (ICONV_SECOND_ARGUMENT_IS_CONST)
 
 if (HAVE_IFADDRS_H)
   set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
