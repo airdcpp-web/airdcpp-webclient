@@ -645,12 +645,10 @@ bool Client::checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser)
 		return true;
 	}
 
-	auto message = STRING_F(CONNECT_REQUEST_SPAM_FROM, aTarget);
-	if (aAdcUser) {
-		message += " (" + aAdcUser->getIdentity().getNick() + ")";
-	}
+	auto nick = aAdcUser ? aAdcUser->getIdentity().getNick() : STRING(UNKNOWN);
+	auto message = STRING_F(CONNECT_REQUEST_SPAM_FROM, aTarget % nick);
 
-	handleFlood(result, message);
+	handleFlood(result, ctmFloodCounter.appendFloodRate(aTarget, message, result.type == FloodCounter::FloodType::FLOOD_SEVERE));
 	return false;
 }
 
@@ -660,12 +658,10 @@ bool Client::checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUs
 		return true;
 	}
 
-	auto message = STRING_F(SEARCH_SPAM_FROM, aTarget);
-	if (aAdcUser) {
-		message += " (" + aAdcUser->getIdentity().getNick() + ")";
-	}
+	auto nick = aAdcUser ? aAdcUser->getIdentity().getNick() : STRING(UNKNOWN);
+	auto message = STRING_F(SEARCH_SPAM_FROM, aTarget % nick);
 
-	handleFlood(result, message);
+	handleFlood(result, searchFloodCounter.appendFloodRate(aTarget, message, result.type == FloodCounter::FloodType::FLOOD_SEVERE));
 	return false;
 }
 
@@ -683,9 +679,10 @@ void Client::handleFlood(const FloodCounter::FloodResult& aResult, const string&
 			return;
 		}
 
-		auto message = aMessage + " (" + Text::toLower(STRING(SEVERE)) + ")";
-
-		statusMessage(STRING_F(HUB_DDOS_DISCONNECT, message), LogMessage::SEV_ERROR);
+		statusMessage(
+			STRING_F(HUB_DDOS_DISCONNECT, aMessage),
+			LogMessage::SEV_ERROR
+		);
 		setReconnDelay(10 * 60); // 10 minutes
 		disconnect(true);
 	}

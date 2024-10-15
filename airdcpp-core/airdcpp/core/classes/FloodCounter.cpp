@@ -19,7 +19,9 @@
 #include "stdinc.h"
 #include <airdcpp/core/classes/FloodCounter.h>
 
+#include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/Util.h>
 
 namespace dcpp {
 	FloodCounter::FloodCounter(int aPeriod) : floodPeriod(aPeriod) {
@@ -57,6 +59,37 @@ namespace dcpp {
 			FloodType::OK,
 			false,
 		};
+	}
+
+	FloodCounter::FloodRate FloodCounter::getRate(const string& aRequester) const noexcept {
+		Lock l(cs);
+		auto range = floodIps.equal_range(aRequester);
+		if (range.first == range.second) {
+			return {
+				0,
+				0
+			};
+		}
+
+		auto min = ranges::min_element(range | pair_to_range | views::values);
+		auto max = ranges::max_element(range | pair_to_range | views::values);
+
+		auto period = *max - *min;
+		return {
+			static_cast<int>(distance(range.first, range.second)),
+			static_cast<int>(period),
+		};
+	}
+
+	string FloodCounter::appendFloodRate(const string& aRequester, const string& aMessage, bool aSevere) const noexcept {
+		auto rate = getRate(aRequester);
+
+		auto toAppend = STRING_F(X_REQUESTS_SECONDS, rate.attempts % Util::toString(static_cast<double>(rate.periodMs) / 1000));
+		if (aSevere) {
+			toAppend += ", " + Text::toLower(STRING(SEVERE));
+		}
+
+		return aMessage + " (" + toAppend + ")";
 	}
 
 	void FloodCounter::addRequest(const string& aIp) noexcept {

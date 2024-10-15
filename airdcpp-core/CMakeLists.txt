@@ -111,25 +111,34 @@ if(NOT PYTHON_EXECUTABLE)
   message(FATAL_ERROR "Could not find 'python' executable. Please install python")
 endif(NOT PYTHON_EXECUTABLE)
 
+
 # Version information for the client
-find_package (Git)
+# Having the version file up-to-date isn't that relevant with a debug build (the build step will be skipped entirely if there are no changed files)
+if (NOT CMAKE_BUILD_TYPE STREQUAL Debug OR NOT EXISTS "${PROJECT_SOURCE_DIR}/airdcpp/core/version.inc")
+  find_package (Git)
 
-execute_process (COMMAND ${PYTHON_EXECUTABLE} scripts/generate_version.py ./airdcpp/core/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            RESULT_VARIABLE SCRIPT_RESULT)
+  add_custom_target(version_file ALL DEPENDS 
+    COMMAND ${PYTHON_EXECUTABLE} scripts/generate_version.py ./airdcpp/core/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  )
 
-if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
-    message(FATAL_ERROR "Failed to generate version file")
-endif()
+  add_dependencies(${PROJECT_NAME} version_file)
+endif ()
 
 # Stringdefs
-execute_process (COMMAND ${PYTHON_EXECUTABLE} scripts/generate_stringdefs.py ./airdcpp/core/localization/
-            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-            RESULT_VARIABLE SCRIPT_RESULT)
+add_custom_target(stringdefs ALL DEPENDS 
+    ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp/core/localization/StringDefs.cpp
+)
 
-if(NOT "${SCRIPT_RESULT}" STREQUAL "0")
-    message(FATAL_ERROR "Failed to generate string definitions")
-endif()
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/airdcpp/core/localization/StringDefs.cpp
+  COMMAND ${PYTHON_EXECUTABLE} scripts/generate_stringdefs.py ./airdcpp/core/localization/
+  DEPENDS ${SOURCE_FILES} airdcpp/core/localization/StringDefs.h
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+)
+
+list (APPEND airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/localization/StringDefs.cpp)
+
 
 # GENERIC COMPILING PROPERTIES
 if (CMAKE_BUILD_TYPE STREQUAL Debug)

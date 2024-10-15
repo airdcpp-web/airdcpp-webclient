@@ -53,6 +53,8 @@ namespace dcpp {
 		FloodResult getFloodStatus(const string& aRequester, const FloodLimits& aLimits) noexcept;
 
 		void addRequest(const string& aRequester) noexcept;
+
+		string appendFloodRate(const string& aRequester, const string& aMessage, bool aSevere) const noexcept;
 	protected:
 		typedef multimap<string, time_t> IpMap;
 
@@ -64,6 +66,13 @@ namespace dcpp {
 
 		// Remove expired flood entries
 		void prune() noexcept;
+
+		struct FloodRate {
+			int attempts;
+			int periodMs;
+		};
+
+		FloodRate getRate(const string& aRequester) const noexcept;
 	};
 }
 

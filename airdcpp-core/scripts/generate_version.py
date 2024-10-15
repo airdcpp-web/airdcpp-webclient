@@ -36,7 +36,6 @@ if __name__ == "__main__":
     result = subprocess.run(["git", "ls-remote"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) 
     if result.returncode != 0:
         print("-- Not using a Git version")
-    # else:
     elif get_git_output(["rev-parse", "--abbrev-ref", "HEAD"]) != 'master' or 'b' in version or 'a' in version:
       version=get_git_output(["describe", "--tags", "--abbrev=4", "--dirty=-d"])
       commitCount=get_git_output(["rev-list", "HEAD", "--count"])

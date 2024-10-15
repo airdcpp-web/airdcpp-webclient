@@ -64,7 +64,7 @@ public:
 	const string& getPath() const noexcept { return dbPath; }
 	uint64_t getCacheSize() const noexcept { return cacheSize; }
 protected:
-	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) noexcept : dbPath(PathUtil::validatePath(aPath, true)), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
+	DbHandler(const string& aPath, const string& aFriendlyName, uint64_t aCacheSize) noexcept : dbPath(PathUtil::validateDirectoryPath(aPath)), friendlyName(aFriendlyName), cacheSize(aCacheSize) {
 
 	}
 

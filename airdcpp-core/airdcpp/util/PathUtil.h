@@ -70,6 +70,13 @@ public:
 	static bool isAdcDirectoryPath(const string_view aPath) noexcept;
 	static bool isAdcRoot(const string_view aPath) noexcept;
 
+	static string validateDirectoryPath(const string& aPath) noexcept {
+		return validatePath(aPath, true);
+	}
+	static string validateFilePath(const string& aPath) noexcept {
+		return validatePath(aPath, false);
+	}
+
 	static string validatePath(const string& aPath, bool aRequireEndSeparator = false) noexcept;
 	static inline string validateFileName(const string& aFileName) noexcept { return cleanPathChars(aFileName, true); }
 	static string cleanPathSeparators(const string& str) noexcept;

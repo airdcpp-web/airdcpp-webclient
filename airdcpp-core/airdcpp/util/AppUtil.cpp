@@ -64,7 +64,7 @@ void WINAPI invalidParameterHandler(const wchar_t*, const wchar_t*, const wchar_
 static string getDownloadsPath(const string& def) noexcept {
 	PWSTR path = NULL;
 	if (SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_CREATE, NULL, &path) == S_OK) {
-		return PathUtil::validatePath(Text::fromT(path), true);
+		return PathUtil::validateDirectoryPath(Text::fromT(path));
 	}
 
 	return def + "Downloads\\";
@@ -85,7 +85,16 @@ void StartupParams::addParam(const string& aParam) noexcept {
 }
 
 bool StartupParams::removeParam(const string& aParam) noexcept {
-	if (auto param = find(params.begin(), params.end(), aParam); param != params.end()) {
+	auto param = ranges::find_if(params, [&aParam](const string& aCurrentParam) {
+		auto pos = aCurrentParam.find("=");
+		if (pos != string::npos && pos != aCurrentParam.length()) {
+			return Util::strnicmp(aCurrentParam, aParam, pos) == 0;
+		}
+
+		return Util::stricmp(aParam, aCurrentParam) == 0;
+	});
+
+	if (param != params.end()) {
 		params.erase(param);
 		return true;
 	}
@@ -169,7 +178,7 @@ void AppUtil::initialize(const string& aConfigPath) {
 				paths[PATH_USER_CONFIG] = paths[PATH_GLOBAL_CONFIG] + paths[PATH_USER_CONFIG];
 			}
 
-			paths[PATH_USER_CONFIG] = PathUtil::validatePath(paths[PATH_USER_CONFIG], true);
+			paths[PATH_USER_CONFIG] = PathUtil::validateDirectoryPath(paths[PATH_USER_CONFIG]);
 		}
 
 		if (localMode) {

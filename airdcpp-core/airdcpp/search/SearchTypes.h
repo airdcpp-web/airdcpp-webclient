@@ -38,18 +38,17 @@ class SocketException;
 
 class SearchType {
 public:
-	SearchType(const string& aId, const string& aName, const StringList& aExtensions) :
-		id(aId), name(aName), extensions(aExtensions) {
-
-	}
+	SearchType(const string& aId, const string& aName, const StringList& aExtensions);
 
 	string getDisplayName() const noexcept;
 	bool isDefault() const noexcept;
 	Search::TypeModes getTypeMode() const noexcept;
 
-	GETSET(string, id, Id);
+	GETPROP(string, id, Id);
 	GETSET(string, name, Name);
-	GETSET(StringList, extensions, Extensions);
+	GETPROP(StringList, extensions, Extensions);
+
+	void setExtensions(const StringList& aExtensions) noexcept;
 };
 
 class SearchTypes: private SettingsManagerListener
