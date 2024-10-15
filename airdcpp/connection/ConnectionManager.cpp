@@ -624,7 +624,11 @@ void ConnectionManager::accept(const Socket& sock, bool aSecure) noexcept {
 			}
 
 			if (floodResult.type == FloodCounter::FloodType::FLOOD_SEVERE && floodResult.hitLimit) {
-				LogManager::getInstance()->message(STRING_F(INCOMING_CONNECT_FLOOD_FROM, aIP), LogMessage::SEV_WARNING, STRING(CONNECTIVITY));
+				LogManager::getInstance()->message(
+					floodCounter.appendFloodRate(aIP, STRING_F(INCOMING_CONNECT_FLOOD_FROM, aIP), true), 
+					LogMessage::SEV_WARNING,
+					STRING(CONNECTIVITY)
+				);
 			}
 
 			return false;

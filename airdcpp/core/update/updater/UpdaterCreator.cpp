@@ -50,28 +50,26 @@
 
 namespace dcpp {
 
-string UpdaterCreator::createUpdate(const FileListF& aFileListF, const ErrorF& aErrorF) noexcept {
-	auto updaterFilePath = PathUtil::getParentDir(AppUtil::getAppPath());
-
+string UpdaterCreator::createUpdate(const FileListF& aFileListF, const string& aOutputDirectoryPath, const ErrorF& aErrorF) noexcept {
 	// Create zip
 	{
 		StringPairList files;
 
-		aFileListF(files, updaterFilePath);
-		ZipFile::CreateZipFile(updaterFilePath + UPDATER_FILE_NAME, files);
+		aFileListF(files);
+		ZipFile::CreateZipFile(aOutputDirectoryPath + UPDATER_FILE_NAME, files);
 	}
 
 	// Update version file
-	if (!updateVersionFile(updaterFilePath, aErrorF)) {
+	if (!updateVersionFile(aOutputDirectoryPath, aErrorF)) {
 		return Util::emptyString;
 	}
 
 	// Signature file
-	if (!signVersionFile(updaterFilePath + VERSION_FILE_NAME, updaterFilePath + "air_rsa", aErrorF, false)) {
+	if (!signVersionFile(aOutputDirectoryPath + VERSION_FILE_NAME, aOutputDirectoryPath + "air_rsa", aErrorF, false)) {
 		return Util::emptyString;
 	}
 
-	return updaterFilePath + UPDATER_FILE_NAME;
+	return aOutputDirectoryPath + UPDATER_FILE_NAME;
 }
 
 bool UpdaterCreator::updateVersionFile(const string& aUpdaterPath, const ErrorF& aErrorF) {

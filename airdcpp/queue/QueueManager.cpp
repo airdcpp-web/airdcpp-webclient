@@ -947,8 +947,8 @@ string QueueManager::formatBundleTarget(const string& aPath, time_t aRemoteDate)
 	params["username"] = [] { return SystemUtil::getSystemUsername(); };
 	
 	auto time = (SETTING(FORMAT_DIR_REMOTE_TIME) && aRemoteDate > 0) ? aRemoteDate : GET_TIME();
-	auto formatedPath = Util::formatParams(aPath, params, nullptr, time);
-	return PathUtil::validatePath(formatedPath);
+	auto formattedPath = Util::formatParams(aPath, params, nullptr, time);
+	return PathUtil::validatePath(formattedPath);
 }
 
 BundleAddInfo QueueManager::createFileBundleHooked(const BundleAddOptions& aOptions, BundleFileAddData& aFileInfo, Flags::MaskType aFlags) {

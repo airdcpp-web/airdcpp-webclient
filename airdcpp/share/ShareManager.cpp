@@ -329,7 +329,7 @@ void ShareManager::loadProfile(SimpleXML& aXml, bool aIsDefault) {
 
 	aXml.stepIn();
 	while(aXml.findChild("Directory")) {
-		auto realPath = PathUtil::validatePath(aXml.getChildData(), true);
+		auto realPath = PathUtil::validateDirectoryPath(aXml.getChildData());
 		if(realPath.empty()) {
 			continue;
 		}

@@ -120,7 +120,7 @@ private:
 	void clearUsers() noexcept override;
 	void appendConnectivity(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) const noexcept;
 	void appendClientSupports(StringMap& aLastInfoMap, AdcCommand& c, bool v4, bool v6) const noexcept;
-	void appendConnectionSpeed(StringMap& aLastInfoMap, AdcCommand& c, const string& aConnection, int64_t aLimit) const noexcept;
+	void appendConnectionSpeed(StringMap& aLastInfoMap, AdcCommand& c, const string& aParam, const string& aConnection, int64_t aLimit) const noexcept;
 
 	static void appendHubSupports(AdcCommand& aCmd);
 

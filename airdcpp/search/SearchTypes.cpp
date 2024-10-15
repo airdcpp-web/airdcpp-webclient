@@ -28,6 +28,8 @@
 #include <airdcpp/util/text/StringTokenizer.h>
 #include <airdcpp/util/ValueGenerator.h>
 
+#include <boost/algorithm/string/trim.hpp>
+
 namespace dcpp {
 
 ResourceManager::Strings SearchTypes::types[Search::TYPE_LAST] = {
@@ -42,12 +44,20 @@ ResourceManager::Strings SearchTypes::types[Search::TYPE_LAST] = {
 	ResourceManager::TTH_ROOT,
 	ResourceManager::FILE
 };
-const string& SearchTypes::getTypeStr(int aType) noexcept {
-	return STRING_I(types[aType]);
+
+SearchType::SearchType(const string& aId, const string& aName, const StringList& aExtensions) :
+	id(aId), name(aName) {
+
+	setExtensions(aExtensions);
 }
 
-bool SearchTypes::isDefaultTypeStr(const string& aType) noexcept {
-	 return aType.size() == 1 && aType[0] >= '0' && aType[0] <= '9';
+void SearchType::setExtensions(const StringList& aExtensions) noexcept {
+	OrderedStringSet unique;
+	for (const auto& ext : aExtensions) {
+		unique.emplace(boost::trim_copy(ext));
+	}
+
+	extensions = StringList(unique.begin(), unique.end());
 }
 
 string SearchType::getDisplayName() const noexcept {
@@ -74,6 +84,14 @@ SearchTypes::SearchTypes(SearchTypeChangeHandler&& aSearchTypeChangeHandler) : o
 
 SearchTypes::~SearchTypes() {
 	SettingsManager::getInstance()->removeListener(this);
+}
+
+const string& SearchTypes::getTypeStr(int aType) noexcept {
+	return STRING_I(types[aType]);
+}
+
+bool SearchTypes::isDefaultTypeStr(const string& aType) noexcept {
+	return aType.size() == 1 && aType[0] >= '0' && aType[0] <= '9';
 }
 
 void SearchTypes::validateSearchTypeName(const string& aName) {

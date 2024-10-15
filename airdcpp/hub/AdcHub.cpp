@@ -1397,10 +1397,10 @@ void AdcHub::appendClientSupports(StringMap& aLastInfoMap, AdcCommand& c, bool v
 	addParam(aLastInfoMap, c, "SU", su);
 }
 
-void AdcHub::appendConnectionSpeed(StringMap& aLastInfoMap, AdcCommand& c, const string& aConnection, int64_t aLimitKbps) const noexcept {
+void AdcHub::appendConnectionSpeed(StringMap& aLastInfoMap, AdcCommand& c, const string& aParam, const string& aConnection, int64_t aLimitKbps) const noexcept {
 	auto limit = aLimitKbps * 1000;
 	auto connSpeed = static_cast<int64_t>((Util::toDouble(aConnection) * 1000.0 * 1000.0) / 8.0);
-	addParam(aLastInfoMap, c, "US", Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
+	addParam(aLastInfoMap, c, aParam, Util::toString(limit > 0 ? min(limit, connSpeed) : connSpeed));
 }
 
 void AdcHub::infoImpl() noexcept {
@@ -1435,8 +1435,8 @@ void AdcHub::infoImpl() noexcept {
 	addParam(lastInfoMap, c, "AW", ActivityManager::getInstance()->isAway() ? "1" : Util::emptyString);
 	addParam(lastInfoMap, c, "LC", Localization::getLocale());
 
-	appendConnectionSpeed(lastInfoMap, c, SETTING(UPLOAD_SPEED), ThrottleManager::getUpLimit());
-	appendConnectionSpeed(lastInfoMap, c, SETTING(DOWNLOAD_SPEED), ThrottleManager::getDownLimit());
+	appendConnectionSpeed(lastInfoMap, c, "US", SETTING(UPLOAD_SPEED), ThrottleManager::getUpLimit());
+	appendConnectionSpeed(lastInfoMap, c, "DS", SETTING(DOWNLOAD_SPEED), ThrottleManager::getDownLimit());
 
 	if (CryptoManager::getInstance()->TLSOk()) {
 		auto &kp = CryptoManager::getInstance()->getKeyprint();
