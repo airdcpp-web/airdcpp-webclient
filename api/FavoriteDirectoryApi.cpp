@@ -73,7 +73,7 @@ namespace webserver {
 	api_return FavoriteDirectoryApi::handleAddDirectory(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = PathUtil::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
+		auto path = PathUtil::validateDirectoryPath(JsonUtil::getField<string>("path", reqJson, false));
 		if (FavoriteManager::getInstance()->hasFavoriteDir(path)) {
 			JsonUtil::throwError("path", JsonUtil::ERROR_EXISTS, "Path exists already");
 		}

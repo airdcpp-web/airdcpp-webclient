@@ -228,11 +228,11 @@ namespace webserver {
 
 		// Validate paths
 		if (aType == ApiSettingItem::TYPE_DIRECTORY_PATH) {
-			value = PathUtil::validatePath(value, true);
+			value = PathUtil::validateDirectoryPath(value);
 		} else if (aType == ApiSettingItem::TYPE_FILE_PATH) {
-			value = PathUtil::validatePath(value, false);
+			value = PathUtil::validateFilePath(value);
 		} else if (aType == ApiSettingItem::TYPE_EXISTING_FILE_PATH) {
-			value = PathUtil::validatePath(value, false);
+			value = PathUtil::validateFilePath(value);
 		}
 
 		return value;
