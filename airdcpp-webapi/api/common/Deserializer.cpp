@@ -265,4 +265,9 @@ namespace webserver {
 	HintedUser Deserializer::hintedUserArrayValueParser(const json& aJson, const string& aFieldName) {
 		return parseHintedUser(aJson, aFieldName, true);
 	}
+
+	string Deserializer::directoryPathArrayValueParser(const json& aJson, const string& aFieldName) {
+		auto pathStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
+		return PathUtil::validateDirectoryPath(pathStr);
+	}
 }

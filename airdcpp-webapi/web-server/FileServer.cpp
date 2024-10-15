@@ -59,7 +59,7 @@ namespace webserver {
 	}
 
 	void FileServer::setResourcePath(const string& aPath) noexcept {
-		resourcePath = PathUtil::validatePath(aPath, true);
+		resourcePath = PathUtil::validateDirectoryPath(aPath);
 	}
 
 	string FileServer::getExtension(const string& aResource) noexcept {

@@ -19,6 +19,7 @@
 #include "stdinc.h"
 
 #include <api/FilesystemApi.h>
+#include <api/common/Deserializer.h>
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
@@ -100,7 +101,7 @@ namespace webserver {
 	api_return FilesystemApi::handlePostDirectory(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = PathUtil::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
+		auto path = PathUtil::validateDirectoryPath(JsonUtil::getField<string>("path", reqJson, false));
 		try {
 			if (!File::createDirectory(path)) {
 				aRequest.setResponseErrorStr("Directory exists");
@@ -116,7 +117,7 @@ namespace webserver {
 
 	api_return FilesystemApi::handleGetDiskInfo(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
-		auto paths = JsonUtil::getField<StringList>("paths", reqJson, false);
+		auto paths = Deserializer::deserializeList<string>("paths", reqJson, Deserializer::directoryPathArrayValueParser, false);
 
 		auto volumes = File::getVolumes();
 

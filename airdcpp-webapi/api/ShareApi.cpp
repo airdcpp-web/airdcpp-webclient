@@ -439,7 +439,7 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleAddExclude(ApiRequest& aRequest) {
-		auto path = PathUtil::validatePath(JsonUtil::getField<string>("path", aRequest.getRequestBody(), false), true);
+		auto path = PathUtil::validateDirectoryPath(JsonUtil::getField<string>("path", aRequest.getRequestBody(), false));
 
 		try {
 			ShareManager::getInstance()->addExcludedPath(path);
@@ -519,7 +519,7 @@ namespace webserver {
 	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 		addAsyncTask([
-			paths = JsonUtil::getField<StringList>("paths", reqJson, false),
+			paths = Deserializer::deserializeList<string>("paths", reqJson, Deserializer::directoryPathArrayValueParser, false),
 			priority = parseRefreshPriority(reqJson),
 			complete = aRequest.defer(),
 			callerPtr = aRequest.getOwnerPtr()
