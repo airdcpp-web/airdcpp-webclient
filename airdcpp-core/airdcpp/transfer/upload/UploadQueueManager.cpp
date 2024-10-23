@@ -84,7 +84,7 @@ size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const 
 	WLock l(cs);
 	auto it = ranges::find_if(uploadQueue, [&](const UserPtr& u) { ++queue_position; return u == aSource.getUser(); });
 	if (it != uploadQueue.end()) {
-		it->token = aSource.getToken();
+		it->token = aSource.getConnectToken();
 		for (const auto f: it->files) {
 			if(f->getFile() == aFile) {
 				f->setPos(aPos);
@@ -97,7 +97,7 @@ size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const 
 	if (it == uploadQueue.end()) {
 		++queue_position;
 
-		WaitingUser wu(aSource.getHintedUser(), aSource.getToken());
+		WaitingUser wu(aSource.getHintedUser(), aSource.getConnectToken());
 		wu.files.insert(uqi);
 		uploadQueue.push_back(wu);
 	} else {

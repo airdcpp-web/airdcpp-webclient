@@ -117,12 +117,13 @@ endif(NOT PYTHON_EXECUTABLE)
 if (NOT CMAKE_BUILD_TYPE STREQUAL Debug OR NOT EXISTS "${PROJECT_SOURCE_DIR}/airdcpp/core/version.inc")
   find_package (Git)
 
-  add_custom_target(version_file ALL DEPENDS 
+  add_custom_target(version ALL DEPENDS 
     COMMAND ${PYTHON_EXECUTABLE} scripts/generate_version.py ./airdcpp/core/version.inc ${VERSION} ${TAG_APPLICATION} ${APPLICATION_ID}
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   )
-
-  add_dependencies(${PROJECT_NAME} version_file)
+  
+  list (PREPEND airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/core/version.inc)
+  add_dependencies(${PROJECT_NAME} version)
 endif ()
 
 # Stringdefs
@@ -137,7 +138,8 @@ add_custom_command(
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 
-list (APPEND airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/localization/StringDefs.cpp)
+list (PREPEND airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/localization/StringDefs.cpp)
+add_dependencies(${PROJECT_NAME} stringdefs)
 
 
 # GENERIC COMPILING PROPERTIES

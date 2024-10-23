@@ -22,12 +22,13 @@
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 
-#include <airdcpp/util/text/StringTokenizer.h>
 #include <airdcpp/protocol/AdcCommand.h>
 #include <airdcpp/transfer/Transfer.h>
 #include <airdcpp/protocol/ProtocolCommandManager.h>
 #include <airdcpp/favorites/FavoriteManager.h>
 #include <airdcpp/message/Message.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 
 #include <airdcpp/transfer/download/Download.h>
@@ -68,7 +69,7 @@ void UserConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			return;
 		}
 		dispatch(aLine, [this](const AdcCommand& aCmd) {
-			ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingTCPCommand (), aCmd, getRemoteIp(), getUser());
+			ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::IncomingTCPCommand (), aCmd, getRemoteIp(), getHintedUser());
 		});
 		return;
 	} else if(aLine[0] == '$') {
@@ -207,7 +208,7 @@ void UserConnection::maxedOut(size_t qPos /*0*/) {
 		if(sendPos) {
 			cmd.addParam("QP", Util::toString(qPos));
 		}
-		send(cmd);
+		sendHooked(cmd);
 	}
 }
 
@@ -248,16 +249,16 @@ void UserConnection::inf(bool withToken, int mcnSlots) {
 	if(mcnSlots > 0)
 		c.addParam("CO", Util::toString(mcnSlots));
 	if(withToken) {
-		c.addParam("TO", getToken());
+		c.addParam("TO", getConnectToken());
 	}
 	if (isSet(FLAG_PM)) {
 		c.addParam("PM", "1");
 	}
-	send(c);
+	sendHooked(c);
 }
 
 void UserConnection::get(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {
-	send(
+	sendHooked(
 		AdcCommand(AdcCommand::CMD_GET)
 			.addParam(aType)
 			.addParam(aName)
@@ -267,7 +268,7 @@ void UserConnection::get(const string& aType, const string& aName, const int64_t
 }
 
 void UserConnection::snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes) {
-	send(
+	sendHooked(
 		AdcCommand(AdcCommand::CMD_SND)
 			.addParam(aType)
 			.addParam(aName)
@@ -276,13 +277,29 @@ void UserConnection::snd(const string& aType, const string& aName, const int64_t
 	); 
 }
 
-void UserConnection::send(const AdcCommand& c) {
+bool UserConnection::sendHooked(const AdcCommand& c, CallerPtr aOwner, string& error_) {
+	AdcCommand::ParamMap params;
 	auto isNmdc = isSet(FLAG_NMDC);
 	if (!isNmdc) {
-		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::OutgoingTCPCommand(), c, getRemoteIp(), getUser());
+		{
+			try {
+				auto results = ClientManager::getInstance()->outgoingTcpCommandHook.runHooksDataThrow(aOwner, c, *this);
+				params = ActionHook<AdcCommand::ParamMap>::normalizeMap(results);
+			} catch (const HookRejectException& e) {
+				error_ = ActionHookRejection::formatError(e.getRejection());
+				return false;
+			}
+		}
+
+		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::OutgoingTCPCommand(), c, *this);
 	}
 
-	send(c.toString(0, isNmdc)); 
+	if (!params.empty()) {
+		send(AdcCommand(c).addParams(params).toString(0, isNmdc));
+	} else {
+		send(c.toString(0, isNmdc));
+	}
+	return true;
 }
 
 bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessage, string& error_) {
@@ -302,7 +319,9 @@ bool UserConnection::sendPrivateMessageHooked(const OutgoingChatMessage& aMessag
 		c.addParam("ME", "1");
 	}
 
-	send(c);
+	if (!sendHooked(c, aMessage.owner, error_)) {
+		return false;
+	}
 
 	// simulate an echo message.
 	callAsync([=, this]{ handlePM(c, true); });
@@ -320,7 +339,7 @@ void UserConnection::handle(AdcCommand::PMI t, const AdcCommand& c) {
 }
 
 
-void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept{
+void UserConnection::handlePM(const AdcCommand& c, bool aEcho) noexcept {
 	const string& message = c.getParam(0);
 
 	auto cm = ClientManager::getInstance();
@@ -359,14 +378,14 @@ void UserConnection::sup(const StringList& features) {
 	AdcCommand c(AdcCommand::CMD_SUP);
 	for(const auto& f: features)
 		c.addParam(f);
-	send(c);
+	sendHooked(c);
 }
 
 void UserConnection::sendError(const std::string& msg /*FILE_NOT_AVAILABLE*/, AdcCommand::Error aError /*AdcCommand::ERROR_FILE_NOT_AVAILABLE*/) {
 	if (isSet(FLAG_NMDC)) {
 		send("$Error " + msg + "|");
 	} else {
-		send(AdcCommand(AdcCommand::SEV_RECOVERABLE, aError, msg));
+		sendHooked(AdcCommand(AdcCommand::SEV_RECOVERABLE, aError, msg));
 	}
 }
 
@@ -390,31 +409,31 @@ void UserConnection::handle(AdcCommand::STA t, const AdcCommand& c) {
 	fire(t, this, c);
 }
 
-void UserConnection::on(Connected) noexcept {
+void UserConnection::on(BufferedSocketListener::Connected) noexcept {
 	lastActivity = GET_TICK();
     fire(UserConnectionListener::Connected(), this); 
 }
 
-void UserConnection::on(Data, uint8_t* data, size_t len) noexcept { 
+void UserConnection::on(BufferedSocketListener::Data, uint8_t* data, size_t len) noexcept {
 	lastActivity = GET_TICK(); 
 	fire(UserConnectionListener::Data(), this, data, len); 
 }
 
-void UserConnection::on(BytesSent, size_t bytes, size_t actual) noexcept { 
+void UserConnection::on(BufferedSocketListener::BytesSent, size_t bytes, size_t actual) noexcept {
 	lastActivity = GET_TICK();
 	fire(UserConnectionListener::BytesSent(), this, bytes, actual); 
 }
 
-void UserConnection::on(ModeChange) noexcept { 
+void UserConnection::on(BufferedSocketListener::ModeChange) noexcept {
 	lastActivity = GET_TICK(); 
 	fire(UserConnectionListener::ModeChange(), this); 
 }
 
-void UserConnection::on(TransmitDone) noexcept {
+void UserConnection::on(BufferedSocketListener::TransmitDone) noexcept {
 	fire(UserConnectionListener::TransmitDone(), this);
 }
 
-void UserConnection::on(Failed, const string& aLine) noexcept {
+void UserConnection::on(BufferedSocketListener::Failed, const string& aLine) noexcept {
 	//setState(STATE_UNCONNECTED);  // let the listeners to see the old state
 	fire(UserConnectionListener::Failed(), this, aLine);
 
@@ -466,12 +485,12 @@ void UserConnection::send(const string& aString) {
 	socket->write(aString);
 }
 
-UserConnection::UserConnection() noexcept : encoding(SETTING(NMDC_ENCODING)), download(nullptr) {
+UserConnection::UserConnection() noexcept : encoding(SETTING(NMDC_ENCODING)), download(nullptr), token(ValueGenerator::rand()) {
 }
 
 UserConnection::~UserConnection() {
 	BufferedSocket::putSocket(socket);
-	dcdebug("User connection %s was deleted\n", getToken().c_str());
+	dcdebug("User connection %s was deleted\n", getConnectToken().c_str());
 }
 
 } // namespace dcpp

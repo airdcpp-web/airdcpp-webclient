@@ -720,7 +720,7 @@ enum Strings { // @DontAdd
 	MAINTENANCE, // "Maintenance"
 	MAINTENANCE_STARTED_SETTINGS, // "Database maintenance started. Results are shown in the system log when the operation finishes."
 	MAIN_CHAT, // "Main chat"
-	MAIN_PERMISSION_DENIED, // "You aren't allowed to send messages to main chat"
+	HUB_PERMISSION_DENIED, // "Action rejected by the hub"
 	MALFORMED_DATA, // "Malformed data"
 	MANAGE_GROUPS, // "Manage groups"
 	MANDATORY_UPDATE, // "Mandatory update"
@@ -998,7 +998,6 @@ enum Strings { // @DontAdd
 	PM_MAGNET_SHARED_WARNING, // "The download destination %1% is a shared directory. Files sent in private chat may contain sensitive information that you or the sender don't want to be made available for other user.\r\n\r\nDo you want to use this destination anyway?"
 	PM_MESSAGE_FILTERED, // "Private chat message filtered from user: "
 	PM_MESSAGE_IGNORED, // "Private chat message from ignored user: "
-	PM_PERMISSION_DENIED, // "You aren't allowed to send private messages to this user"
 	PM_PREVIEW, // "Show preview of private message on popup"
 	POPUP_BACK_COLOR, // "Back color"
 	POPUP_BALOON, // "Balloon popup"
@@ -1890,6 +1889,7 @@ enum Strings { // @DontAdd
 
 	WEB_CFG_OUTGOING_HUB_COMMAND_HOOK_TIMEOUT, // "Outgoing hub command"
 	WEB_CFG_OUTGOING_UDP_COMMAND_HOOK_TIMEOUT, // "Outgoing UDP command"
+	WEB_CFG_OUTGOING_TCP_COMMAND_HOOK_TIMEOUT, // "Outgoing TCP command"
 
 	WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT, // "Add bundle file"
 	WEB_CFG_QUEUE_ADD_BUNDLE_HOOK_TIMEOUT, // "Add bundle"

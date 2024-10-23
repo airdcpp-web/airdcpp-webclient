@@ -425,7 +425,7 @@ void PrivateChat::sendPMInfo(uint8_t aType) {
 			c.addParam("\n");
 		}
 
-		uc->send(c);
+		uc->sendHooked(c);
 	}
 }
 

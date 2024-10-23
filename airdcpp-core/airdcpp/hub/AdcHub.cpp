@@ -997,33 +997,32 @@ void AdcHub::connect(const OnlineUser& aUser, const string& aToken, bool aSecure
 	}
 }
 
-bool AdcHub::hubMessageHooked(const string& aMessage, string& error_, bool aThirdPerson) noexcept {
+bool AdcHub::hubMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept {
 	AdcCommand c(AdcCommand::CMD_MSG, AdcCommand::TYPE_BROADCAST);
-	c.addParam(aMessage);
-	if (aThirdPerson)
+	c.addParam(aMessage.text);
+	if (aMessage.thirdPerson)
 		c.addParam("ME", "1");
 
-	if (!sendHooked(c)) {
-		error_ = STRING(MAIN_PERMISSION_DENIED);
+	if (!sendHooked(c, aMessage.owner, error_)) {
 		return false;
 	}
 
 	return true;
 }
 
-bool AdcHub::privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept {
+bool AdcHub::privateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept {
 	if(!stateNormal()) {
 		error_ = STRING(CONNECTING_IN_PROGRESS);
 		return false;
 	}
 
 	AdcCommand c(AdcCommand::CMD_MSG, aUser->getIdentity().getSID(), aEcho ? AdcCommand::TYPE_ECHO : AdcCommand::TYPE_DIRECT);
-	c.addParam(aMessage);
-	if(aThirdPerson)
+	c.addParam(aMessage.text);
+	if(aMessage.thirdPerson)
 		c.addParam("ME", "1");
 	c.addParam("PM", getMySID());
-	if (!sendHooked(c)) {
-		error_ = STRING(PM_PERMISSION_DENIED);
+
+	if (!sendHooked(c, aMessage.owner, error_)) {
 		return false;
 	}
 
@@ -1034,21 +1033,23 @@ void AdcHub::sendUserCmd(const UserCommand& aUserCommand, const ParamMap& params
 	if(!stateNormal())
 		return;
 
-	string cmdStr = Util::formatParams(aUserCommand.getCommand(), params, escape);
+	string userCommandStr = Util::formatParams(aUserCommand.getCommand(), params, escape);
 	if (aUserCommand.isChat()) {
-		callAsync([aUserCommand, this, cmdStr = std::move(cmdStr)] {
+		callAsync([aUserCommand, this, userCommandStr = std::move(userCommandStr)] {
+			// This probably shouldn't trigger the message hooks...
 			string error;
+			OutgoingChatMessage c(userCommandStr, this, "user_command", false);
 			if (aUserCommand.getTo().empty()) {
-				hubMessageHooked(cmdStr, error);
+				hubMessageHooked(c, error);
 			} else {
 				auto ou = findUser(aUserCommand.getTo());
 				if (ou) {
-					privateMessageHooked(ou, cmdStr, error, false, false);
+					privateMessageHooked(ou, c, error, false);
 				}
 			}
 		});
 	} else {
-		send(cmdStr);
+		send(userCommandStr);
 	}
 }
 
@@ -1480,15 +1481,16 @@ string AdcHub::checkNick(const string& aNick) noexcept {
 	return tmp;
 }
 
-bool AdcHub::sendHooked(const AdcCommand& cmd) {
+bool AdcHub::sendHooked(const AdcCommand& cmd, CallerPtr aOwner, string& error_) {
 	if(!forbiddenCommands.contains(AdcCommand::toFourCC(cmd.getFourCC().c_str()))) {
 		AdcCommand::ParamMap params;
 
 		// Hooks
 		try {
-			auto results = ClientManager::getInstance()->outgoingHubCommandHook.runHooksDataThrow(ClientManager::getInstance(), cmd, *this);
+			auto results = ClientManager::getInstance()->outgoingHubCommandHook.runHooksDataThrow(aOwner, cmd, *this);
 			params = ActionHook<AdcCommand::ParamMap>::normalizeMap(results);
-		} catch (const HookRejectException&) {
+		} catch (const HookRejectException& e) {
+			error_ = ActionHookRejection::formatError(e.getRejection());
 			return false;
 		}
 
@@ -1504,6 +1506,8 @@ bool AdcHub::sendHooked(const AdcCommand& cmd) {
 
 		return true;
 	}
+
+	error_ = STRING(HUB_PERMISSION_DENIED);
 	return false;
 }
 

@@ -23,7 +23,6 @@
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/transfer/upload/Upload.h>
 #include <airdcpp/connection/UserConnection.h>
-#include <airdcpp/util/ValueGenerator.h>
 
 namespace dcpp {
 
@@ -35,7 +34,12 @@ const string Transfer::USER_LIST_NAME_EXTRACTED = "files.xml";
 const string Transfer::USER_LIST_NAME_BZ = "files.xml.bz2";
 
 Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : path(path_),
-	segment(0, -1), tth(tth_), userConnection(conn), token(ValueGenerator::rand()) { }
+	segment(0, -1), tth(tth_), userConnection(conn) { }
+
+
+TransferToken Transfer::getToken() const noexcept {
+	return userConnection.getToken();
+}
 
 void Transfer::tick() noexcept {
 	WLock l(cs);
@@ -115,7 +119,7 @@ HintedUser Transfer::getHintedUser() const noexcept {
 }
 
 const string& Transfer::getConnectionToken() const noexcept {
-	return getUserConnection().getToken(); 
+	return getUserConnection().getConnectToken();
 }
 
 bool Transfer::isFilelist() const noexcept {

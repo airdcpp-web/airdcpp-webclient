@@ -657,28 +657,39 @@ ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, con
 	return result;
 }
 
-bool ClientManager::sendUDPHooked(AdcCommand& cmd, const CID& aCID, bool aNoCID /*false*/, bool aNoPassive /*false*/, const string& aKey /*Util::emptyString*/, const string& aHubUrl /*Util::emptyString*/) noexcept {
-	auto u = findOnlineUser(aCID, aHubUrl);
+bool ClientManager::sendUDPHooked(AdcCommand& cmd, const HintedUser& to, const OutgoingUDPCommandOptions& aOptions, string& error_) noexcept {
+	auto u = findOnlineUser(to);
 	if (!u) {
+		error_ = "User missing";
+		return false;
+	}
+
+	if (u->getUser()->isNMDC()) {
+		error_ = "NMDC user";
 		return false;
 	}
 
 	if (cmd.getType() == AdcCommand::TYPE_UDP && !u->getIdentity().isUdpActive()) {
-		if (u->getUser()->isNMDC() || aNoPassive) {
+		if (aOptions.noPassive) {
+			error_ = "The user is passive";
 			return false;
 		}
 
 		cmd.setType(AdcCommand::TYPE_DIRECT);
 		cmd.setTo(u->getIdentity().getSID());
-		return u->getClient()->sendHooked(cmd);
+
+		return u->getClient()->sendHooked(cmd, aOptions.owner, error_);
 	} else {
+		auto ipPort = u->getIdentity().getUdpIp() + ":" + u->getIdentity().getUdpPort();
+
 		// Hooks
 		{
 			AdcCommand::ParamMap params;
 			try {
-				auto results = outgoingUdpCommandHook.runHooksDataThrow(this, cmd, u);
+				auto results = outgoingUdpCommandHook.runHooksDataThrow(this, cmd, u, ipPort);
 				params = ActionHook<AdcCommand::ParamMap>::normalizeMap(results);
-			} catch (const HookRejectException&) {
+			} catch (const HookRejectException& e) {
+				error_ = ActionHookRejection::formatError(e.getRejection());
 				return false;
 			}
 
@@ -686,16 +697,15 @@ bool ClientManager::sendUDPHooked(AdcCommand& cmd, const CID& aCID, bool aNoCID 
 		}
 
 		// Listeners
-		auto ipPort = u->getIdentity().getUdpIp() + ":" + u->getIdentity().getUdpPort();
 		ProtocolCommandManager::getInstance()->fire(ProtocolCommandManagerListener::OutgoingUDPCommand(), cmd, ipPort, u);
 		COMMAND_DEBUG(cmd.toString(), ProtocolCommandManager::TYPE_CLIENT_UDP, ProtocolCommandManager::OUTGOING, ipPort);
 
 		// Send
 		try {
-			auto cmdStr = aNoCID ? cmd.toString() : cmd.toString(getMyCID());
-			if (!aKey.empty() && Encoder::isBase32(aKey.c_str())) {
+			auto cmdStr = aOptions.noCID ? cmd.toString() : cmd.toString(getMyCID());
+			if (!aOptions.encryptionKey.empty() && Encoder::isBase32(aOptions.encryptionKey.c_str())) {
 				uint8_t keyChar[16];
-				Encoder::fromBase32(aKey.c_str(), keyChar, 16);
+				Encoder::fromBase32(aOptions.encryptionKey.c_str(), keyChar, 16);
 
 				CryptoUtil::encryptSUDP(keyChar, cmdStr);
 			}
@@ -703,6 +713,7 @@ bool ClientManager::sendUDPHooked(AdcCommand& cmd, const CID& aCID, bool aNoCID 
 			udp->writeTo(u->getIdentity().getUdpIp(), u->getIdentity().getUdpPort(), cmdStr);
 		} catch(const SocketException&) {
 			dcdebug("Socket exception sending ADC UDP command\n");
+			error_ = "Socket error";
 			return false;
 		}
 	}

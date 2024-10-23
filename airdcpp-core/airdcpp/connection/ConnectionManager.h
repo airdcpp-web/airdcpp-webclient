@@ -177,7 +177,8 @@ public:
 
 
 	using UserConnectionCallback = std::function<void (UserConnection *)>;
-	bool findUserConnection(const string& aToken, const UserConnectionCallback& aCallback) const noexcept;
+	bool findUserConnection(const string& aConnectToken, const UserConnectionCallback& aCallback) const noexcept;
+	bool findUserConnection(UserConnectionToken aToken, const UserConnectionCallback& aCallback) const noexcept;
 private:
 	FloodCounter floodCounter;
 

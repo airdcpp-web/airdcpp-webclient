@@ -36,11 +36,11 @@ public:
 	int connect(const OnlineUser& aUser, const string& token, string& lastError_) noexcept override;
 
 
-	bool hubMessageHooked(const string& aMessage, string& /*error_*/, bool aThirdPerson = false) noexcept override {
-		return hubMessage(aMessage, aThirdPerson);
+	bool hubMessageHooked(const OutgoingChatMessage& aMessage, string& /*error_*/) noexcept override {
+		return hubMessage(aMessage.text, aMessage.thirdPerson);
 	}
-	bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override {
-		return privateMessage(aUser, aMessage, error_, aThirdPerson, aEcho);
+	bool privateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept override {
+		return privateMessage(aUser, aMessage.text, error_, aMessage.thirdPerson, aEcho);
 	}
 
 	bool hubMessage(const string& aMessage, bool thirdPerson = false) noexcept;
@@ -55,7 +55,7 @@ public:
 	static string escape(string const& str) { return validateMessage(str, false); }
 	static string unescape(const string& str) { return validateMessage(str, true); }
 
-	bool sendHooked(const AdcCommand&) override { dcassert(0); return false; }
+	bool sendHooked(const AdcCommand&, CallerPtr, string&) override { dcassert(0); return false; }
 
 	static string validateMessage(string tmp, bool reverse);
 	void refreshUserList(bool) noexcept override;

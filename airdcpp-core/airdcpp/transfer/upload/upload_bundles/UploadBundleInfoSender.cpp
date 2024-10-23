@@ -155,15 +155,15 @@ void UploadBundleInfoSender::on(DownloadManagerListener::Failed, const Download*
 
 void UploadBundleInfoSender::addRunningUserUnsafe(const UBNBundle::Ptr& aBundle, const UserConnection* aSource) noexcept {
 	aBundle->addRunningUser(aSource);
-	connectionTokenMap[aSource->getToken()] = aBundle;
+	connectionTokenMap[aSource->getConnectToken()] = aBundle;
 }
 
 void UploadBundleInfoSender::removeRunningUserUnsafe(const UBNBundle::Ptr& aBundle, const UserConnection* aSource, bool aSendRemove) noexcept {
 	if (aBundle->removeRunningUser(aSource, aSendRemove)) {
-		dbgMsg("removed connection " + aSource->getToken() + " from an info " + aBundle->getBundle()->getName() + " (no bundle connections remaining)", LogMessage::SEV_VERBOSE);
+		dbgMsg("removed connection " + aSource->getConnectToken() + " from an info " + aBundle->getBundle()->getName() + " (no bundle connections remaining)", LogMessage::SEV_VERBOSE);
 		bundleTokenMap.erase(aBundle->getBundle()->getToken());
 	} else {
-		dbgMsg("removed connection " + aSource->getToken() + " from an info " + aBundle->getBundle()->getName() + " (bundle connections remain)", LogMessage::SEV_VERBOSE);
+		dbgMsg("removed connection " + aSource->getConnectToken() + " from an info " + aBundle->getBundle()->getName() + " (bundle connections remain)", LogMessage::SEV_VERBOSE);
 	}
 }
 
@@ -172,7 +172,7 @@ void UploadBundleInfoSender::removeRunningUser(const UserConnection* aSource, bo
 		return;
 	}
 
-	auto ubnBundle = findInfoByConnectionToken(aSource->getToken());
+	auto ubnBundle = findInfoByConnectionToken(aSource->getConnectToken());
 	if (!ubnBundle) {
 		// Non-bundle download
 		return;
@@ -181,7 +181,7 @@ void UploadBundleInfoSender::removeRunningUser(const UserConnection* aSource, bo
 	{
 		WLock l(cs);
 		removeRunningUserUnsafe(ubnBundle, aSource, aSendRemove);
-		connectionTokenMap.erase(aSource->getToken());
+		connectionTokenMap.erase(aSource->getConnectToken());
 	}
 }
 
@@ -266,15 +266,15 @@ bool UploadBundleInfoSender::UBNBundle::addRunningUser(const UserConnection* aSo
 			setUserMode(false);
 		}
 	} else {
-		dcassert(!y->second.contains(aSource->getToken()));
+		dcassert(!y->second.contains(aSource->getConnectToken()));
 		newBundle = false;
 	}
 
-	uploadReports[aSource->getUser()].insert(aSource->getToken());
+	uploadReports[aSource->getUser()].insert(aSource->getConnectToken());
 
 	// Tell the uploader to connect this token to a correct bundle
-	auto cmd = getAddCommand(aSource->getToken(), newBundle);
-	debugMsg("sending add command for info " + bundle->getName() + " (" + string(newBundle ? "complete" : "connect only") + "), connection " + aSource->getToken(), LogMessage::SEV_VERBOSE);
+	auto cmd = getAddCommand(aSource->getConnectToken(), newBundle);
+	debugMsg("sending add command for info " + bundle->getName() + " (" + string(newBundle ? "complete" : "connect only") + "), connection " + aSource->getConnectToken(), LogMessage::SEV_VERBOSE);
 	sendUpdate(cmd, aSource->getUser());
 	if (newBundle) {
 		//add a new upload report
@@ -294,8 +294,8 @@ bool UploadBundleInfoSender::UBNBundle::removeRunningUser(const UserConnection* 
 	auto y = uploadReports.find(aSource->getUser());
 	dcassert(y != uploadReports.end());
 	if (y != uploadReports.end()) {
-		dcassert(y->second.contains(aSource->getToken()));
-		y->second.erase(aSource->getToken());
+		dcassert(y->second.contains(aSource->getConnectToken()));
+		y->second.erase(aSource->getConnectToken());
 		if (y->second.empty()) {
 			uploadReports.erase(aSource->getUser());
 			if (uploadReports.size() == 1) {
@@ -306,8 +306,8 @@ bool UploadBundleInfoSender::UBNBundle::removeRunningUser(const UserConnection* 
 		}
 
 		if (finished || aSendRemove) {
-			debugMsg("sending " + string(finished ? "finished" : "removal") + " command for info " + bundle->getName() + ", connection " + aSource->getToken(), LogMessage::SEV_VERBOSE);
-			auto cmd = finished ? getBundleFinishedCommand() : getRemoveCommand(aSource->getToken());
+			debugMsg("sending " + string(finished ? "finished" : "removal") + " command for info " + bundle->getName() + ", connection " + aSource->getConnectToken(), LogMessage::SEV_VERBOSE);
+			auto cmd = finished ? getBundleFinishedCommand() : getRemoveCommand(aSource->getConnectToken());
 			sendUpdate(cmd, aSource->getUser());
 		}
 	}
@@ -405,9 +405,13 @@ void UploadBundleInfoSender::UBNBundle::setUserMode(bool aSetSingleUser) noexcep
 
 void UploadBundleInfoSender::sendUpdate(AdcCommand& aCmd, const UserPtr& aUser) noexcept {
 	// Send in a different thread as most calls are fired from inside a (locked) listener
-	SearchManager::getInstance()->getUdpServer().addTask([=] {
+	SearchManager::getInstance()->getUdpServer().addTask([aCmd, this, aUser] {
 		auto cmd = aCmd;
-		ClientManager::getInstance()->sendUDPHooked(cmd, aUser->getCID(), true, true);
+		string error;
+
+		ClientManager::OutgoingUDPCommandOptions options(this, true);
+		options.noCID = true;
+		ClientManager::getInstance()->sendUDPHooked(cmd, HintedUser(aUser, Util::emptyString), options, error);
 	});
 }
 

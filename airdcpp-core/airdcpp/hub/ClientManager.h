@@ -51,7 +51,8 @@ public:
 	ActionHook<nullptr_t, const OutgoingChatMessage&, const Client&> outgoingHubMessageHook;
 
 	ActionHook<AdcCommand::ParamMap, const AdcCommand&, const Client&> outgoingHubCommandHook;
-	ActionHook<AdcCommand::ParamMap, const AdcCommand&, const OnlineUserPtr&> outgoingUdpCommandHook;
+	ActionHook<AdcCommand::ParamMap, const AdcCommand&, const OnlineUserPtr&, const string&> outgoingUdpCommandHook;
+	ActionHook<AdcCommand::ParamMap, const AdcCommand&, const UserConnection&> outgoingTcpCommandHook;
 
 
 	// MESSAGES
@@ -225,7 +226,16 @@ public:
 
 
 	// CONNECT/PROTOCOL
-	bool sendUDPHooked(AdcCommand& c, const CID& to, bool aNoCID = false, bool aNoPassive = false, const string& aEncryptionKey = Util::emptyString, const string& aHubUrl = Util::emptyString) noexcept;
+	struct OutgoingUDPCommandOptions {
+		OutgoingUDPCommandOptions(CallerPtr aOwner, bool aNoPassive) : noPassive(aNoPassive), owner(aOwner) {}
+
+		string encryptionKey;
+		bool noPassive;
+		bool noCID;
+		CallerPtr owner;
+	};
+
+	bool sendUDPHooked(AdcCommand& c, const HintedUser& to, const OutgoingUDPCommandOptions& aOptions, string& error_) noexcept;
 
 	struct ConnectResult {
 		void onSuccess(const string_view& aHubHint) noexcept {

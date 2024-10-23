@@ -100,7 +100,7 @@ private:
 	bool disconnectSlowSpeed(Download* aDownload, uint64_t aTick) const noexcept;
 	void startData(UserConnection* aSource, int64_t start, int64_t newSize, bool z);
 
-	void revive(UserConnection* uc);
+	void reviveThreaded(UserConnection* uc);
 	void endData(UserConnection* aSource);
 
 	void onFailed(UserConnection* aSource, const string& aError);

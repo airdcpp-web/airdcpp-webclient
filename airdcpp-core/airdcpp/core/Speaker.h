@@ -47,6 +47,17 @@ public:
 			listener->on(std::forward<ArgT>(args)...);
 		}
 	}
+	
+	// Fire listeners in a reversed order 
+	// (e.g. during a shutdown sequence the listeners that were added last should be uninitialized first)
+	template<typename... ArgT>
+	void fireReversed(ArgT&&... args) noexcept {
+		Lock l(listenerCS);
+		tmpListeners = listeners;
+		for (auto listener : tmpListeners | views::reverse) {
+			listener->on(std::forward<ArgT>(args)...);
+		}
+	}
 
 	void addListener(Listener* aListener) noexcept {
 		Lock l(listenerCS);
