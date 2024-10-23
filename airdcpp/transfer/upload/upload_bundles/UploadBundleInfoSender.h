@@ -106,7 +106,7 @@ private:
 	void addRunningUserUnsafe(const UBNBundle::Ptr& aBundle, const UserConnection* aSource) noexcept;
 	void removeRunningUserUnsafe(const UBNBundle::Ptr& aBundle, const UserConnection* aSource, bool sendRemove) noexcept;
 
-	static void sendUpdate(AdcCommand& aCmd, const UserPtr& aUser) noexcept;
+	void sendUpdate(AdcCommand& aCmd, const UserPtr& aUser) noexcept;
 };
 
 }

@@ -295,9 +295,19 @@ UserConnection* ConnectionManager::getConnection(bool aNmdc) noexcept {
 	return uc;
 }
 
-bool ConnectionManager::findUserConnection(const string& aToken, const UserConnectionCallback& aCallback) const noexcept {
+bool ConnectionManager::findUserConnection(const string& aConnectToken, const UserConnectionCallback& aCallback) const noexcept {
 	RLock l(cs);
-	if (auto i = find(userConnections.begin(), userConnections.end(), aToken); i != userConnections.end()) {
+	if (auto i = find(userConnections.begin(), userConnections.end(), aConnectToken); i != userConnections.end()) {
+		aCallback(*i);
+		return true;
+	}
+
+	return false;
+}
+
+bool ConnectionManager::findUserConnection(UserConnectionToken aToken, const UserConnectionCallback& aCallback) const noexcept {
+	RLock l(cs);
+	if (auto i = ranges::find_if(userConnections, [aToken](const UserConnectionPtr& uc) { return uc->getToken() == aToken; }); i != userConnections.end()) {
 		aCallback(*i);
 		return true;
 	}
@@ -514,10 +524,10 @@ void ConnectionManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcep
 			if ((j->getLastActivity() + MAX_UC_INACTIVITY_SECONDS * 1000) < aTick) {
 				AdcCommand c(AdcCommand::CMD_PMI);
 				c.addParam("\n");
-				j->send(c);
+				j->sendHooked(c);
 			}
 		} else if ((j->getLastActivity() + MAX_UC_INACTIVITY_SECONDS * 1000) < aTick) {
-			dcdebug("ConnectionManager::timer: disconnecting an inactive connection %s for user %s\n", j->getToken().c_str(), ClientManager::getInstance()->getFormattedNicks(j->getHintedUser()).c_str());
+			dcdebug("ConnectionManager::timer: disconnecting an inactive connection %s for user %s\n", j->getConnectToken().c_str(), ClientManager::getInstance()->getFormattedNicks(j->getHintedUser()).c_str());
 			j->disconnect(true);
 		}
 	}
@@ -648,7 +658,7 @@ void ConnectionManager::nmdcConnect(const string& aServer, const SocketConnectOp
 		return;
 
 	auto uc = getConnection(true);
-	uc->setToken(aNick);
+	uc->setConnectToken(aNick);
 	uc->setHubUrl(aHubUrl);
 	uc->setEncoding(aEncoding);
 	uc->setState(UserConnection::STATE_CONNECT);
@@ -673,7 +683,7 @@ void ConnectionManager::adcConnect(const OnlineUser& aUser, const SocketConnectO
 	uc->setEncoding(Text::utf8);
 	uc->setState(UserConnection::STATE_CONNECT);
 	uc->setHubUrl(aUser.getClient()->getHubUrl());
-	uc->setToken(aToken);
+	uc->setConnectToken(aToken);
 	/*if (aUser.getIdentity().isOp()) {
 		uc->setFlag(UserConnection::FLAG_OP);
 	}*/
@@ -742,7 +752,7 @@ void ConnectionManager::on(AdcCommand::SUP, UserConnection* aSource, const AdcCo
 
 	// TODO: better error
 	if(!baseOk || !tigrOk) {
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "Invalid SUP"));
+		aSource->sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "Invalid SUP"));
 		aSource->disconnect();
 		return;
 	}
@@ -782,11 +792,11 @@ void ConnectionManager::on(UserConnectionListener::Connected, UserConnection* aS
 
 	dcassert(aSource->getState() == UserConnection::STATE_CONNECT);
 	if(aSource->isSet(UserConnection::FLAG_NMDC)) {
-		aSource->myNick(aSource->getToken());
+		aSource->myNick(aSource->getConnectToken());
 		aSource->lock(CryptoManager::getInstance()->getLock(), CryptoManager::getInstance()->getPk() + "Ref=" + aSource->getHubUrl());
 	} else {
 		aSource->sup(getAdcFeatures());
-		aSource->send(AdcCommand(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, Util::emptyString).addParam("RF", aSource->getHubUrl()));
+		aSource->sendHooked(AdcCommand(AdcCommand::SEV_SUCCESS, AdcCommand::SUCCESS, Util::emptyString).addParam("RF", aSource->getHubUrl()));
 	}
 	aSource->setState(UserConnection::STATE_SUPNICK);
 }
@@ -811,7 +821,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 			putConnection(aSource);
 			return;
 		}
-        aSource->setToken(myNick);
+        aSource->setConnectToken(myNick);
 		aSource->setHubUrl(hubUrl);
 		aSource->setEncoding(ClientManager::getInstance()->findNmdcEncoding(hubUrl));
 	}
@@ -851,7 +861,7 @@ void ConnectionManager::on(UserConnectionListener::MyNick, UserConnection* aSour
 	ClientManager::getInstance()->setNmdcIPUser(aSource->getUser(), aSource->getRemoteIp());
 
 	if( aSource->isSet(UserConnection::FLAG_INCOMING) ) {
-		aSource->myNick(aSource->getToken()); 
+		aSource->myNick(aSource->getConnectToken());
 		aSource->lock(CryptoManager::getInstance()->getLock(), CryptoManager::getInstance()->getPk());
 	}
 
@@ -920,10 +930,10 @@ void ConnectionManager::addPMConnection(UserConnection* uc) noexcept {
 		auto& container = cqis[CONNECTION_TYPE_PM];
 		auto i = find(container.begin(), container.end(), uc->getUser());
 		if (i == container.end()) {
-			dcassert(!uc->getToken().empty());
+			dcassert(!uc->getConnectToken().empty());
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 
-			auto cqi = getCQIUnsafe(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getToken());
+			auto cqi = getCQIUnsafe(uc->getHintedUser(), CONNECTION_TYPE_PM, uc->getConnectToken());
 			cqi->setState(ConnectionQueueItem::State::ACTIVE);
 
 			fire(ConnectionManagerListener::Connected(), cqi, uc);
@@ -955,7 +965,7 @@ void ConnectionManager::addDownloadConnection(UserConnection* uc) noexcept {
 				cqi->setFlag(ConnectionQueueItem::FLAG_MCN);
 			}
 
-			uc->setToken(cqi->getToken()); // sync for NMDC users
+			uc->setConnectToken(cqi->getToken()); // sync for NMDC users
 			uc->setHubUrl(cqi->getHubUrl()); //set the correct hint for the uc, it might not even have a hint at first.
 			uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 			fire(ConnectionManagerListener::Connected(), cqi, uc);
@@ -984,11 +994,11 @@ void ConnectionManager::addUploadConnection(UserConnection* uc) noexcept {
 		}
 
 		if (allowAdd) {
-			allowAdd = tokens.addToken(uc->getToken(), CONNECTION_TYPE_UPLOAD);
+			allowAdd = tokens.addToken(uc->getConnectToken(), CONNECTION_TYPE_UPLOAD);
 			if (allowAdd) {
 				uc->setFlag(UserConnection::FLAG_ASSOCIATED);
 
-				auto cqi = getCQIUnsafe(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getToken());
+				auto cqi = getCQIUnsafe(uc->getHintedUser(), CONNECTION_TYPE_UPLOAD, uc->getConnectToken());
 				cqi->setState(ConnectionQueueItem::State::ACTIVE);
 				fire(ConnectionManagerListener::Connected(), cqi, uc);
 			}
@@ -1017,14 +1027,14 @@ void ConnectionManager::on(UserConnectionListener::Key, UserConnection* aSource,
 		// this will be synced to use CQI's random token
 		addDownloadConnection(aSource);
 	} else {
-		aSource->setToken(Util::toString(ValueGenerator::rand())); // set a random token instead of using the nick
+		aSource->setConnectToken(Util::toString(ValueGenerator::rand())); // set a random token instead of using the nick
 		addUploadConnection(aSource);
 	}
 }
 
 void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCommand& cmd) noexcept {
 	if(aSource->getState() != UserConnection::STATE_INF) {
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "Expecting INF"));
+		aSource->sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_PROTOCOL_GENERIC, "Expecting INF"));
 		aSource->disconnect(true);
 		return;
 	}
@@ -1032,18 +1042,18 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	string token;
 
 	auto fail = [&, this](AdcCommand::Error aCode, const string& aStr) {
-		aSource->send(AdcCommand(AdcCommand::SEV_FATAL, aCode, aStr));
+		aSource->sendHooked(AdcCommand(AdcCommand::SEV_FATAL, aCode, aStr));
 		aSource->disconnect(true);
 	};
 
 	if (aSource->isSet(UserConnection::FLAG_INCOMING)) {
 		if (!cmd.getParam("TO", 0, token)) {
-			aSource->send(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "TO missing"));
+			aSource->sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_GENERIC, "TO missing"));
 			putConnection(aSource);
 			return;
 		}
 
-		aSource->setToken(token);
+		aSource->setConnectToken(token);
 
 		// Incoming connections aren't associated with any user
 		// Are we expecting this connection? Use the saved CID and hubUrl
@@ -1082,7 +1092,7 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 
 	} else {
 		dcassert(aSource->getUser());
-		token = aSource->getToken();
+		token = aSource->getConnectToken();
 	}
 
 	if(!checkKeyprint(aSource)) {
@@ -1240,7 +1250,7 @@ void ConnectionManager::removeExtraMCNUnsafe(const ConnectionQueueItem* aFailedC
 
 ConnectionQueueItem* ConnectionManager::findDownloadUnsafe(const UserConnection* aSource) noexcept {
 	// Token may not be synced for NMDC users
-	auto i = aSource->isMCN() ? std::find(downloads.begin(), downloads.end(), aSource->getToken()) : std::find(downloads.begin(), downloads.end(), aSource->getUser());
+	auto i = aSource->isMCN() ? std::find(downloads.begin(), downloads.end(), aSource->getConnectToken()) : std::find(downloads.begin(), downloads.end(), aSource->getUser());
 	if (i == downloads.end()) {
 		return nullptr;
 	}
@@ -1271,8 +1281,8 @@ ConnectionType toConnectionType(const UserConnection* aSource) {
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
 		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
-			failDownload(aSource->getToken(), aError, aProtocolError);
-			dcdebug("ConnectionManager::failed: download %s failed\n", aSource->getToken().c_str());
+			failDownload(aSource->getConnectToken(), aError, aProtocolError);
+			dcdebug("ConnectionManager::failed: download %s failed\n", aSource->getConnectToken().c_str());
 		} else {
 
 			auto type = toConnectionType(aSource);
@@ -1280,7 +1290,7 @@ void ConnectionManager::failed(UserConnection* aSource, const string& aError, bo
 				WLock l(cs);
 				auto& container = cqis[type];
 				auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
-					find(container.begin(), container.end(), aSource->getToken());
+					find(container.begin(), container.end(), aSource->getConnectToken());
 				dcassert(i != container.end());
 				putCQIUnsafe(*i);
 			}

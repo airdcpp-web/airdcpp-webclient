@@ -124,7 +124,11 @@ public:
 	void inf(bool withToken, int mcnSlots = 0);
 	void get(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes);
 	void snd(const string& aType, const string& aName, const int64_t aStart, const int64_t aBytes);
-	void send(const AdcCommand& c);
+	bool sendHooked(const AdcCommand& c, CallerPtr aOwner, string& error_);
+	bool sendHooked(const AdcCommand& c) {
+		string error;
+		return sendHooked(c, this, error);
+	}
 
 	void setDataMode(int64_t aBytes = -1) noexcept { dcassert(socket); socket->setDataMode(aBytes); }
 	void setLineMode(size_t rollback) noexcept { dcassert(socket); socket->setLineMode(rollback); }
@@ -181,7 +185,7 @@ public:
 	bool supportsTrees() const noexcept { return isSet(FLAG_SUPPORTS_TTHL); }
 	
 	GETSET(string, hubUrl, HubUrl);
-	GETSET(string, token, Token);
+	GETSET(string, connectToken, ConnectToken);
 	IGETSET(int64_t, speed, Speed, 0);
 	IGETSET(uint64_t, lastActivity, LastActivity, 0);
 	GETSET(string, encoding, Encoding);
@@ -215,6 +219,7 @@ public:
 
 	void setUseLimiter(bool aEnabled) noexcept;
 	void setState(States aNewState) noexcept;
+	UserConnectionToken getToken() const noexcept { return token; }
 private:
 	void initSocket();
 
@@ -250,9 +255,11 @@ private:
 	void onNmdcLine(const string& aLine) noexcept;
 
 	AdcSupports supports;
+
+	const UserConnectionToken token;
 };
 
-inline bool operator==(const UserConnection* ptr, const string& aToken) { return compare(ptr->getToken(), aToken) == 0; }
+inline bool operator==(const UserConnection* ptr, const string& aToken) { return compare(ptr->getConnectToken(), aToken) == 0; }
 
 } // namespace dcpp
 

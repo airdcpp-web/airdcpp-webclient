@@ -53,7 +53,7 @@ namespace dcpp {
 //Git commit count for the current git tag
 #define COMMIT_NUMBER getCommitNumber()
 
-#ifdef NDEBUG
+#ifdef _DEBUG
 # define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48351}"
 #else
 # define INST_NAME "{AIRDC-AEE8350A-B49A-4753-AB4B-E55479A48350}"

@@ -313,7 +313,7 @@ namespace dcpp {
 			return;
 		}
 
-		auto t = findTransfer(aConn->getToken());
+		auto t = findTransfer(aConn->getConnectToken());
 		if (!t) {
 			return;
 		}

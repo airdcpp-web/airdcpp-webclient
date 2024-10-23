@@ -146,8 +146,8 @@ void DownloadManager::on(TimerManagerListener::Second, uint64_t aTick) noexcept 
 bool DownloadManager::checkIdle(const string& aToken) {
 	RLock l(cs);
 	for (auto uc : idlers) {
-		if (uc->getToken() == aToken) {
-			uc->callAsync([this, uc] { revive(uc); });
+		if (uc->getConnectToken() == aToken) {
+			uc->callAsync([this, uc] { reviveThreaded(uc); });
 			return true;
 		}
 	}
@@ -162,14 +162,14 @@ bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot) {
 			if (aSmallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isMCN())
 				continue;
 
-			uc->callAsync([this, uc] { revive(uc); });
+			uc->callAsync([this, uc] { reviveThreaded(uc); });
 			return true;
 		}	
 	}
 	return false;
 }
 
-void DownloadManager::revive(UserConnection* uc) {
+void DownloadManager::reviveThreaded(UserConnection* uc) {
 	{
 		WLock l(cs);
 		auto i = find(idlers.begin(), idlers.end(), uc);
@@ -186,7 +186,7 @@ void DownloadManager::addConnection(UserConnection* aSource) {
 		// Can't download from these...
 		aSource->getUser()->setFlag(User::OLD_CLIENT);
 		QueueManager::getInstance()->removeSource(aSource->getUser(), QueueItem::Source::FLAG_NO_TTHF);
-		dcdebug("DownloadManager::addConnection: outdated user (%s)\n", aSource->getToken().c_str());
+		dcdebug("DownloadManager::addConnection: outdated user (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource);
 		return;
 	}
@@ -307,7 +307,7 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 
 	dcassert(aConn->getDownload());
 	fire(DownloadManagerListener::Requesting(), d, !mySID.empty());
-	aConn->send(d->getCommand(aConn->isSet(UserConnection::FLAG_SUPPORTS_ZLIB_GET), mySID));
+	aConn->sendHooked(d->getCommand(aConn->isSet(UserConnection::FLAG_SUPPORTS_ZLIB_GET), mySID));
 }
 
 void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcCommand& cmd) noexcept {
@@ -317,7 +317,7 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	}
 
 	if(!aSource->getDownload()) {
-		dcdebug("DownloadManager::AdcCommand::SND: no download (%s)\n", aSource->getToken().c_str());
+		dcdebug("DownloadManager::AdcCommand::SND: no download (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource, true);
 		return;
 	}
@@ -331,7 +331,7 @@ void DownloadManager::on(AdcCommand::SND, UserConnection* aSource, const AdcComm
 	
 	if(type != Transfer::names[aSource->getDownload()->getType()]) {
 		// Uhh??? We didn't ask for this...
-		dcdebug("DownloadManager::AdcCommand::SND: transfer type mismatch (%s)\n", aSource->getToken().c_str());
+		dcdebug("DownloadManager::AdcCommand::SND: transfer type mismatch (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource);
 		return;
 	}
@@ -399,7 +399,7 @@ void DownloadManager::on(UserConnectionListener::Data, UserConnection* aSource, 
 	if (!d) {
 		//No download but receiving data??
 		dcassert(0);
-		dcdebug("DownloadManager::UserConnectionListener::Data: no download (%s)\n", aSource->getToken().c_str());
+		dcdebug("DownloadManager::UserConnectionListener::Data: no download (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource, true);
 		return;
 	}
@@ -529,7 +529,7 @@ void DownloadManager::onFailed(UserConnection* aSource, const string& aError) {
 void DownloadManager::failDownload(UserConnection* aSource, const string& aReason, bool aRotateQueue) {
 	auto d = aSource->getDownload();
 	if (d) {
-		dcdebug("DownloadManager::failDownload: %s failed (%s)\n", aSource->getToken().c_str(), aReason.c_str());
+		dcdebug("DownloadManager::failDownload: %s failed (%s)\n", aSource->getConnectToken().c_str(), aReason.c_str());
 		fire(DownloadManagerListener::Failed(), d, aReason);
 		removeDownload(d);
 		QueueManager::getInstance()->putDownloadHooked(d, false, false, aRotateQueue);
@@ -547,7 +547,7 @@ void DownloadManager::removeConnection(UserConnectionPtr aConn) {
 }
 
 void DownloadManager::disconnect(UserConnectionPtr aConn, bool aGraceless) const noexcept {
-	dcdebug("DownloadManager::disconnect: %s (graceless: %s)\n", aConn->getToken().c_str(), aGraceless ? "true" : "false");
+	dcdebug("DownloadManager::disconnect: %s (graceless: %s)\n", aConn->getConnectToken().c_str(), aGraceless ? "true" : "false");
 	aConn->disconnect(aGraceless);
 }
 
@@ -595,7 +595,7 @@ void DownloadManager::abortDownload(const string& aTarget, const UserPtr& aUser)
 
 void DownloadManager::on(UserConnectionListener::FileNotAvailable, UserConnection* aSource) noexcept {
 	if(!aSource->getDownload()) {
-		dcdebug("DM::FileNotAvailable: no download (%s)\n", aSource->getToken().c_str());
+		dcdebug("DM::FileNotAvailable: no download (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource, true);
 		return;
 	}
@@ -605,7 +605,7 @@ void DownloadManager::on(UserConnectionListener::FileNotAvailable, UserConnectio
 /** @todo Handle errors better */
 void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcCommand& cmd) noexcept {
 	if(cmd.getParameters().size() < 2) {
-		dcdebug("DM::AdcCommand::STA: not enough parameters (%s)\n", aSource->getToken().c_str());
+		dcdebug("DM::AdcCommand::STA: not enough parameters (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource);
 		return;
 	}
@@ -613,14 +613,14 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 	const string& errorCode = cmd.getParam(0);
 	const string& errorMessage = cmd.getParam(1);
 	if(errorCode.length() != 3) {
-		dcdebug("DM::AdcCommand::STA: invalid error code (%s)\n", aSource->getToken().c_str());
+		dcdebug("DM::AdcCommand::STA: invalid error code (%s)\n", aSource->getConnectToken().c_str());
 		disconnect(aSource);
 		return;
 	}
 
 	switch(Util::toInt(errorCode.substr(0, 1))) {
 		case AdcCommand::SEV_FATAL:
-			dcdebug("DM::AdcCommand::STA: fatal error (%s)\n", aSource->getToken().c_str());
+			dcdebug("DM::AdcCommand::STA: fatal error (%s)\n", aSource->getConnectToken().c_str());
 			disconnect(aSource);
 			return;
 		[[fallthrough]];
@@ -654,7 +654,7 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 			// ...
 	}
 
-	dcdebug("DM::AdcCommand::STA: disconnecting (%s)\n", aSource->getToken().c_str());
+	dcdebug("DM::AdcCommand::STA: disconnecting (%s)\n", aSource->getConnectToken().c_str());
 	disconnect(aSource);
 }
 

@@ -244,7 +244,7 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 
 	// Existing uploader and no new connections allowed?
 	if (!aParser.usesSmallSlot() && isUploadingMCN(aSource.getUser()) && !allowNewMultiConn(aSource)) {
-		dcdebug("UploadManager::parseSlotType: new MCN connections not allowed for %s\n", aSource.getToken().c_str());
+		dcdebug("UploadManager::parseSlotType: new MCN connections not allowed for %s\n", aSource.getConnectToken().c_str());
 		return nullopt;
 	}
 
@@ -258,17 +258,17 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 		// Could be solved with https://forum.dcbase.org/viewtopic.php?f=55&t=856 (or adding a type flag for all MCN connections)
 		auto smallFree = aSource.hasSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MCN) || smallFileConnections <= 8;
 		if (smallFree) {
-			dcdebug("UploadManager::parseSlotType: assign small slot for %s\n", aSource.getToken().c_str());
+			dcdebug("UploadManager::parseSlotType: assign small slot for %s\n", aSource.getConnectToken().c_str());
 			return UploadSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MCN);
 		}
 	}
 
 	// Permanent slot?
 	if (UploadSlot::toType(newSlot) == UploadSlot::USERSLOT) {
-		dcdebug("UploadManager::parseSlotType: assign permanent slot for %s (%s)\n", aSource.getToken().c_str(), newSlot->source.c_str());
+		dcdebug("UploadManager::parseSlotType: assign permanent slot for %s (%s)\n", aSource.getConnectToken().c_str(), newSlot->source.c_str());
 		return newSlot;
 	} else if (standardSlotsRemaining(aSource.getUser())) {
-		dcdebug("UploadManager::parseSlotType: assign permanent slot for %s (standard)\n", aSource.getToken().c_str());
+		dcdebug("UploadManager::parseSlotType: assign permanent slot for %s (standard)\n", aSource.getConnectToken().c_str());
 		return UploadSlot(UploadSlot::USERSLOT, SLOT_SOURCE_STANDARD);
 	}
 
@@ -288,13 +288,13 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 			auto supportsFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_MINISLOTS);
 			auto allowedFree = aSource.hasSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT) || isOP() || getFreeExtraSlots() > 0;
 			if (supportsFree && allowedFree) {
-				dcdebug("UploadManager::parseSlotType: assign minislot for %s\n", aSource.getToken().c_str());
+				dcdebug("UploadManager::parseSlotType: assign minislot for %s\n", aSource.getConnectToken().c_str());
 				return UploadSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT);
 			}
 		}
 	}
 
-	dcdebug("UploadManager::parseSlotType: assign slot type %d for %s\n", UploadSlot::toType(newSlot), aSource.getToken().c_str());
+	dcdebug("UploadManager::parseSlotType: assign slot type %d for %s\n", UploadSlot::toType(newSlot), aSource.getConnectToken().c_str());
 	return newSlot;
 }
 
@@ -645,7 +645,7 @@ void UploadManager::on(AdcCommand::GET, UserConnection* aSource, const AdcComman
 			cmd.addParam("TL1");	 
 		}
 
-		aSource->send(cmd);
+		aSource->sendHooked(cmd);
 		
 		startTransfer(u);
 	}
@@ -774,7 +774,7 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 	}
 	
 	if (c.getParameters().size() < 2) {
-		aSource->send(AdcCommand(AdcCommand::SEV_RECOVERABLE, AdcCommand::ERROR_PROTOCOL_GENERIC, "Missing parameters"));
+		aSource->sendHooked(AdcCommand(AdcCommand::SEV_RECOVERABLE, AdcCommand::ERROR_PROTOCOL_GENERIC, "Missing parameters"));
 		return;
 	}
 
@@ -784,7 +784,7 @@ void UploadManager::on(AdcCommand::GFI, UserConnection* aSource, const AdcComman
 
 		if (type == Transfer::names[Transfer::TYPE_FILE]) {
 			try {
-				aSource->send(ShareManager::getInstance()->getFileInfo(ident, *shareProfile));
+				aSource->sendHooked(ShareManager::getInstance()->getFileInfo(ident, *shareProfile));
 				return;
 			} catch (const ShareException&) { }
 		}

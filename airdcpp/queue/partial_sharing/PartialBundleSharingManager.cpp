@@ -303,9 +303,12 @@ void PartialBundleSharingManager::onIncomingSearch(const OnlineUserPtr& aUser, c
 void PartialBundleSharingManager::sendUDP(AdcCommand& aCmd, const UserPtr& aUser, const string& aHubUrl) {
 	SearchManager::getInstance()->getUdpServer().addTask([=, this] {
 		auto cmd = aCmd;
-		auto success = ClientManager::getInstance()->sendUDPHooked(cmd, aUser->getCID(), false, true, Util::emptyString, aHubUrl);
+
+		ClientManager::OutgoingUDPCommandOptions options(this, true);
+		string error;
+		auto success = ClientManager::getInstance()->sendUDPHooked(cmd, HintedUser(aUser, aHubUrl), options, error);
 		if (!success) {
-			dbgMsg("failed to send UDP message to an user " + aUser->getCID().toBase32(), LogMessage::SEV_WARNING);
+			dbgMsg("failed to send UDP message to an user " + aUser->getCID().toBase32() + ": " + error, LogMessage::SEV_WARNING);
 		}
 	});
 }
@@ -315,9 +318,9 @@ void PartialBundleSharingManager::on(ProtocolCommandManagerListener::IncomingUDP
 		return;
 	}
 
-	//if (!SETTING(USE_PARTIAL_SHARING)) {
-	//	return;
-	//}
+	if (!SETTING(USE_PARTIAL_SHARING)) {
+		return;
+	}
 
 	if (aCmd.getParameters().empty())
 		return;
@@ -330,9 +333,6 @@ void PartialBundleSharingManager::on(ProtocolCommandManagerListener::IncomingUDP
 	if (!user) {
 		return;
 	}
-
-	// Remove the CID
-	// c.getParameters().erase(c.getParameters().begin());
 
 	onPBD(aCmd, user);
 }

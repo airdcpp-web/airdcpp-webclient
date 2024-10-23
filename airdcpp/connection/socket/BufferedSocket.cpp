@@ -471,9 +471,6 @@ bool BufferedSocket::checkEvents() {
 			if (p.second)
 				static_cast<CallData*>(p.second.get())->f();
 			return false;
-		} else if(p.first == ASYNC_CALL) {
-			static_cast<CallData*>(p.second.get())->f();
-			continue;
 		}
 
 		if(state == STARTING) {
@@ -492,6 +489,8 @@ bool BufferedSocket::checkEvents() {
 				threadSendFile(static_cast<SendFileInfo*>(p.second.get())->stream); break;
 			} else if(p.first == DISCONNECT) {
 				fail(STRING(DISCONNECTED));
+			} else if (p.first == ASYNC_CALL) {
+				static_cast<CallData*>(p.second.get())->f();
 			} else {
 				dcdebug("%d unexpected in RUNNING state\n", p.first);
 			}

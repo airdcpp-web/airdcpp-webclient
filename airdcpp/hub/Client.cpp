@@ -400,7 +400,7 @@ bool Client::sendMessageHooked(const OutgoingChatMessage& aMessage, string& erro
 		return false;
 	}
 
-	return hubMessageHooked(aMessage.text, error_, aMessage.thirdPerson);
+	return hubMessageHooked(aMessage, error_);
 }
 
 bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept {
@@ -419,7 +419,7 @@ bool Client::sendPrivateMessageHooked(const OnlineUserPtr& aUser, const Outgoing
 		return false;
 	}
 
-	return privateMessageHooked(aUser, aMessage.text, error_, aMessage.thirdPerson, aEcho);
+	return privateMessageHooked(aUser, aMessage, error_, aEcho);
 }
 
 void Client::onPrivateMessage(const ChatMessagePtr& aMessage) noexcept {

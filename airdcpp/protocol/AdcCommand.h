@@ -34,7 +34,8 @@ public:
 		enum { CMD = T };
 	};
 
-	typedef multimap<string, string> ParamMap;
+	using ParamMap = multimap<string, string>;
+	using ParamList = StringList;
 
 	enum Error {
 		SUCCESS = 0,
@@ -149,8 +150,12 @@ public:
 	};
 	AdcCommand& addFeature(const string& feat, FeatureType aType) noexcept;
 
-	StringList& getParameters() noexcept { return parameters; }
-	const StringList& getParameters() const noexcept { return parameters; }
+	ParamList& getParameters() noexcept { return parameters; }
+	const ParamList& getParameters() const noexcept { return parameters; }
+	AdcCommand& setParams(const ParamList& aParams) noexcept {
+		parameters = aParams; 
+		return *this; 
+	}
 
 	string toString() const noexcept;
 	string toString(const CID& aCID) const noexcept;
@@ -190,7 +195,7 @@ private:
 	string getHeaderString() const noexcept;
 	string getHeaderString(dcpp::SID sid, bool nmdc) const noexcept;
 	string getParamString(bool nmdc) const noexcept;
-	StringList parameters;
+	ParamList parameters;
 	string features;
 	union {
 		char cmdChar[4];

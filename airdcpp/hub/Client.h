@@ -49,7 +49,7 @@ public:
 	virtual string getHubName() const noexcept = 0;
 	virtual bool isOp() const noexcept = 0;
 	virtual int connect(const OnlineUser& user, const string& token, string& lastError_) noexcept = 0;
-	virtual bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson = false, bool aEcho = true) noexcept = 0;
+	virtual bool privateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho = true) noexcept = 0;
 	virtual bool directSearchHooked(const OnlineUser&, const SearchPtr&, string&) noexcept {
 		dcassert(0);
 		return false;
@@ -86,7 +86,7 @@ public:
 	virtual size_t getUserCount() const noexcept = 0;
 	int64_t getTotalShare() const noexcept { return availableBytes; };
 	
-	virtual bool sendHooked(const AdcCommand& command) = 0;
+	virtual bool sendHooked(const AdcCommand& command, CallerPtr aOwner, string& error_) = 0;
 
 	void callAsync(AsyncF f) noexcept;
 
@@ -205,8 +205,8 @@ public:
 protected:
 	mutable SharedMutex cs;
 
-	virtual bool hubMessageHooked(const string& aMessage, string& error_, bool aThirdPerson = false) noexcept = 0;
-	virtual bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override = 0;
+	virtual bool hubMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept = 0;
+	virtual bool privateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept override = 0;
 	virtual void clearUsers() noexcept = 0;
 
 	void setConnectState(State aState) noexcept;

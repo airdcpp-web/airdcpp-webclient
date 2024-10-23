@@ -232,6 +232,7 @@ class UserCommand;
 class UserConnection;
 using UserConnectionPtr = UserConnection *;
 using UserConnectionList = std::vector<UserConnectionPtr>;
+using UserConnectionToken = uint32_t;
 
 class ViewFile;
 using ViewFilePtr = shared_ptr<ViewFile>;

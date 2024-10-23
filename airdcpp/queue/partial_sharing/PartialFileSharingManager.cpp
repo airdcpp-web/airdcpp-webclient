@@ -414,9 +414,12 @@ void PartialFileSharingManager::on(TimerManagerListener::Minute, uint64_t aTick)
 void PartialFileSharingManager::sendUDP(AdcCommand& aCmd, const UserPtr& aUser, const string& aHubUrl) const noexcept {
 	SearchManager::getInstance()->getUdpServer().addTask([=, this] {
 		auto cmd = aCmd;
-		auto success = ClientManager::getInstance()->sendUDPHooked(cmd, aUser->getCID(), false, true, Util::emptyString, aHubUrl);
+
+		ClientManager::OutgoingUDPCommandOptions options(this, true);
+		string error;
+		auto success = ClientManager::getInstance()->sendUDPHooked(cmd, HintedUser(aUser, aHubUrl), options, error);
 		if (!success) {
-			dbgMsg("failed to send UDP message", LogMessage::SEV_WARNING);
+			dbgMsg("failed to send UDP message: " + error, LogMessage::SEV_WARNING);
 		}
 	});
 }

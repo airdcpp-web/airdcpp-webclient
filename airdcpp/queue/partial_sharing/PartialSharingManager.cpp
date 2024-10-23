@@ -44,7 +44,7 @@ ActionHookResult<OptionalUploadSlot> PartialSharingManager::onSlotType(const Use
 	if (aUpload.provider == providerName) {
 		auto partialFree = aUserConnection.hasSlotSource(providerName) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS));
 		if (partialFree) {
-			dcdebug("PartialSharingManager::onSlotType: assign partial slot for %s\n", aUserConnection.getToken().c_str());
+			dcdebug("PartialSharingManager::onSlotType: assign partial slot for %s\n", aUserConnection.getConnectToken().c_str());
 			return aResultGetter.getData(UploadSlot(UploadSlot::Type::FILESLOT, providerName));
 		}
 	}

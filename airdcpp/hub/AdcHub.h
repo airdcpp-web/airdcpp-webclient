@@ -36,8 +36,8 @@ public:
 
 	int connect(const OnlineUser& aUser, const string& aToken, string& lastError_) noexcept override;
 	
-	bool hubMessageHooked(const string& aMessage, string& error_, bool thirdPerson = false) noexcept override;
-	bool privateMessageHooked(const OnlineUserPtr& aUser, const string& aMessage, string& error_, bool aThirdPerson, bool aEcho) noexcept override;
+	bool hubMessageHooked(const OutgoingChatMessage& aMessage, string& error_) noexcept override;
+	bool privateMessageHooked(const OnlineUserPtr& aUser, const OutgoingChatMessage& aMessage, string& error_, bool aEcho) noexcept override;
 	void sendUserCmd(const UserCommand& command, const ParamMap& params) override;
 	void search(const SearchPtr& aSearch) noexcept override;
 	bool directSearchHooked(const OnlineUser& user, const SearchPtr& aSearch, string& error_) noexcept override;
@@ -48,7 +48,11 @@ public:
 	size_t getUserCount() const noexcept override;
 
 	static string escape(const string& str) noexcept { return AdcCommand::escape(str, false); }
-	bool sendHooked(const AdcCommand& cmd) override;
+	bool sendHooked(const AdcCommand& cmd, CallerPtr aOwner, string& error_) override;
+	bool sendHooked(const AdcCommand& c) {
+		string error;
+		return sendHooked(c, this, error);
+	}
 
 	string getMySID() const noexcept { return AdcCommand::fromSID(mySID); }
 
