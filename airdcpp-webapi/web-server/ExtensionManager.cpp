@@ -48,6 +48,7 @@
 namespace webserver {
 	ExtensionManager::ExtensionManager(WebServerManager* aWsm) : wsm(aWsm) {
 		wsm->addListener(this);
+		wsm->getSocketManager().addListener(this);
 
 		npmRepository = make_unique<NpmRepository>(
 			std::bind_front(&ExtensionManager::downloadExtension, this),
@@ -56,6 +57,7 @@ namespace webserver {
 	}
 
 	ExtensionManager::~ExtensionManager() {
+		wsm->getSocketManager().removeListener(this);
 		wsm->removeListener(this);
 	}
 
@@ -84,9 +86,11 @@ namespace webserver {
 				ext->removeListeners();
 
 				if (!ext->isManaged()) {
+					// Handle unmanaged extensions in WebServerManagerListener::Stopped (they could still connect at this point as the server is running)
 					continue;
 				}
-
+				
+				// Managed extensions can't be started again after this
 				try {
 					ext->stopThrow();
 				} catch (const Exception& e) {
@@ -111,6 +115,16 @@ namespace webserver {
 			}
 
 			Thread::sleep(50);
+		}
+
+		ExtensionList unmanagedExtensions;
+		{
+			RLock l(cs);
+			ranges::copy_if(extensions, back_inserter(unmanagedExtensions), [](const ExtensionPtr& e) { return !e->isManaged(); });
+		}
+
+		for (const auto& e: unmanagedExtensions) {
+			unregisterRemoteExtension(e);
 		}
 
 		WLock l(cs);

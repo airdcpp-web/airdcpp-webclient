@@ -80,7 +80,7 @@ namespace webserver {
 		api_return handleRemoveBundleSource(ApiRequest& aRequest);
 
 		api_return handleBundlePriority(ApiRequest& aRequest);
-		api_return handleSearchBundle(ApiRequest& aRequest);
+		api_return handleSearchBundleAlternates(ApiRequest& aRequest);
 		api_return handleShareBundle(ApiRequest& aRequest);
 
 		// FILES
@@ -89,13 +89,14 @@ namespace webserver {
 		static QueueItemPtr getFile(ApiRequest& aRequest, bool aRequireBundle);
 
 		api_return handleGetFile(ApiRequest& aRequest);
+		api_return handleGetFilesByTTH(ApiRequest& aRequest);
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
 		api_return handleGetFileSources(ApiRequest& aRequest);
 		api_return handleRemoveFileSource(ApiRequest& aRequest);
 
 		api_return handleFilePriority(ApiRequest& aRequest);
-		api_return handleSearchFile(ApiRequest& aRequest);
+		api_return handleSearchFileAlternates(ApiRequest& aRequest);
 
 		api_return handleGetFileSegments(ApiRequest& aRequest);
 		api_return handleAddFileSegment(ApiRequest& aRequest);

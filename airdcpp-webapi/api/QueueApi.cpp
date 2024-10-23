@@ -129,11 +129,13 @@ namespace webserver {
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("remove")),			QueueApi::handleRemoveBundle);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("priority")),			QueueApi::handleBundlePriority);
 
-		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("search")),			QueueApi::handleSearchBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("search")),			QueueApi::handleSearchBundleAlternates);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("share")),			QueueApi::handleShareBundle);
 
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),										QueueApi::handleGetFilesByTTH);
+
 		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TOKEN_PARAM),									QueueApi::handleGetFile);
-		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("search")),				QueueApi::handleSearchFile);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("search")),				QueueApi::handleSearchFileAlternates);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("priority")),			QueueApi::handleFilePriority);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("remove")),				QueueApi::handleRemoveFile);
 
@@ -347,7 +349,7 @@ namespace webserver {
 		return b;
 	}
 
-	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
+	api_return QueueApi::handleSearchBundleAlternates(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
 		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, false);
 
@@ -572,6 +574,14 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
+	api_return QueueApi::handleGetFilesByTTH(ApiRequest& aRequest) {
+		auto tth = aRequest.getTTHParam();
+
+		const auto files = QueueManager::getInstance()->findFiles(tth);
+		aRequest.setResponseBody(Serializer::serializeItemList(QueueFileUtils::propertyHandler, files));
+		return websocketpp::http::status_code::ok;
+	}
+
 	api_return QueueApi::handleRemoveFile(ApiRequest& aRequest) {
 		auto removeFinished = JsonUtil::getOptionalFieldDefault<bool>("remove_finished", aRequest.getRequestBody(), false);
 
@@ -658,7 +668,7 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return QueueApi::handleSearchFile(ApiRequest& aRequest) {
+	api_return QueueApi::handleSearchFileAlternates(ApiRequest& aRequest) {
 		auto qi = getFile(aRequest, false);
 		QueueManager::getInstance()->searchFileAlternates(qi);
 		return websocketpp::http::status_code::no_content;

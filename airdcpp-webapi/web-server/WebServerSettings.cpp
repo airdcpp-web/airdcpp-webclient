@@ -86,6 +86,7 @@ namespace webserver {
 
 			{ "outgoing_hub_command_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_HUB_COMMAND_HOOK_TIMEOUT,				2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
 			{ "outgoing_udp_command_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_UDP_COMMAND_HOOK_TIMEOUT,				2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
+			{ "outgoing_tcp_command_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_TCP_COMMAND_HOOK_TIMEOUT,				2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
 
 			{ "queue_add_bundle_file_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT,			5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 300,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_add_bundle_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_HOOK_TIMEOUT,					10, ApiSettingItem::TYPE_NUMBER, false, { 1, 600,	ResourceManager::SECONDS_LOWER } },
