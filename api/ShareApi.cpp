@@ -74,7 +74,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real"), EXACT_PARAM("content"), RANGE_START_PARAM, RANGE_MAX_PARAM),	ShareApi::handleGetDirectoryContentByReal);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real")),		ShareApi::handleGetDirectoryByReal);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("files"), EXACT_PARAM("by_real")),				ShareApi::handleGetFileByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("files"), EXACT_PARAM("by_tth")),				ShareApi::handleGetFilesByTTH);
+		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),							ShareApi::handleGetFilesByTTH);
 
 
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
@@ -314,7 +314,7 @@ namespace webserver {
 	}
 
 	api_return ShareApi::handleGetFilesByTTH(ApiRequest& aRequest) {
-		auto tth = Deserializer::deserializeTTH(aRequest.getRequestBody());
+		auto tth = aRequest.getTTHParam();
 
 		const auto files = ShareManager::getInstance()->findFiles(tth);
 		aRequest.setResponseBody(Serializer::serializeList(files, serializeFile));

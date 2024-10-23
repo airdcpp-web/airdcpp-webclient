@@ -49,11 +49,13 @@ namespace webserver {
 		work(tasks)
 	{
 		settingsManager = make_unique<WebServerSettings>(this);
-		extManager = make_unique<ExtensionManager>(this);
+
 		userManager = make_unique<WebUserManager>(this);
-		contextMenuManager = make_unique<ContextMenuManager>();
 		socketManager = make_unique<SocketManager>(this);
 		httpManager = make_unique<HttpManager>(this);
+
+		extManager = make_unique<ExtensionManager>(this);
+		contextMenuManager = make_unique<ContextMenuManager>();
 
 		plainServerConfig = make_unique<ServerConfig>(settingsManager->getSettingItem(WebServerSettings::PLAIN_PORT), settingsManager->getSettingItem(WebServerSettings::PLAIN_BIND));
 		tlsServerConfig = make_unique<ServerConfig>(settingsManager->getSettingItem(WebServerSettings::TLS_PORT), settingsManager->getSettingItem(WebServerSettings::TLS_BIND));
@@ -325,7 +327,7 @@ namespace webserver {
 		if (minuteTimer)
 			minuteTimer->stop(true);
 
-		fire(WebServerManagerListener::Stopping());
+		fireReversed(WebServerManagerListener::Stopping());
 
 		if(endpoint_plain.is_listening())
 			endpoint_plain.stop_listening();
@@ -347,7 +349,7 @@ namespace webserver {
 		task_threads.reset();
 		ios_threads.reset();
 
-		fire(WebServerManagerListener::Stopped());
+		fireReversed(WebServerManagerListener::Stopped());
 	}
 
 	TimerPtr WebServerManager::addTimer(Callback&& aCallback, time_t aIntervalMillis, const Timer::CallbackWrapper& aCallbackWrapper) noexcept {
