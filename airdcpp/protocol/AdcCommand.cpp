@@ -312,4 +312,14 @@ AdcCommand::CommandType AdcCommand::toCommand(const string& aCmd) noexcept {
 	return (((uint32_t)aCmd[0]) | (((uint32_t)aCmd[1]) << 8) | (((uint32_t)aCmd[2]) << 16));
 }
 
+string AdcCommand::fromCommand(CommandType x) noexcept {
+	string tmp(3, 0); 
+
+	uint8_t out[4];
+	*(uint32_t*)&out = x;
+
+	tmp[0] = out[0]; tmp[1] = out[1]; tmp[2] = out[2];
+	return tmp; 
+}
+
 } // namespace dcpp

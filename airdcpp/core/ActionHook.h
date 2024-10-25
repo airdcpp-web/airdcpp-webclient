@@ -32,61 +32,6 @@
 
 
 namespace dcpp {
-	struct ActionHookRejection {
-		ActionHookRejection(const string& aHookId, const string& aHookName, const string& aRejectId, const string& aMessage, bool aIsDataError = false) :
-			hookId(aHookId), hookName(aHookName), rejectId(aRejectId), message(aMessage), isDataError(aIsDataError) {}
-
-		const string hookId;
-		const string hookName;
-		const string rejectId;
-		const string message;
-		const bool isDataError;
-
-		static string formatError(const ActionHookRejectionPtr& aRejection) noexcept {
-			if (!aRejection) return "";
-			return aRejection->hookName + ": " + aRejection->message;
-		}
-
-		static bool matches(const ActionHookRejectionPtr& aRejection, const string_view& aHookId, const string_view& aRejectId) noexcept {
-			if (!aRejection) return false;
-
-			return aRejection->hookId == aHookId && aRejection->rejectId == aRejectId;
-		}
-
-		using List = vector<ActionHookRejectionPtr>;
-	};
-
-	class HookRejectException : public Exception {
-	public:
-		explicit HookRejectException(const ActionHookRejectionPtr& aRejection) : Exception(ActionHookRejection::formatError(aRejection)), rejection(aRejection) {
-
-		}
-
-		const ActionHookRejectionPtr& getRejection() const noexcept {
-			return rejection;
-		}
-	private:
-		ActionHookRejectionPtr rejection;
-	};
-
-
-	template<typename DataT>
-	struct ActionHookData {
-		ActionHookData(const string& aHookId, const string& aHookName, const DataT& aData) :
-			hookId(aHookId), hookName(aHookName), data(aData) {}
-
-		const string hookId;
-		const string hookName;
-
-		DataT data;
-	};
-
-	template<typename DataT>
-	struct ActionHookResult {
-		ActionHookRejectionPtr error = nullptr;
-		ActionHookDataPtr<DataT> data = nullptr;
-	};
-
 	// General subscriber config
 	class ActionHookSubscriber {
 	public:
@@ -111,6 +56,62 @@ namespace dcpp {
 
 	using ActionHookSubscriberList = std::vector<ActionHookSubscriber>;
 
+	struct ActionHookRejection {
+		ActionHookRejection(const ActionHookSubscriber& aSubscriber, const string& aRejectId, const string& aMessage, bool aIsDataError = false) :
+			subscriberId(aSubscriber.getId()), subscriberName(aSubscriber.getName()), rejectId(aRejectId), message(aMessage), isDataError(aIsDataError) {}
+
+		const string subscriberId;
+		const string subscriberName;
+
+		const string rejectId;
+		const string message;
+		const bool isDataError;
+
+		static string formatError(const ActionHookRejectionPtr& aRejection) noexcept {
+			if (!aRejection) return "";
+			return aRejection->subscriberName + ": " + aRejection->message;
+		}
+
+		static bool matches(const ActionHookRejectionPtr& aRejection, const string_view& aSubscriberId, const string_view& aRejectId) noexcept {
+			if (!aRejection) return false;
+
+			return aRejection->subscriberId == aSubscriberId && aRejection->rejectId == aRejectId;
+		}
+
+		using List = vector<ActionHookRejectionPtr>;
+	};
+
+	class HookRejectException : public Exception {
+	public:
+		explicit HookRejectException(const ActionHookRejectionPtr& aRejection) : Exception(ActionHookRejection::formatError(aRejection)), rejection(aRejection) {
+
+		}
+
+		const ActionHookRejectionPtr& getRejection() const noexcept {
+			return rejection;
+		}
+	private:
+		ActionHookRejectionPtr rejection;
+	};
+
+
+	template<typename DataT>
+	struct ActionHookData {
+		ActionHookData(const ActionHookSubscriber& aSubscriber, const DataT& aData) :
+			subscriberId(aSubscriber.getId()), subscriberName(aSubscriber.getName()), data(aData) {}
+
+		const string subscriberId;
+		const string subscriberName;
+
+		DataT data;
+	};
+
+	template<typename DataT>
+	struct ActionHookResult {
+		ActionHookRejectionPtr error = nullptr;
+		ActionHookDataPtr<DataT> data = nullptr;
+	};
+
 	// Helper class to be passed to hook handlers for creating result entities
 	template<typename DataT>
 	class ActionHookDataGetter {
@@ -118,17 +119,17 @@ namespace dcpp {
 		explicit ActionHookDataGetter(ActionHookSubscriber&& aSubscriber) noexcept : subscriber(std::move(aSubscriber)) {  }
 
 		ActionHookResult<DataT> getRejection(const string& aRejectId, const string& aMessage) const noexcept {
-			auto error = make_shared<ActionHookRejection>(subscriber.getId(), subscriber.getName(), aRejectId, aMessage);
+			auto error = make_shared<ActionHookRejection>(subscriber, aRejectId, aMessage);
 			return { error, nullptr };
 		}
 
 		ActionHookResult<DataT> getDataRejection(const std::exception& e) const noexcept {
-			auto error = make_shared<ActionHookRejection>(subscriber.getId(), subscriber.getName(), "invalid_hook_data", e.what(), true);
+			auto error = make_shared<ActionHookRejection>(subscriber, "invalid_hook_data", e.what(), true);
 			return { error, nullptr };
 		}
 
 		ActionHookResult<DataT> getData(const DataT& aData) const noexcept {
-			auto data = make_shared<ActionHookData<DataT>>(subscriber.getId(), subscriber.getName(), aData);
+			auto data = make_shared<ActionHookData<DataT>>(subscriber, aData);
 			return { nullptr, data };
 		}
 
@@ -142,7 +143,7 @@ namespace dcpp {
 	template<typename DataT, typename... ArgT>
 	class ActionHook {
 	public:
-#define HOOK_HANDLER(func) &func, *this
+#define HOOK_CALLBACK(func) &func, *this
 
 		// Internal hook handler
 		class ActionHookHandler {
@@ -204,7 +205,7 @@ namespace dcpp {
 				);
 
 				if (res.error) {
-					dcdebug("Hook rejected by handler %s: %s\n", res.error->hookId.c_str(), res.error->rejectId.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", res.error->subscriberId.c_str(), res.error->rejectId.c_str());
 					return res.error;
 				}
 			}
@@ -222,7 +223,7 @@ namespace dcpp {
 				);
 
 				if (handlerRes.error) {
-					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->subscriberId.c_str(), handlerRes.error->rejectId.c_str());
 
 					errors_.push_back(handlerRes.error);
 				}
@@ -330,7 +331,7 @@ namespace dcpp {
 				);
 
 				if (handlerRes.error) {
-					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->hookId.c_str(), handlerRes.error->rejectId.c_str());
+					dcdebug("Hook rejected by handler %s: %s\n", handlerRes.error->subscriberId.c_str(), handlerRes.error->rejectId.c_str());
 
 					if (aRejectHandler) {
 						aRejectHandler(handlerRes.error);

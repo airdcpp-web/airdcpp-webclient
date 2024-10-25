@@ -425,7 +425,11 @@ void PrivateChat::sendPMInfo(uint8_t aType) {
 			c.addParam("\n");
 		}
 
-		uc->sendHooked(c);
+		uc->callAsync([this, c] {
+			if (ccReady()) {
+				uc->sendHooked(c);
+			}
+		});
 	}
 }
 
