@@ -38,8 +38,8 @@ namespace dcpp {
 IgnoreManager::IgnoreManager() noexcept {
 	SettingsManager::getInstance()->addListener(this);
 
-	ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(ActionHookSubscriber(IGNORE_HOOK_ID, STRING(SETTINGS_IGNORE), nullptr), HOOK_HANDLER(IgnoreManager::onPrivateMessage));
-	ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(ActionHookSubscriber(IGNORE_HOOK_ID, STRING(SETTINGS_IGNORE), nullptr), HOOK_HANDLER(IgnoreManager::onHubMessage));
+	ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(ActionHookSubscriber(IGNORE_HOOK_ID, STRING(SETTINGS_IGNORE), nullptr), HOOK_CALLBACK(IgnoreManager::onPrivateMessage));
+	ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(ActionHookSubscriber(IGNORE_HOOK_ID, STRING(SETTINGS_IGNORE), nullptr), HOOK_CALLBACK(IgnoreManager::onHubMessage));
 }
 
 IgnoreManager::~IgnoreManager() noexcept {

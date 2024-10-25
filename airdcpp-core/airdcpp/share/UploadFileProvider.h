@@ -37,6 +37,10 @@ struct UploadFileQuery {
 
 	const ProfileTokenSet* profiles = nullptr;
 	const Segment* segment = nullptr;
+
+	bool enableAccessChecks() const noexcept {
+		return !!profiles;
+	}
 };
 
 // Common interface for a basic store that provides uploading (and search) functionality 

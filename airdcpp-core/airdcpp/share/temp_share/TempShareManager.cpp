@@ -46,7 +46,7 @@ TempShareManager::~TempShareManager() {
 
 bool TempShareManager::toRealWithSize(const UploadFileQuery& aQuery, string& path_, int64_t& size_, bool& noAccess_) const noexcept {
 	for (const auto& item: getTempShares(aQuery.tth)) {
-		if (!item.hasAccess(aQuery.user)) {
+		if (aQuery.enableAccessChecks() && !item.hasAccess(aQuery.user)) {
 			noAccess_ = true;
 		} else {
 			noAccess_ = false;

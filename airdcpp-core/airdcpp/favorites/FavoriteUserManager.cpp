@@ -47,10 +47,10 @@ FavoriteUserManager::FavoriteUserManager() :
 	ConnectionManager::getInstance()->addListener(this);
 	DownloadManager::getInstance()->addListener(this);
 
-	ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(ActionHookSubscriber(FAVORITE_USERS_HOOK_ID, STRING(FAVORITE_USERS), nullptr), HOOK_HANDLER(FavoriteUserManager::onPrivateMessage));
-	ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(ActionHookSubscriber(FAVORITE_USERS_HOOK_ID, STRING(FAVORITE_USERS), nullptr), HOOK_HANDLER(FavoriteUserManager::onHubMessage));
+	ClientManager::getInstance()->incomingPrivateMessageHook.addSubscriber(ActionHookSubscriber(FAVORITE_USERS_HOOK_ID, STRING(FAVORITE_USERS), nullptr), HOOK_CALLBACK(FavoriteUserManager::onPrivateMessage));
+	ClientManager::getInstance()->incomingHubMessageHook.addSubscriber(ActionHookSubscriber(FAVORITE_USERS_HOOK_ID, STRING(FAVORITE_USERS), nullptr), HOOK_CALLBACK(FavoriteUserManager::onHubMessage));
 
-	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(FAVORITE_USERS_HOOK_ID, STRING(FAVORITE_USERS), nullptr), HOOK_HANDLER(FavoriteUserManager::onSlotType));
+	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(FAVORITE_USERS_HOOK_ID, STRING(FAVORITE_USERS), nullptr), HOOK_CALLBACK(FavoriteUserManager::onSlotType));
 }
 
 FavoriteUserManager::~FavoriteUserManager() {

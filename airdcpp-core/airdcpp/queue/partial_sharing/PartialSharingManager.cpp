@@ -37,7 +37,7 @@ namespace dcpp {
 PartialSharingManager::PartialSharingManager() {
 	ShareManager::getInstance()->registerUploadFileProvider(this);
 
-	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(providerName, "Partial sharing", nullptr), HOOK_HANDLER(PartialSharingManager::onSlotType));
+	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(providerName, "Partial sharing", nullptr), HOOK_CALLBACK(PartialSharingManager::onSlotType));
 }
 
 ActionHookResult<OptionalUploadSlot> PartialSharingManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload& aUpload, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept {

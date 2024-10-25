@@ -177,7 +177,9 @@ public:
 	bool getParam(const char* name, size_t start, StringList& ret) const noexcept;
 	bool hasFlag(const char* name, size_t start) const noexcept;
 	static uint16_t toCode(const char* x) noexcept { return *((uint16_t*)x); }
+
 	static CommandType toCommand(const string& aCmd) noexcept;
+	static string fromCommand(CommandType x) noexcept;
 
 	bool operator==(uint32_t aCmd) const noexcept { return cmdInt == aCmd; }
 
