@@ -36,8 +36,10 @@
 
 namespace webserver {
 	SessionApi::SessionApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::ADMIN, { "session_created", "session_removed" }) 
+		SubscribableApiModule(aSession, Access::ADMIN) 
 	{
+		createSubscriptions({ "session_created", "session_removed" });
+
 		// Just fail these since we have a session already...
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("authorize")), SessionApi::failAuthenticatedRequest);
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("socket")), SessionApi::failAuthenticatedRequest);

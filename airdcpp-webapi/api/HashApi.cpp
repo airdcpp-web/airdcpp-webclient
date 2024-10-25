@@ -31,20 +31,18 @@
 
 namespace webserver {
 	HashApi::HashApi(Session* aSession) : 
-		SubscribableApiModule(
-			aSession, 
-			Access::SETTINGS_VIEW, 
-			{ 
-				"hash_database_status",
-				"hash_statistics",
-				"hasher_file_hashed",
-				"hasher_file_failed",
-				"hasher_directory_finished",
-				"hasher_finished",
-			}
-		),
+		SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
 		timer(getTimer([this] { onTimer(); }, 1000)) 
 	{
+		createSubscriptions({
+			"hash_database_status",
+			"hash_statistics",
+			"hasher_file_hashed",
+			"hasher_file_failed",
+			"hasher_directory_finished",
+			"hasher_finished",
+		});
+
 		HashManager::getInstance()->addListener(this);
 
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("database_status")),	HashApi::handleGetDbStatus);

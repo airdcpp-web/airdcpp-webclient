@@ -23,7 +23,7 @@
 
 #include <airdcpp/viewed_files/ViewFileManagerListener.h>
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
 namespace webserver {
 	class ViewFileApi : public SubscribableApiModule, private ViewFileManagerListener {

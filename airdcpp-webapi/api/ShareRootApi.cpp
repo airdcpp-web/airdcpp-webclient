@@ -30,11 +30,13 @@
 
 namespace webserver {
 	ShareRootApi::ShareRootApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::SETTINGS_VIEW, { "share_root_created", "share_root_updated", "share_root_removed" }),
+		SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
 		roots(ShareManager::getInstance()->getRootInfos()),
 		rootView("share_root_view", this, ShareUtils::propertyHandler, std::bind(&ShareRootApi::getRoots, this)),
 		timer(getTimer([this] { onTimer(); }, 5000)) 
 	{
+		createSubscriptions({ "share_root_created", "share_root_updated", "share_root_removed" });
+
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,		(),				ShareRootApi::handleGetRoots);
 
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,		(),				ShareRootApi::handleAddRoot);

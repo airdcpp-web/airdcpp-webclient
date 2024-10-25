@@ -35,10 +35,12 @@ namespace webserver {
 	};
 
 	FilelistInfo::FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist) : 
-		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32(), subscriptionList), 
+		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32()), 
 		dl(aFilelist),
 		directoryView("filelist_view", this, FilelistUtils::propertyHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
+		createSubscriptions(subscriptionList);
+
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_PATCH,	(),															FilelistInfo::handleUpdateList);
 
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("directory")),									FilelistInfo::handleChangeDirectory);

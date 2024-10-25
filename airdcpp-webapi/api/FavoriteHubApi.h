@@ -21,7 +21,6 @@
 
 #include <api/FavoriteHubUtils.h>
 
-#include <api/base/ApiModule.h>
 #include <api/common/ListViewController.h>
 
 #include <airdcpp/core/header/typedefs.h>

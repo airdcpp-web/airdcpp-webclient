@@ -36,8 +36,10 @@ namespace webserver {
 	};
 
 	PrivateChatInfo::PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat) :
-		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32(), subscriptionList), chat(aChat),
+		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32()), chat(aChat),
 		chatHandler(this, aChat.get(), "private_chat", Access::PRIVATE_CHAT_VIEW, Access::PRIVATE_CHAT_EDIT, Access::PRIVATE_CHAT_SEND) {
+
+		createSubscriptions(subscriptionList);
 
 		METHOD_HANDLER(Access::PRIVATE_CHAT_VIEW, METHOD_PATCH,		(),							PrivateChatInfo::handleUpdateSession);
 

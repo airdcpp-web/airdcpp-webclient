@@ -30,8 +30,10 @@
 
 namespace webserver {
 	FavoriteDirectoryApi::FavoriteDirectoryApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::ANY, { "favorite_directories_updated" }) 
+		SubscribableApiModule(aSession, Access::ANY) 
 	{
+		createSubscriptions({ "favorite_directories_updated" });
+
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_paths")),			FavoriteDirectoryApi::handleGetGroupedDirectories);
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(),										FavoriteDirectoryApi::handleGetDirectories);
 

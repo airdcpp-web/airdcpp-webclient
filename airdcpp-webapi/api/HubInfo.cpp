@@ -42,11 +42,13 @@ namespace webserver {
 	};
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
-		SubApiModule(aParentModule, aClient->getToken(), subscriptionList), client(aClient),
+		SubApiModule(aParentModule, aClient->getToken()), client(aClient),
 		chatHandler(this, aClient.get(), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND),
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) 
 	{
+		createSubscriptions(subscriptionList);
+
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_PATCH, (),							HubInfo::handleUpdateHub);
 
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("reconnect")),	HubInfo::handleReconnect);

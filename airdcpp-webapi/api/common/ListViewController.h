@@ -27,7 +27,7 @@
 
 #include <airdcpp/core/timer/TimerManager.h>
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 #include <api/common/PropertyFilter.h>
 #include <api/common/Serializer.h>
 #include <api/common/ViewTasks.h>

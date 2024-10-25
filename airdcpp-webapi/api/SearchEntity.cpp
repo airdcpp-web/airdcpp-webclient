@@ -40,8 +40,10 @@ namespace webserver {
 	};
 
 	SearchEntity::SearchEntity(ParentType* aParentModule, const SearchInstancePtr& aSearch) :
-		SubApiModule(aParentModule, aSearch->getToken(), subscriptionList), search(aSearch),
+		SubApiModule(aParentModule, aSearch->getToken()), search(aSearch),
 		searchView("search_view", this, SearchUtils::propertyHandler, std::bind(&SearchEntity::getResultList, this)) {
+
+		createSubscriptions(subscriptionList);
 
 		METHOD_HANDLER(Access::SEARCH,		METHOD_POST,	(EXACT_PARAM("hub_search")),									SearchEntity::handlePostHubSearch);
 		METHOD_HANDLER(Access::SEARCH,		METHOD_POST,	(EXACT_PARAM("user_search")),									SearchEntity::handlePostUserSearch);

@@ -59,7 +59,7 @@
 			return cmm.hook##MenuHook.getSubscribers(); \
 		} \
 	); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [this](ApiRequest& aRequest) { \
+	INLINE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [this](ApiRequest& aRequest) { \
 		return handleClickItem<idType>( \
 			aRequest, \
 			menuId, \
@@ -67,14 +67,14 @@
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [this](ApiRequest& aRequest) { \
+	INLINE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [this](ApiRequest& aRequest) { \
 		return handleListItems<idType>( \
 			aRequest, \
 			std::bind_front(&ContextMenuManager::get##hook2##Menu, &cmm), \
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [this](ApiRequest& aRequest) { \
+	INLINE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [this](ApiRequest& aRequest) { \
 		return handleListItemsGrouped<idType>( \
 			aRequest, \
 			std::bind_front(&ContextMenuManager::get##hook2##Menu, &cmm), \
@@ -95,7 +95,7 @@
 	}, [this] { \
 		return cmm.hook##MenuHook.getSubscribers(); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
+	INLINE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("select")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleClickItem<idType>( \
@@ -107,7 +107,7 @@
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
+	INLINE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItems<idType>( \
@@ -118,7 +118,7 @@
 			idDeserializerFunc \
 		); \
 	}); \
-	INLINE_MODULE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
+	INLINE_METHOD_HANDLER(access, METHOD_POST, (EXACT_PARAM(menuId), EXACT_PARAM("list_grouped")), [MYMACRO(=, this)](ApiRequest& aRequest) { \
 		const auto entityId = JsonUtil::getRawField("entity_id", aRequest.getRequestBody()); \
 		auto entity = entityDeserializerFunc(entityId, "entity_id"); \
 		return handleListItemsGrouped<idType>( \
@@ -132,29 +132,25 @@
 
 namespace webserver {
 	MenuApi::MenuApi(Session* aSession) : 
-		HookApiModule(
-			aSession,
-			Access::ANY,
-			{
-				"queue_bundle_menuitem_selected",
-				"queue_file_menuitem_selected",
-				"transfer_menuitem_selected",
-				"favorite_hub_menuitem_selected",
-				"share_root_menuitem_selected",
-				"user_menuitem_selected",
-				"hinted_user_menuitem_selected",
-				"extension_menuitem_selected",
-
-				"hub_user_menuitem_selected",
-				"grouped_search_result_menuitem_selected",
-				"filelist_item_menuitem_selected",
-				"hub_message_highlight_menuitem_selected",
-				"private_chat_message_highlight_menuitem_selected",
-			},
-			Access::ANY
-		),
+		HookApiModule(aSession, Access::ANY, Access::ANY),
 		cmm(aSession->getServer()->getContextMenuManager()) 
 	{
+		createSubscriptions({
+			"queue_bundle_menuitem_selected",
+			"queue_file_menuitem_selected",
+			"transfer_menuitem_selected",
+			"favorite_hub_menuitem_selected",
+			"share_root_menuitem_selected",
+			"user_menuitem_selected",
+			"hinted_user_menuitem_selected",
+			"extension_menuitem_selected",
+
+			"hub_user_menuitem_selected",
+			"grouped_search_result_menuitem_selected",
+			"filelist_item_menuitem_selected",
+			"hub_message_highlight_menuitem_selected",
+			"private_chat_message_highlight_menuitem_selected",
+		});
 
 		cmm.addListener(this);
 
@@ -246,8 +242,8 @@ namespace webserver {
 		return ContextMenuItemClickData(hookId, menuItemId, supports, aPermissions, formValues);
 	}
 
-	HookApiModule::HookCompletionDataPtr MenuApi::fireMenuHook(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemListData& aListData, const json& aEntityId) {
-		return fireHook(toHookId(aMenuId), WEBCFG(LIST_MENUITEMS_HOOK_TIMEOUT).num(), [&]() {
+	HookCompletionDataPtr MenuApi::fireMenuHook(const string& aMenuId, const json& aSelectedIds, const ContextMenuItemListData& aListData, const json& aEntityId) {
+		return maybeFireHook(toHookId(aMenuId), WEBCFG(LIST_MENUITEMS_HOOK_TIMEOUT).num(), [&]() {
 			return json({
 				{ "selected_ids", aSelectedIds },
 				{ "permissions", Serializer::serializePermissions(aListData.access) },

@@ -28,17 +28,15 @@
 
 namespace webserver {
 	ShareProfileApi::ShareProfileApi(Session* aSession) : 
-		SubscribableApiModule(
-			aSession, 
-			Access::ANY, 
-			{ 
-				"share_profile_added", 
-				"share_profile_updated", 
-				"share_profile_removed" 
-			}
-		),
+		SubscribableApiModule(aSession, Access::ANY),
 		mgr(ShareManager::getInstance()->getProfileMgr())
 	{
+		createSubscriptions({
+			"share_profile_added",
+			"share_profile_updated",
+			"share_profile_removed"
+		});
+
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(),										ShareProfileApi::handleGetProfiles);
 
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(TOKEN_PARAM),							ShareProfileApi::handleGetProfile);

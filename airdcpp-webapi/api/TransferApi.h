@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERAPI_H
 #define DCPLUSPLUS_DCPP_TRANSFERAPI_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 #include <api/TransferUtils.h>
 
 #include <api/common/ListViewController.h>
