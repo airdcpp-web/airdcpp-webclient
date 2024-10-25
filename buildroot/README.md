@@ -1,44 +1,19 @@
 This guide will instruct how to use [Buildroot](https://buildroot.org) to cross-compile binaries for different system architectures. Note that [binaries for the most common architectures are provided](https://airdcpp-web.github.io/docs/installation/linux-binaries.html) and you may post an issue on Github if you want new architectures to be added.
 
-## Download Buildroot
+## Install Buildroot
 
 You should first create a new directory (e.g. `buildroot`) where you will put the buildroot package and all the wanted buildroot environment directories.
 
-Download buildroot in the newly created directory:
+There's a script that you can use for setting up the buildroot environment:
 
 ```
-wget https://buildroot.org/downloads/buildroot-2024.08.1.tar.bz2
+/AIRDCPP_SOURCE_PATH/buildroot/install-buildroot.sh 2024.08.1 /BUILDROOT_ROOT_PATH/ ARCH_NAME
 ```
 
-Note: check https://buildroot.org/download.html for the latest patch release to get the latest fixes and security updates.
+- `BUILDROOT_ROOT_PATH` is the manually created buildroot directory where all the installed buildroot environments for possible different architectures will be put (e.g. `/home/myusername/buildroot/`)
+- `ARCH_NAME` is the architecture that you wish to compile. The architecture name can be freely chosen. The following architecture names are used for the shipped portable binaries: `armhf`, `x86_64`, `i786`
 
-## Setup environments
-
-Repeat the following steps for all wanted architectures.
-
-### Extract files
-
-Extract the package and rename the output directory based on the current architecture: 
-
-`tar jxvf buildroot-2024.08.1.tar.bz2`
-
-`mv -f buildroot-2024.08.1 armhf` (replace `armhf` with the wanted arch name)
-
-The architecture name can be freely chosen. The following architecture names are used for the shipped binaries: `armhf`, `x86_64`, `i786`
-
-### Install defaults
-
-Install the default configuration and patches by running the following command:  
-
-`/AIRDCPP_SOURCE_PATH/buildroot/setup-buildroot-config.sh /BUILDROOT_ENV_PATH/` 
-
-Example command: `/home/airdcpp/airdcpp-webclient/buildroot/setup-buildroot-config.sh /home/airdcpp/buildroot/armhf/`
-
-### Configure and build
-
-Run `make nconfig` in the environment directory and edit the configuration based on you needs (mainly the `Target options` sections).
-
-When you are satisfied with the configuration, run `make -j4` to compile the environment (the example command will compile the environment with 4 threads).
+After entering the command, you'll soon see the buildroot config menu. Edit the target configuration based on you needs (mainly the `Target options` sections). Save the config by pressing F9 and the script will proceed with building all the necessary packages (it will take a while).
 
 ## Build AirDC++
 
