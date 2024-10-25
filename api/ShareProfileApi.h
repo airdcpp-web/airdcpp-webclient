@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SHAREPROFILE_API_H
 #define DCPLUSPLUS_DCPP_SHAREPROFILE_API_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
 #include <airdcpp/core/header/typedefs.h>
 #include <airdcpp/share/profiles/ShareProfileManagerListener.h>

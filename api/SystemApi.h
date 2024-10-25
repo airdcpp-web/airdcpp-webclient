@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_SYSTEMAPI_H
 #define DCPLUSPLUS_DCPP_SYSTEMAPI_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
 #include <airdcpp/hub/activity/ActivityManager.h>
 

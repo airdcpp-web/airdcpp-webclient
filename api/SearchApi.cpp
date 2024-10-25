@@ -36,7 +36,7 @@
 #define SEARCH_TYPE_ID "search_type"
 
 
-#define HOOK_INCOMING_USER_RESULT "search_incoming_user_result"
+#define HOOK_INCOMING_USER_RESULT "search_incoming_user_result_hook"
 
 namespace webserver {
 	StringList SearchApi::subscriptionList = {
@@ -48,21 +48,19 @@ namespace webserver {
 	};
 
 	SearchApi::SearchApi(Session* aSession) : 
-		ParentApiModule(TOKEN_PARAM, Access::SEARCH, aSession, subscriptionList, SearchEntity::subscriptionList,
+		ParentApiModule(TOKEN_PARAM, Access::SEARCH, aSession,
 			[](const string& aId) { return Util::toUInt32(aId); },
 			[](const SearchEntity& aInfo) { return serializeSearchInstance(aInfo.getSearch()); },
 			Access::SEARCH
 		)
 	{
-		HookApiModule::createHook(HOOK_INCOMING_USER_RESULT, [this](ActionHookSubscriber&& aSubscriber) {
-			return SearchManager::getInstance()->incomingSearchResultHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(SearchApi::incomingUserResultHook));
-		}, [this](const string& aId) {
-			SearchManager::getInstance()->incomingSearchResultHook.removeSubscriber(aId);
-		}, [this] {
-			return SearchManager::getInstance()->incomingSearchResultHook.getSubscribers();
-		});
+		createSubscriptions(subscriptionList, SearchEntity::subscriptionList);
 
-		METHOD_HANDLER(Access::SEARCH,	METHOD_POST,	(),						SearchApi::handleCreateInstance);
+		// Hooks
+		HOOK_HANDLER(HOOK_INCOMING_USER_RESULT, SearchManager::getInstance()->incomingSearchResultHook, SearchApi::incomingUserResultHook);
+
+		// Methods
+		METHOD_HANDLER(Access::SEARCH,			METHOD_POST,	(),				SearchApi::handleCreateInstance);
 
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("types")),								SearchApi::handleGetTypes);
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("types"), STR_PARAM(SEARCH_TYPE_ID)),	SearchApi::handleGetType);
@@ -70,12 +68,14 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_PATCH,	(EXACT_PARAM("types"), STR_PARAM(SEARCH_TYPE_ID)),	SearchApi::handleUpdateType);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("types"), STR_PARAM(SEARCH_TYPE_ID)),	SearchApi::handleRemoveType);
 
+		// Listeners
+		SearchManager::getInstance()->addListener(this);
+
+		// Init
 		for (const auto instance: SearchManager::getInstance()->getSearchInstances()) {
 			auto module = std::make_shared<SearchEntity>(this, instance);
 			addSubModule(instance->getToken(), module);
 		}
-
-		SearchManager::getInstance()->addListener(this);
 	}
 
 	SearchApi::~SearchApi() {
@@ -96,7 +96,7 @@ namespace webserver {
 
 	ActionHookResult<> SearchApi::incomingUserResultHook(const SearchResultPtr& aResult, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_INCOMING_USER_RESULT, WEBCFG(SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_INCOMING_USER_RESULT, WEBCFG(SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT).num(), [&]() {
 				return SearchEntity::serializeSearchResult(aResult);
 			}),
 			aResultGetter

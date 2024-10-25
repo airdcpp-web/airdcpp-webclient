@@ -30,8 +30,10 @@
 
 namespace webserver {
 	EventApi::EventApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::EVENTS_VIEW, { "event_message", "event_counts" }) 
+		SubscribableApiModule(aSession, Access::EVENTS_VIEW) 
 	{
+		createSubscriptions({ "event_message", "event_counts" });
+
 		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_POST,	(EXACT_PARAM("read")),		EventApi::handleRead);
 		METHOD_HANDLER(Access::EVENTS_VIEW, METHOD_GET,		(EXACT_PARAM("counts")),	EventApi::handleGetInfo);
 

@@ -386,8 +386,8 @@ namespace webserver {
 		}
 
 		return{
-			{ "hook_id", aError->hookId },
-			{ "hook_name", aError->hookName },
+			{ "hook_id", aError->subscriberId }, // TODO: bad name
+			{ "hook_name", aError->subscriberName }, // TODO: bad name
 			{ "error_id", aError->rejectId },
 			{ "str", aError->message },
 		};

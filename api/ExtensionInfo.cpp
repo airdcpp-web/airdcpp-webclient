@@ -42,9 +42,11 @@ namespace webserver {
 	};
 
 	ExtensionInfo::ExtensionInfo(ParentType* aParentModule, const ExtensionPtr& aExtension) : 
-		SubApiModule(aParentModule, aExtension->getName(), subscriptionList),
+		SubApiModule(aParentModule, aExtension->getName()),
 		extension(aExtension) 
 	{
+		createSubscriptions(subscriptionList);
+
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("start")), ExtensionInfo::handleStartExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("stop")), ExtensionInfo::handleStopExtension);
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("ready")), ExtensionInfo::handleReady);

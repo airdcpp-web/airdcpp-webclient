@@ -31,10 +31,11 @@
 #define USERNAME_PARAM "username"
 namespace webserver {
 	WebUserApi::WebUserApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::ADMIN, { "web_user_added", "web_user_updated", "web_user_removed" }),
+		SubscribableApiModule(aSession, Access::ADMIN),
 		view("web_user_view", this, WebUserUtils::propertyHandler, std::bind(&WebUserApi::getUsers, this)),
 		um(aSession->getServer()->getUserManager()) 
 	{
+		createSubscriptions({ "web_user_added", "web_user_updated", "web_user_removed" });
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_GET,		(),								WebUserApi::handleGetUsers);
 

@@ -29,8 +29,10 @@
 
 namespace webserver {
 	FavoriteHubApi::FavoriteHubApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW, { "favorite_hub_created", "favorite_hub_updated", "favorite_hub_removed" }),
+		SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
 		view("favorite_hub_view", this, FavoriteHubUtils::propertyHandler, getEntryList) {
+
+		createSubscriptions({ "favorite_hub_created", "favorite_hub_updated", "favorite_hub_removed" });
 
 		METHOD_HANDLER(Access::FAVORITE_HUBS_VIEW, METHOD_GET,		(RANGE_START_PARAM, RANGE_MAX_PARAM),	FavoriteHubApi::handleGetHubs);
 		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_POST,		(),										FavoriteHubApi::handleAddHub);

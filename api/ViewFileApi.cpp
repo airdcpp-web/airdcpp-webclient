@@ -32,18 +32,14 @@
 #include <airdcpp/viewed_files/ViewFileManager.h>
 
 namespace webserver {
-	ViewFileApi::ViewFileApi(Session* aSession) : 
-		SubscribableApiModule(
-			aSession, 
-			Access::VIEW_FILES_VIEW, 
-			{ 
-				"view_file_added", 
-				"view_file_removed", 
-				"view_file_updated", 
-				"view_file_finished" 
-			}
-		) 
-	{
+	ViewFileApi::ViewFileApi(Session* aSession) : SubscribableApiModule(aSession, Access::VIEW_FILES_VIEW) {
+		createSubscriptions({
+			"view_file_added",
+			"view_file_removed",
+			"view_file_updated",
+			"view_file_finished"
+		});
+
 		METHOD_HANDLER(Access::VIEW_FILES_VIEW, METHOD_GET,		(),									ViewFileApi::handleGetFiles);
 		METHOD_HANDLER(Access::VIEW_FILES_EDIT, METHOD_POST,	(),									ViewFileApi::handleAddFile);
 		METHOD_HANDLER(Access::VIEW_FILES_VIEW, METHOD_GET,		(TTH_PARAM),						ViewFileApi::handleGetFile);

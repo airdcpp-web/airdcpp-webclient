@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_ADC_COMMAND_API_H
 #define DCPLUSPLUS_DCPP_ADC_COMMAND_API_H
 
-#include <api/base/HookApiModule.h>
+#include <api/base/FilterableHookApiModule.h>
 #include <api/HubInfo.h>
 
 #include <airdcpp/core/header/typedefs.h>
@@ -43,14 +43,18 @@ namespace webserver {
 			string value;
 		};
 
-		static json serializeCommand(const AdcCommand& aCmd) noexcept;
+		static json serializeAdcCommand(const AdcCommand& aCmd) noexcept;
 		static json serializeTo(const AdcCommand& aCmd, const Client&) noexcept;
 		static json serializeFrom(const AdcCommand& aCmd, const Client&) noexcept;
 		static json serializeUser(dcpp::SID aSID, const Client&) noexcept;
 		static json serializeUserConnection(const UserConnection& aUserConnection) noexcept;
 
 		static string deserializeSupportString(const json& aCmd, const string& aFieldName);
-		static AdcCommand::CommandType deserializeCommandString(const json& aCmd, const string& aFieldName);
+		static AdcCommand::CommandType deserializeCommandField(const json& aCmd, const string& aFieldName);
+
+		static AdcCommand::CommandType parseCommand(const string& aCommandStr);
+		static string serializeCommand(const AdcCommand::CommandType& aType);
+
 		static AdcCommand::ParamMap deserializeHookParams(const json& aJson, const ActionHookResultGetter<AdcCommand::ParamMap>& aResultGetter);
 		static AdcCommand::ParamMap deserializeNamedParams(const json& aJson, bool aAllowEmpty);
 		static AdcCommand::ParamList deserializeIndexedParams(const json& aJson, bool aAllowEmpty);

@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_HIERARCHIAL_APIMODULE_H
 #define DCPLUSPLUS_DCPP_HIERARCHIAL_APIMODULE_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
 #include <web-server/ApiRequest.h>
 #include <web-server/Session.h>
@@ -41,10 +41,10 @@ namespace webserver {
 		template<typename... ArgT>
 		ParentApiModule(
 			const ApiModule::RequestHandler::Param& aParamMatcher, Access aAccess, Session* aSession, 
-			const StringList& aSubscriptions, const StringList& aChildSubscription, IdConvertF aIdConvertF, 
+			IdConvertF aIdConvertF, 
 			ChildSerializeF aChildSerializeF, ArgT&&... args
 		) :
-			BaseType(aSession, aAccess, aSubscriptions, std::forward<ArgT>(args)...), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF), paramId(aParamMatcher.id) {
+			BaseType(aSession, aAccess, std::forward<ArgT>(args)...), idConvertF(aIdConvertF), childSerializeF(aChildSerializeF), paramId(aParamMatcher.id) {
 
 			// Get module
 			METHOD_HANDLER(aAccess, METHOD_GET, (aParamMatcher), Type::handleGetSubmodule);
@@ -58,9 +58,9 @@ namespace webserver {
 			// Request forwarder
 			METHOD_HANDLER(Access::ANY, METHOD_FORWARD, (aParamMatcher), Type::handleSubModuleRequest);
 
-			for (const auto& s: aChildSubscription) {
+			/*for (const auto& s : aChildSubscription) {
 				SubscribableApiModule::createSubscription(s);
-			}
+			}*/
 		}
 
 		~ParentApiModule() {
@@ -85,7 +85,12 @@ namespace webserver {
 			subModulesCopy.clear();
 		}
 
-		void createSubscription(const string&) noexcept override {
+		void createSubscriptions(const StringList& aSubscriptions, const StringList& aChildSubscriptions) noexcept {
+			BaseType::createSubscriptions(aSubscriptions);
+			BaseType::createSubscriptions(aChildSubscriptions);
+		}
+
+		void createSubscriptions(const StringList&) noexcept override {
 			dcassert(0);
 		}
 
@@ -184,8 +189,8 @@ namespace webserver {
 
 		// aId = ID of the entity owning this module
 		// Will inherit access from the parent module
-		SubApiModule(ParentType* aParentModule, const IdJsonType& aJsonId, const StringList& aSubscriptions) :
-			SubscribableApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess(), aSubscriptions), parentModule(aParentModule), jsonId(aJsonId) { }
+		SubApiModule(ParentType* aParentModule, const IdJsonType& aJsonId) :
+			SubscribableApiModule(aParentModule->getSession(), aParentModule->getSubscriptionAccess()), parentModule(aParentModule), jsonId(aJsonId) { }
 
 		bool send(const string& aSubscription, const json& aJson) override {
 			return SubscribableApiModule::send({
@@ -221,9 +226,9 @@ namespace webserver {
 
 		virtual IdType getId() const noexcept = 0;
 
-		void createSubscription(const string&) noexcept override {
-			dcassert(0);
-		}
+		//void createSubscriptions(const StringList&) noexcept override {
+		//	dcassert(0);
+		//}
 
 		void addAsyncTask(Callback&& aTask) override {
 			SubscribableApiModule::addAsyncTask(getAsyncWrapper(std::move(aTask)));

@@ -45,25 +45,28 @@
 #include <airdcpp/share/temp_share/TempShareManager.h>
 #include <airdcpp/util/ValueGenerator.h>
 
-namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : 
-		HookApiModule(
-			aSession, 
-			Access::SETTINGS_VIEW, 
-			{
-				"share_refresh_queued",
-				"share_refresh_started",
-				"share_refresh_completed",
-				
-				"share_exclude_added",
-				"share_exclude_removed",
 
-				"share_temp_item_added",
-				"share_temp_item_removed",
-			},
-			Access::SETTINGS_EDIT
-		) 
-	{
+#define HOOK_FILE_VALIDATION "share_file_validation_hook"
+#define HOOK_DIRECTORY_VALIDATION "share_directory_validation_hook"
+
+#define HOOK_NEW_FILE_VALIDATION "new_share_file_validation_hook"
+#define HOOK_NEW_DIRECTORY_VALIDATION "new_share_directory_validation_hook"
+
+namespace webserver {
+	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SETTINGS_VIEW, Access::SETTINGS_EDIT) {
+		createSubscriptions({
+			"share_refresh_queued",
+			"share_refresh_started",
+			"share_refresh_completed",
+
+			"share_exclude_added",
+			"share_exclude_removed",
+
+			"share_temp_item_added",
+			"share_temp_item_removed",
+		});
+
+		// Methods
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
@@ -93,38 +96,13 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
 
-		HookApiModule::createHook("share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
-			return ShareManager::getInstance()->getValidator().fileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::fileValidationHook));
-		}, [](const string& aId) {
-			ShareManager::getInstance()->getValidator().fileValidationHook.removeSubscriber(aId);
-		}, [] {
-			return ShareManager::getInstance()->getValidator().fileValidationHook.getSubscribers();
-		});
+		// Hooks
+		HOOK_HANDLER(HOOK_FILE_VALIDATION,			ShareManager::getInstance()->getValidator().fileValidationHook,			ShareApi::fileValidationHook);
+		HOOK_HANDLER(HOOK_DIRECTORY_VALIDATION,		ShareManager::getInstance()->getValidator().directoryValidationHook,	ShareApi::directoryValidationHook);
+		HOOK_HANDLER(HOOK_NEW_FILE_VALIDATION,		ShareManager::getInstance()->getValidator().newFileValidationHook,		ShareApi::newFileValidationHook);
+		HOOK_HANDLER(HOOK_NEW_DIRECTORY_VALIDATION, ShareManager::getInstance()->getValidator().newDirectoryValidationHook, ShareApi::newDirectoryValidationHook);
 
-		HookApiModule::createHook("share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
-			return ShareManager::getInstance()->getValidator().directoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::directoryValidationHook));
-		}, [](const string& aId) {
-			ShareManager::getInstance()->getValidator().directoryValidationHook.removeSubscriber(aId);
-		}, [] {
-			return ShareManager::getInstance()->getValidator().directoryValidationHook.getSubscribers();
-		});
-
-		HookApiModule::createHook("new_share_directory_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
-			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newDirectoryValidationHook));
-		}, [](const string& aId) {
-			ShareManager::getInstance()->getValidator().newDirectoryValidationHook.removeSubscriber(aId);
-		}, [] {
-			return ShareManager::getInstance()->getValidator().newDirectoryValidationHook.getSubscribers();
-		});
-
-		HookApiModule::createHook("new_share_file_validation_hook", [this](ActionHookSubscriber&& aSubscriber) {
-			return ShareManager::getInstance()->getValidator().newFileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(ShareApi::newFileValidationHook));
-		}, [](const string& aId) {
-			ShareManager::getInstance()->getValidator().newFileValidationHook.removeSubscriber(aId);
-		}, [] {
-			return ShareManager::getInstance()->getValidator().newFileValidationHook.getSubscribers();
-		});
-
+		// Listeners
 		ShareManager::getInstance()->addListener(this);
 	}
 
@@ -134,7 +112,7 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("share_file_validation_hook", WEBCFG(SHARE_FILE_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_FILE_VALIDATION, WEBCFG(SHARE_FILE_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
 					{ "size", aSize },
@@ -146,7 +124,7 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("share_directory_validation_hook", WEBCFG(SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_DIRECTORY_VALIDATION, WEBCFG(SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
 				});
@@ -157,7 +135,7 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::newFileValidationHook(const string& aPath, int64_t aSize, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("new_share_file_validation_hook", WEBCFG(NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_NEW_FILE_VALIDATION, WEBCFG(NEW_SHARE_FILE_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
 					{ "size", aSize },
@@ -170,7 +148,7 @@ namespace webserver {
 
 	ActionHookResult<> ShareApi::newDirectoryValidationHook(const string& aPath, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook("new_share_directory_validation_hook", WEBCFG(NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_NEW_DIRECTORY_VALIDATION, WEBCFG(NEW_SHARE_DIRECTORY_VALIDATION_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "path", aPath },
 					{ "new_parent", aNewParent },

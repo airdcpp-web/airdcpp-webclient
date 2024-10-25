@@ -43,14 +43,15 @@ namespace webserver {
 	};
 
 	ExtensionApi::ExtensionApi(Session* aSession) : 
-		ParentApiModule(EXTENSION_PARAM, Access::SETTINGS_VIEW, aSession, ExtensionApi::subscriptionList,
-			ExtensionInfo::subscriptionList,
+		ParentApiModule(EXTENSION_PARAM, Access::SETTINGS_VIEW, aSession,
 			[](const string& aId) { return aId; },
 			[](const ExtensionInfo& aInfo) { return ExtensionInfo::serializeExtension(aInfo.getExtension()); }
 		),
 		em(aSession->getServer()->getExtensionManager())
 	{
 		em.addListener(this);
+
+		createSubscriptions(subscriptionList, ExtensionInfo::subscriptionList);
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (), ExtensionApi::handlePostExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("download")), ExtensionApi::handleDownloadExtension);

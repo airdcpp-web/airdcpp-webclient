@@ -29,20 +29,16 @@
 
 
 namespace webserver {
-	UserApi::UserApi(Session* aSession) : 
-		SubscribableApiModule(
-			aSession, 
-			Access::ANY, 
-			{ 
-				"user_connected", 
-				"user_updated", 
-				"user_disconnected", 
-				
-				"ignored_user_added", 
-				"ignored_user_removed" 
-			}
-		) 
-	{
+	UserApi::UserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
+		createSubscriptions({
+			"user_connected",
+			"user_updated",
+			"user_disconnected",
+
+			"ignored_user_added",
+			"ignored_user_removed"
+		});
+
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("user"), CID_PARAM),		UserApi::handleGetUser); // DEPRECATED
 		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(CID_PARAM),							UserApi::handleGetUser);
 		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("search_nicks")),			UserApi::handleSearchNicks);

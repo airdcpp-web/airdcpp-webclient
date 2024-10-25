@@ -35,23 +35,22 @@
 
 namespace webserver {
 	TransferApi::TransferApi(Session* aSession) : 
-		SubscribableApiModule(
-			aSession, Access::TRANSFERS, 
-			{ 
-				"transfer_statistics", 
-				"transfer_added", 
-				"transfer_updated", 
-				"transfer_removed",
-
-				// These are included in transfer_updated events as well
-				"transfer_starting",
-				"transfer_completed",
-				"transfer_failed",
-			}
-		),
+		SubscribableApiModule(aSession, Access::TRANSFERS),
 		timer(getTimer([this] { onTimer(); }, 1000)),
 		view("transfer_view", this, TransferUtils::propertyHandler, std::bind(&TransferApi::getTransfers, this))
 	{
+		createSubscriptions({
+			"transfer_statistics",
+			"transfer_added",
+			"transfer_updated",
+			"transfer_removed",
+
+			// These are included in transfer_updated events as well
+			"transfer_starting",
+			"transfer_completed",
+			"transfer_failed",
+		});
+
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(),											TransferApi::handleGetTransfers);
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(TOKEN_PARAM),								TransferApi::handleGetTransfer);
 
