@@ -45,9 +45,6 @@ if (NOT WIN32)
   list(FILTER airdcpp_srcs EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/airdcpp/core/update/updater/.*" )
 endif ()
 
-# Library
-add_library (${PROJECT_NAME} ${airdcpp_srcs} ${airdcpp_hdrs})
-
 # Dependencies
 find_package (BZip2 REQUIRED)
 find_package (ZLIB REQUIRED)
@@ -103,6 +100,8 @@ else ()
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_NATPMP.cpp)
 endif ()
 
+# Library
+add_library (${PROJECT_NAME} ${airdcpp_srcs} ${airdcpp_hdrs})
 
 # PYTHON SCRIPTS
 
