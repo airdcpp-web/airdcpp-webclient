@@ -28,7 +28,17 @@ else
   echo "libminiupnpc build patch is applied already"
 fi
 
+# Fix boost cmake config
 
+patch -p0 --dry-run --silent -d${BR_PATH} -p1 < $AIR_BR_PATH/patches/0003-fix-boost-cmake-config.patch >/dev/null 2>&1
+
+if [ $? -eq 0 ];
+then
+  echo "Applying static build patch for boost"
+  patch -d${BR_PATH} -p1 < $AIR_BR_PATH/patches/0003-fix-boost-cmake-config.patch
+else
+  echo "boost build patch is applied already"
+fi
 
 
 # Install packages
