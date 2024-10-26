@@ -230,8 +230,9 @@ public:
 		OutgoingUDPCommandOptions(CallerPtr aOwner, bool aNoPassive) : noPassive(aNoPassive), owner(aOwner) {}
 
 		string encryptionKey;
-		bool noPassive;
-		bool noCID;
+		bool noCID = false;
+
+		const bool noPassive;
 		CallerPtr owner;
 	};
 
