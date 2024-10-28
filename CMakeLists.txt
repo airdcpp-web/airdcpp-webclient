@@ -182,32 +182,6 @@ add_subdirectory (airdcpp-webapi)
 add_subdirectory (airdcppd)
 
 
-
-# REPORT
-message(STATUS "Build shared libraries: ${BUILD_SHARED_LIBS}")
-message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-message(STATUS "CMAKE_SYSTEM: ${CMAKE_SYSTEM}")
-message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
-message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
-message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
-message(STATUS "CMAKE_C_COMPILER_ID: ${CMAKE_C_COMPILER_ID}")
-message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
-message(STATUS "CMAKE will use this libs (and headers) during build:
-    miniupnpc (headers):${MINIUPNP_LIBRARY} (${MINIUPNP_INCLUDE_DIR})
-    boost (headers): ${Boost_LIBRARIES} (${Boost_INCLUDE_DIR})
-    bzip2 (headers): ${BZIP2_LIBRARIES} (${BZIP2_INCLUDE_DIR})
-    zlib (headers): ${ZLIB_LIBRARIES} (${ZLIB_INCLUDE_DIR})
-    openssl (headers): ${OPENSSL_LIBRARIES} (${OPENSSL_INCLUDE_DIR})
-    iconv (headers): ${ICONV_LIBRARIES} (${ICONV_INCLUDE_DIR})
-    maxminddb (headers): ${LIBMAXMINDDB_LIBRARY} (${LIBMAXMINDDB_INCLUDE_DIR})
-    leveldb (headers): ${LevelDB_LIBRARY} (${LevelDB_INCLUDE_DIR})
-    websocketpp (headers): ${websocketpp_INCLUDE_DIR}
-    natpmp (headers): ${LibNatpmp_LIBRARY} (${LibNatpmp_INCLUDE_DIR})
-    tbb (headers): ${TBB_LIBRARIES} (${TBB_INCLUDE_DIRS})
-    ")
-
-
-
 # WEB UI
 if (INSTALL_WEB_UI)
   find_program(NPM_EXECUTABLE npm PATHS /sw/bin)
