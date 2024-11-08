@@ -66,7 +66,7 @@ namespace webserver {
 			auto server = JsonUtil::getOptionalField<string>("hub_url", j, aNewHub);
 			if (server) {
 				if (!FavoriteManager::getInstance()->isUnique(*server, aEntry->getToken())) {
-					JsonUtil::throwError("hub_url", JsonUtil::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));
+					JsonUtil::throwError("hub_url", JsonException::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));
 				}
 			}
 
@@ -87,12 +87,12 @@ namespace webserver {
 				auto shareProfileToken = JsonUtil::getOptionalFieldDefault("share_profile", j, HUB_SETTING_DEFAULT_INT);
 				if (shareProfileToken != HUB_SETTING_DEFAULT_INT) {
 					if (!LinkUtil::isAdcHub(aEntry->getServer()) && shareProfileToken != SETTING(DEFAULT_SP) && shareProfileToken != SP_HIDDEN) {
-						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
+						JsonUtil::throwError("share_profile", JsonException::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
 					}
 
 					auto shareProfilePtr = ShareManager::getInstance()->getShareProfile(shareProfileToken, false);
 					if (!shareProfilePtr) {
-						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Invalid share profile");
+						JsonUtil::throwError("share_profile", JsonException::ERROR_INVALID, "Invalid share profile");
 					}
 				}
 

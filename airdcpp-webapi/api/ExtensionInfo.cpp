@@ -128,13 +128,13 @@ namespace webserver {
 
 	api_return ExtensionInfo::handlePostSettings(ApiRequest& aRequest) {
 		SettingValueMap settings;
-		UserList userReferences;
+		SettingReferenceList userReferences;
 
 		// Validate values
 		for (const auto& elem : aRequest.getRequestBody().items()) {
 			auto setting = extension->getSetting(elem.key());
 			if (!setting) {
-				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
+				JsonUtil::throwError(elem.key(), JsonException::ERROR_INVALID, "Setting not found");
 			}
 
 			settings[elem.key()] = SettingUtils::validateValue(elem.value(), *setting, &userReferences);

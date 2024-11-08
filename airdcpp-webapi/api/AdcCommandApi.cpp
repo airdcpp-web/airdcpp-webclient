@@ -154,7 +154,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 			}
 
 			if (aCmd.getFeatures().empty()) {
-				JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Features must be specified for this command type");
+				JsonUtil::throwError("type", JsonException::ERROR_INVALID, "Features must be specified for this command type");
 			}
 		}
 	}
@@ -162,13 +162,13 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 	void AdcCommandApi::deserializeCommandRecipient(const json& aJson, AdcCommand& aCmd, const ClientPtr& aClient) {
 		auto user = Deserializer::deserializeUser(aJson, false, true);
 		if ((aCmd.getType() == AdcCommand::TYPE_DIRECT || aCmd.getType() == AdcCommand::TYPE_ECHO) && !user) {
-			JsonUtil::throwError("user", JsonUtil::ERROR_MISSING, "Field is required for this command type");
+			JsonUtil::throwError("user", JsonException::ERROR_MISSING, "Field is required for this command type");
 		}
 
 		if (user) {
 			auto onlineUser = ClientManager::getInstance()->findOnlineUser(user->getCID(), aClient->getHubUrl(), false);
 			if (!onlineUser) {
-				JsonUtil::throwError("user", JsonUtil::ERROR_INVALID, "User not found");
+				JsonUtil::throwError("user", JsonException::ERROR_INVALID, "User not found");
 			}
 
 			aCmd.setTo(onlineUser->getIdentity().getSID());
@@ -180,7 +180,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 
 		auto hub = Deserializer::deserializeClient(reqJson, false);
 		if (!LinkUtil::isAdcHub(hub->getHubUrl())) {
-			JsonUtil::throwError("hub_url", JsonUtil::ERROR_INVALID, "This endpoint can only be used with ADC hubs");
+			JsonUtil::throwError("hub_url", JsonException::ERROR_INVALID, "This endpoint can only be used with ADC hubs");
 		}
 
 		auto cmd = deserializeCommand(reqJson);
@@ -213,7 +213,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 
 		auto cmd = deserializeCommand(reqJson);
 		if (cmd.getType() != AdcCommand::TYPE_CLIENT) {
-			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Invalid type for a user connection command");
+			JsonUtil::throwError("type", JsonException::ERROR_INVALID, "Invalid type for a user connection command");
 		}
 
 		auto userConnectionToken = JsonUtil::getField<UserConnectionToken>("user_connection", reqJson, false);
@@ -255,7 +255,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 		auto passiveFallback = JsonUtil::getOptionalFieldDefault<bool>("hub_fallback", reqJson, false);
 
 		if (cmd.getType() != AdcCommand::TYPE_UDP) {
-			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Invalid type for an UDP command");
+			JsonUtil::throwError("type", JsonException::ERROR_INVALID, "Invalid type for an UDP command");
 		}
 
 		addAsyncTask([
@@ -380,7 +380,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 	string AdcCommandApi::deserializeSupportString(const json& aCmd, const string& aFieldName) {
 		auto support = JsonUtil::parseValue<string>(aFieldName, aCmd, false);
 		if (!boost::regex_match(support, supportReg)) {
-			JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid support " + support);
+			JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid support " + support);
 		}
 
 		return support;
@@ -396,7 +396,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 	AdcCommand::CommandType AdcCommandApi::parseCommand(const string& aCommandStr) {
 		// auto cmd = JsonUtil::parseValue<string>(aFieldName, aCmd, false);
 		if (!boost::regex_match(aCommandStr, commandReg)) {
-			// JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid command " + cmd);
+			// JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid command " + cmd);
 			throw std::invalid_argument("Invalid ADC command");
 		}
 
@@ -408,7 +408,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 		auto cmd = JsonUtil::parseValue<string>(aFieldName, aCmd, false);
 		return parseCommand(cmd);
 		/*if (!boost::regex_match(cmd, commandReg)) {
-			JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid command " + cmd);
+			JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid command " + cmd);
 		}
 
 		auto commandInt = AdcCommand::toCommand(cmd);
@@ -433,7 +433,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 	AdcCommandApi::NamedAdcParam AdcCommandApi::deserializeNamedParam(const json& aJson, const string& aFieldName) {
 		auto name = JsonUtil::getField<string>("name", aJson, false);
 		if (!boost::regex_match(name, paramReg)) {
-			JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid param name " + name);
+			JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid param name " + name);
 		}
 
 		auto value = JsonUtil::getField<string>("value", aJson, false);
@@ -461,7 +461,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 
 		auto type = JsonUtil::getField<string>("type", commandJson, false)[0];
 		if (!AdcCommand::isValidType(type)) {
-			JsonUtil::throwError("type", JsonUtil::ERROR_INVALID, "Invalid type " + string(1, type));
+			JsonUtil::throwError("type", JsonException::ERROR_INVALID, "Invalid type " + string(1, type));
 		}
 
 		auto command = deserializeCommandField(JsonUtil::getRawField("command", commandJson), "command");

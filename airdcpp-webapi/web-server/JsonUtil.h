@@ -26,13 +26,6 @@ namespace webserver {
 	public:
 		static const json emptyJson;
 
-		enum ErrorType {
-			ERROR_MISSING,
-			ERROR_INVALID,
-			ERROR_EXISTS,
-			ERROR_LAST
-		};
-
 		// Return enum field with range validation
 		template <typename T, typename JsonT>
 		static optional<T> getOptionalRangeField(const string& aFieldName, const JsonT& aJson, bool aRequired, int aMin, int aMax = std::numeric_limits<T>::max()) {
@@ -58,7 +51,7 @@ namespace webserver {
 					allowedValuesStr += "\"" + v + "\"";
 				}
 
-				throwError(aFieldName, ERROR_INVALID, "Value \"" + string(*value) + "\" isn't valid (allowed values: " + allowedValuesStr + ")");
+				throwError(aFieldName, JsonException::ERROR_INVALID, "Value \"" + string(*value) + "\" isn't valid (allowed values: " + allowedValuesStr + ")");
 			}
 
 			return value;
@@ -67,7 +60,7 @@ namespace webserver {
 		template <typename T>
 		static void validateRange(const string& aFieldName, const T& aValue, int aMin, int aMax) {
 			if (aValue < aMin || aValue > aMax) {
-				throwError(aFieldName, ERROR_INVALID,
+				throwError(aFieldName, JsonException::ERROR_INVALID,
 					"Value " + std::to_string(aValue) + " is not in range " +
 					std::to_string(aMin) + " - " + std::to_string(aMax));
 			}
@@ -148,11 +141,11 @@ namespace webserver {
 			}
 
 			if (!ret.is_array()) {
-				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
+				throwError(aFieldName, JsonException::ERROR_INVALID, "Field must be an array");
 			}
 
 			if (!aAllowEmpty && ret.empty()) {
-				throwError(aFieldName, ERROR_INVALID, "Array can't be empty");
+				throwError(aFieldName, JsonException::ERROR_INVALID, "Array can't be empty");
 			}
 
 			return ret;
@@ -162,7 +155,7 @@ namespace webserver {
 		static const json& getOptionalArrayField(const string& aFieldName, const JsonT& aJson) {
 			const auto& ret = getRawValue<JsonT>(aFieldName, aJson, false);
 			if (!ret.is_null() && !ret.is_array()) {
-				throwError(aFieldName, ERROR_INVALID, "Field must be an array");
+				throwError(aFieldName, JsonException::ERROR_INVALID, "Field must be an array");
 			}
 
 			return ret;
@@ -176,13 +169,13 @@ namespace webserver {
 				try {
 					ret = aJson.template get<T>();
 				} catch (const exception& e) {
-					throwError(aFieldName, ERROR_INVALID, e.what());
+					throwError(aFieldName, JsonException::ERROR_INVALID, e.what());
 					return T(); // avoid MSVC warning
 				}
 
 				validateValue<T>(ret);
 				if (!aAllowEmpty && isEmpty<T, JsonT>(ret, aJson)) {
-					throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
+					throwError(aFieldName, JsonException::ERROR_INVALID, "Field can't be empty");
 					return T(); // avoid MSVC warning
 				}
 
@@ -190,7 +183,7 @@ namespace webserver {
 			}
 
 			if (!aAllowEmpty) {
-				throwError(aFieldName, ERROR_INVALID, "Field can't be null");
+				throwError(aFieldName, JsonException::ERROR_INVALID, "Field can't be null");
 			}
 
 			return convertNullValue<T>(aFieldName);
@@ -226,11 +219,9 @@ namespace webserver {
 			return value ? *value : aDefault;
 		}
 
-		static void throwError(const string& aFieldName, ErrorType aType, const string& aMessage)  {
-			throw ArgumentException(getError(aFieldName, aType, aMessage), aMessage);
+		static void throwError(const string& aFieldName, ArgumentException::ErrorType aType, const string& aMessage)  {
+			throw ArgumentException(aFieldName, aType, aMessage);
 		}
-
-		static json getError(const string& aFieldName, ErrorType aType, const string& aMessage) noexcept;
 	private:
 		// Returns raw JSON value and optionally throws
 		template <typename JsonT>
@@ -240,7 +231,7 @@ namespace webserver {
 					return emptyJson;
 				}
 
-				throwError(aFieldName, ERROR_MISSING, "JSON null");
+				throwError(aFieldName, JsonException::ERROR_MISSING, "JSON null");
 			}
 
 			auto p = aJson.find(aFieldName);
@@ -249,7 +240,7 @@ namespace webserver {
 					return emptyJson;
 				}
 
-				throwError(aFieldName, ERROR_MISSING, "Field missing");
+				throwError(aFieldName, JsonException::ERROR_MISSING, "Field missing");
 			}
 
 			return *p;
@@ -273,7 +264,7 @@ namespace webserver {
 
 		template <class T>
 		static typename std::enable_if_t<std::is_integral_v<T>, T> convertNullValue(const string& aFieldName) {
-			throwError(aFieldName, ERROR_INVALID, "Field can't be empty");
+			throwError(aFieldName, JsonException::ERROR_INVALID, "Field can't be empty");
 			return T(); // Not used
 		}
 
@@ -288,8 +279,6 @@ namespace webserver {
 		static void validateValue(typename std::enable_if_t<!std::is_same_v<std::string, T>, T>&) {
 
 		}
-
-		static string errorTypeToString(ErrorType aType) noexcept;
 	};
 }
 

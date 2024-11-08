@@ -27,6 +27,12 @@
 #include <airdcpp/core/localization/ResourceManager.h>
 
 namespace webserver {
+
+
+// Keep possible smart pointers referred by the setting item alive
+using SettingReference = std::shared_ptr<void>;
+using SettingReferenceList = std::vector<SettingReference>;
+
 #define MAX_INT_VALUE std::numeric_limits<int>::max()
 	class ApiSettingItem {
 	public:

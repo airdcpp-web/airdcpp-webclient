@@ -134,7 +134,7 @@ namespace webserver {
 
 		auto token = mgr.getProfileByName(name);
 		if (token && token != aProfile->getToken()) {
-			JsonUtil::throwError("name", JsonUtil::ERROR_EXISTS, "Profile with the same name exists");
+			JsonUtil::throwError("name", JsonException::ERROR_EXISTS, "Profile with the same name exists");
 		}
 
 		aProfile->setPlainName(name);

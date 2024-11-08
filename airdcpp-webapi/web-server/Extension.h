@@ -107,7 +107,7 @@ namespace webserver {
 		using SettingValueMap = map<string, json>;
 
 		// Values and keys should have been validated earlier
-		void setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept;
+		void setValidatedSettingValues(const SettingValueMap& aValues, const SettingReferenceList& aReferences) noexcept;
 		SettingValueMap getSettingValues() const noexcept;
 
 		void swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept;
@@ -128,7 +128,8 @@ namespace webserver {
 		ExtensionSettingItem::List settings;
 
 		// Keep references to all users in settings to avoid them from being deleted
-		unordered_set<UserPtr, User::Hash> userReferences;
+		// unordered_set<UserPtr, User::Hash> userReferences;
+		unordered_set<SettingReference> references;
 
 		// Load package JSON
 		// Throws on errors

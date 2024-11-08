@@ -473,7 +473,7 @@ namespace webserver {
 					files.push_back(deserializeBundleFileInfo(fileJson));
 				}
 			} catch (const ArgumentException& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, e.getErrorJson());
+				complete(websocketpp::http::status_code::bad_request, nullptr, e.toJSON());
 				return;
 			}
 

@@ -60,7 +60,7 @@ namespace webserver {
 
 			code = apiRequest.getSession()->handleRequest(apiRequest);
 		} catch (const ArgumentException& e) {
-			apiRequest.setResponseErrorJson(e.getErrorJson());
+			apiRequest.setResponseErrorJson(e.toJSON());
 			code = CODE_UNPROCESSABLE_ENTITY;
 		} catch (const RequestException& e) {
 			apiRequest.setResponseErrorStr(e.what());

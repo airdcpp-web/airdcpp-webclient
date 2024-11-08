@@ -127,7 +127,7 @@ namespace webserver {
 				return websocketpp::http::status_code::bad_request;
 			}
 		} else {
-			JsonUtil::throwError("grant_type", JsonUtil::ERROR_INVALID, "Invalid grant_type");
+			JsonUtil::throwError("grant_type", JsonException::ERROR_INVALID, "Invalid grant_type");
 			return websocketpp::http::status_code::bad_request;
 		}
 

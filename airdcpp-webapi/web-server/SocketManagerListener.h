@@ -23,8 +23,6 @@
 #include "forward.h"
 #include "stdinc.h"
 
-#include <airdcpp/forward.h>
-
 namespace webserver {
 	class SocketManagerListener {
 	public:

@@ -74,12 +74,12 @@ namespace webserver {
 	}
 
 	api_return PrivateChatInfo::handleStartTyping(ApiRequest&) {
-		chat->sendPMInfo(PrivateChat::TYPING_ON);
+		chat->setTypingState(true);
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return PrivateChatInfo::handleEndTyping(ApiRequest&) {
-		chat->sendPMInfo(PrivateChat::TYPING_OFF);
+		chat->setTypingState(false);
 		return websocketpp::http::status_code::no_content;
 	}
 

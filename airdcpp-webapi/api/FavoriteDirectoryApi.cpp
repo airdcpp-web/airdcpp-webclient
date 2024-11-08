@@ -77,7 +77,7 @@ namespace webserver {
 
 		auto path = PathUtil::validateDirectoryPath(JsonUtil::getField<string>("path", reqJson, false));
 		if (FavoriteManager::getInstance()->hasFavoriteDir(path)) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_EXISTS, "Path exists already");
+			JsonUtil::throwError("path", JsonException::ERROR_EXISTS, "Path exists already");
 		}
 
 		auto info = updatePath(path, reqJson);

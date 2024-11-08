@@ -108,7 +108,7 @@ namespace webserver {
 		for (const auto& key : keys) {
 			auto setting = getSettingItem(key, aWsm);
 			if (!setting) {
-				JsonUtil::throwError(key, JsonUtil::ERROR_INVALID, "Setting not found");
+				JsonUtil::throwError(key, JsonException::ERROR_INVALID, "Setting not found");
 			}
 
 			aHandler(*setting);
@@ -119,7 +119,7 @@ namespace webserver {
 		for (const auto& elem: aJson.items()) {
 			auto setting = getSettingItem(elem.key(), aWsm);
 			if (!setting) {
-				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
+				JsonUtil::throwError(elem.key(), JsonException::ERROR_INVALID, "Setting not found");
 			}
 
 			auto value = SettingUtils::validateValue(elem.value(), *setting, nullptr);

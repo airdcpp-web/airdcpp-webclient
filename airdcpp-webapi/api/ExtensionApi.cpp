@@ -96,7 +96,7 @@ namespace webserver {
 		auto sha = JsonUtil::getOptionalFieldDefault<string>("shasum", reqJson, Util::emptyString);
 
 		if (Util::findSubString(url, "http://") != 0 && Util::findSubString(url, "https://") != 0) {
-			JsonUtil::throwError("url", JsonUtil::ERROR_INVALID, "Invalid URL");
+			JsonUtil::throwError("url", JsonException::ERROR_INVALID, "Invalid URL");
 		}
 
 		if (!em.downloadExtension(installId, url, sha)) {

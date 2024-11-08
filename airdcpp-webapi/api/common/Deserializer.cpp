@@ -102,16 +102,20 @@ namespace webserver {
 	}
 
 	Deserializer::OfflineHintedUser Deserializer::parseOfflineHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe) {
-		const auto cid = JsonUtil::getField<string>("cid", aJson, false);
-		const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, false);
-		const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
+		try {
+			const auto cid = JsonUtil::getField<string>("cid", aJson, false);
+			const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, false);
+			const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
 
-		auto user = getOfflineUser(cid, nicks, hubUrl, aAllowMe);
-		if (hubUrl.empty() && user != ClientManager::getInstance()->getMe()) {
-			throw std::invalid_argument("hub_url missing");
+			auto user = getOfflineUser(cid, nicks, hubUrl, aAllowMe);
+			if (hubUrl.empty() && user != ClientManager::getInstance()->getMe()) {
+				throw std::invalid_argument("hub_url missing");
+			}
+
+			return OfflineHintedUser(user, hubUrl, nicks);
+		} catch (const ArgumentException& e) {
+			throw e.toField(aFieldName);
 		}
-
-		return OfflineHintedUser(user, hubUrl, nicks);
 	}
 
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {
