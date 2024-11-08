@@ -51,7 +51,7 @@ OnlineUser::OnlineUser(const UserPtr& ptr, const ClientPtr& client_, SID sid_) :
 }
 
 OnlineUser::~OnlineUser() noexcept {
-
+	// dcdebug("OnlineUser %s was destroyed (%s)\n", identity.getNick().c_str(), getHubUrl().c_str());
 }
 
 bool Identity::hasActiveTcpConnectivity(const ClientPtr& c) const noexcept {
@@ -443,6 +443,12 @@ bool OnlineUser::NickSort::operator()(const OnlineUserPtr& left, const OnlineUse
 
 string OnlineUser::HubName::operator()(const OnlineUserPtr& u) const noexcept {
 	return u->getClient()->getHubName(); 
+}
+
+
+User::User(const CID& aCID) : cid(aCID) {}
+User::~User() {
+	// dcdebug("User %s was destroyed\n", cid.toBase32().c_str());
 }
 
 void User::addQueued(int64_t aBytes) noexcept {

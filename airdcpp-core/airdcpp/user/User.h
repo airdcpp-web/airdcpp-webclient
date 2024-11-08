@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_USER_H
 
 #include <airdcpp/forward.h>
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/user/CID.h>
 #include <airdcpp/core/classes/FastAlloc.h>
 #include <airdcpp/core/classes/Flags.h>
@@ -29,7 +28,7 @@
 namespace dcpp {
 
 /** A user connected to one or more hubs. */
-class User : public FastAlloc<User>, public intrusive_ptr_base<User>, public Flags
+class User : public FastAlloc<User>, public Flags
 {
 public:
 	/** Each flag is set if it's true in at least one hub */
@@ -53,9 +52,8 @@ public:
 		size_t operator()(const UserPtr& x) const { return ((size_t)(&(*x)))/sizeof(User); }
 	};
 
-	User(const CID& aCID) : cid(aCID) {}
-
-	~User() { }
+	User(const CID& aCID);
+	~User();
 
 	const CID& getCID() const noexcept { return cid; }
 	operator const CID&() const noexcept { return cid; }

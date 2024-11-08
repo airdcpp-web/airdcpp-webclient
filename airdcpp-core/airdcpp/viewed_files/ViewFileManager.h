@@ -34,13 +34,13 @@
 
 
 namespace dcpp {
-	class ViewFileManager : public Singleton<ViewFileManager>, public Speaker<ViewFileManagerListener>, public QueueManagerListener {
+	class ViewFileManager final : public Singleton<ViewFileManager>, public Speaker<ViewFileManagerListener>, public QueueManagerListener {
 	public:
 		using ViewFileMap = unordered_map<TTHValue, ViewFilePtr>;
 		using ViewFileList = vector<ViewFilePtr>;
 
 		ViewFileManager() noexcept;
-		~ViewFileManager() noexcept final;
+		~ViewFileManager() noexcept;
 
 		ViewFileList getFiles() const noexcept;
 

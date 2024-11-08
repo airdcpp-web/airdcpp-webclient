@@ -1317,7 +1317,7 @@ void ConnectionManager::disconnect(const UserPtr& aUser) noexcept {
 
 void ConnectionManager::disconnect(const string& aToken) const noexcept {
 	findUserConnection(aToken, [](auto uc) {
-		uc->disconnect();
+		uc->disconnect(true);
 	});
 }
 

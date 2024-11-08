@@ -359,6 +359,8 @@ private:
 
 	// TimerManagerListener
 	void on(TimerManagerListener::Minute, uint64_t aTick) noexcept override;
+
+	void cleanUserMap() noexcept;
 };
 
 } // namespace dcpp

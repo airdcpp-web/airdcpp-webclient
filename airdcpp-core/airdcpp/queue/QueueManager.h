@@ -238,11 +238,11 @@ public:
 	// Being called after the skiplist/high prio pattern has been changed 
 	void setMatchers() noexcept;
 
-	SharedMutex& getCS() { return cs; }
+	SharedMutex& getCS() noexcept { return cs; }
 	// Locking must be handled by the caller
-	const Bundle::TokenMap& getBundlesUnsafe() const { return bundleQueue.getBundles(); }
+	const Bundle::TokenMap& getBundlesUnsafe() const noexcept { return bundleQueue.getBundles(); }
 	// Locking must be handled by the caller
-	const QueueItem::StringMap& getFileQueueUnsafe() const { return fileQueue.getPathQueue(); }
+	const QueueItem::StringMap& getFileQueueUnsafe() const noexcept { return fileQueue.getPathQueue(); }
 
 	// Create a directory bundle with the supplied target path and files
 	// 

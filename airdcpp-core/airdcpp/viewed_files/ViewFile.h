@@ -26,12 +26,12 @@
 #include <airdcpp/transfer/download/TrackableDownloadItem.h>
 
 namespace dcpp {
-	class ViewFile : public TrackableDownloadItem {
+	class ViewFile final : public TrackableDownloadItem {
 
 	using UpdateF = std::function<void (const TTHValue &)>;
 	public:
 		ViewFile(const string& aFileName, const string& aPath, const TTHValue& aTTH, bool aIsText, bool aIsLocalFile, UpdateF&& aUpdateFunction) noexcept;
-		~ViewFile() noexcept final;
+		~ViewFile() noexcept;
 
 		const string& getPath() const noexcept {
 			return path;

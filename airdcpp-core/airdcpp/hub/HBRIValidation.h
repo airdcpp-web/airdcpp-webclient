@@ -66,7 +66,7 @@ private:
 	bool stopValidation = false;
 	static void validateHBRIResponse(const string& aResponse);
 
-	unique_ptr<std::jthread> hbriThread;
+	unique_ptr<std::thread> hbriThread;
 };
 
 } // namespace dcpp
