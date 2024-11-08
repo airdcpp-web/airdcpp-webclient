@@ -224,7 +224,7 @@ using UploadList = std::vector<UploadPtr>;
 class UploadQueueItem;
 
 class User;
-using UserPtr = boost::intrusive_ptr<User>;
+using UserPtr = std::shared_ptr<User>;
 using UserList = std::vector<UserPtr>;
 
 class UserCommand;

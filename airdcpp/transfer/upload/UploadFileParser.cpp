@@ -153,6 +153,8 @@ Upload* UploadParser::toUpload(UserConnection& aSource, const UploadRequest& aRe
 	}
 	case Transfer::TYPE_TTH_LIST:
 	{
+		sourceFile = aRequest.file;
+
 		unique_ptr<MemoryInputStream> mis = nullptr;
 		if (!PathUtil::isAdcDirectoryPath(aRequest.file)) {
 			BundlePtr bundle = nullptr;
@@ -177,6 +179,8 @@ Upload* UploadParser::toUpload(UserConnection& aSource, const UploadRequest& aRe
 		break;
 	}
 	case Transfer::TYPE_PARTIAL_LIST: {
+		sourceFile = aRequest.file;
+
 		unique_ptr<MemoryInputStream> mis = nullptr;
 		// Partial file list
 		mis.reset(ShareManager::getInstance()->generatePartialList(aRequest.file, aRequest.listRecursive, aProfile));

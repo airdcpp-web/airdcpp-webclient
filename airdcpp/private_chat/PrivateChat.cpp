@@ -171,21 +171,21 @@ bool PrivateChat::sendMessageHooked(const OutgoingChatMessage& aMessage, string&
 	return ClientManager::getInstance()->privateMessageHooked(replyTo, aMessage, error_);
 }
 
-void PrivateChat::closeCC(bool now, bool aNoAutoConnect) {
-	if (ccReady()) {
+void PrivateChat::closeCC(bool aNow, bool aNoAutoConnect) {
+	callAsyncCCPM([this, aNoAutoConnect, aNow] {
 		if (aNoAutoConnect) {
-			sendPMInfo(NO_AUTOCONNECT);
+			sendPMInfoHooked(NO_AUTOCONNECT);
 			allowAutoCCPM = false;
 		}
 
 		//Don't disconnect graceless so the last command can be transferred successfully.
-		uc->disconnect(now && !aNoAutoConnect);
-		if (now) {
+		uc->disconnect(aNow && !aNoAutoConnect);
+		if (aNow) {
 			ccpmState = CCPMState::DISCONNECTED;
 			uc->removeListener(this);
 			setUc(nullptr);
 		}
-	}
+	});
 }
 
 void PrivateChat::handleMessage(const ChatMessagePtr& aMessage) noexcept {
@@ -209,7 +209,9 @@ void PrivateChat::setRead() noexcept {
 	auto unreadInfo = cache.setRead();
 	
 	if (unreadInfo.chatMessages > 0) {
-		sendPMInfo(PrivateChat::MSG_SEEN);
+		callAsyncCCPM([this] {
+			sendPMInfoHooked(PrivateChat::MSG_SEEN);
+		});
 	}
 
 	if (unreadInfo.hasMessages()) {
@@ -240,10 +242,13 @@ void PrivateChat::close() {
 
 	//PM window closed, signal it if the user supports CPMI
 	if (ccReady() && uc) {
-		if (uc->getSupports().includes(UserConnection::FEATURE_ADC_CPMI))
-			sendPMInfo(QUIT);
-		else
+		if (uc->getSupports().includes(UserConnection::FEATURE_ADC_CPMI)) {
+			callAsyncCCPM([this] {
+				sendPMInfoHooked(QUIT);
+			});
+		} else {
 			closeCC(true, false);
+		}
 	}
 
 	LogManager::getInstance()->removePmCache(getUser());
@@ -402,7 +407,13 @@ void PrivateChat::setHubUrl(const string& aHubUrl) noexcept {
 	fire(PrivateChatListener::UserUpdated(), this);
 }
 
-void PrivateChat::sendPMInfo(uint8_t aType) {
+void PrivateChat::setTypingState(bool aTyping) noexcept {
+	callAsyncCCPM([this, aTyping] {
+		sendPMInfoHooked(aTyping ? PrivateChat::TYPING_ON : PrivateChat::TYPING_OFF);
+	});
+}
+
+void PrivateChat::sendPMInfoHooked(uint8_t aType) {
 	if (ccReady() && uc && uc->getSupports().includes(UserConnection::FEATURE_ADC_CPMI)) {
 		AdcCommand c(AdcCommand::CMD_PMI);
 		switch (aType) {
@@ -425,11 +436,7 @@ void PrivateChat::sendPMInfo(uint8_t aType) {
 			c.addParam("\n");
 		}
 
-		uc->callAsync([this, c] {
-			if (ccReady()) {
-				uc->sendHooked(c);
-			}
-		});
+		uc->sendHooked(c);
 	}
 }
 

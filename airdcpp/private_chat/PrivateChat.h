@@ -68,7 +68,6 @@ namespace dcpp {
 		void startCC();
 		bool ccReady() const { return ccpmState == CCPMState::CONNECTED; };
 		UserConnection* getUc() { return uc; }
-		void sendPMInfo(uint8_t aType);
 
 		void CCPMConnected(UserConnection* uc);
 		void CCPMDisconnected();
@@ -100,7 +99,14 @@ namespace dcpp {
 
 		// Posts an info status message of the user is ignored
 		void checkIgnored() noexcept;
+
+		void setTypingState(bool aTyping) noexcept;
 	private:
+		template<typename F>
+		void callAsyncCCPM(F f) { if (ccReady() && uc) uc->callAsync(f); }
+
+		void sendPMInfoHooked(uint8_t aType);
+
 		void readLastLog();
 		void initConnectState();
 

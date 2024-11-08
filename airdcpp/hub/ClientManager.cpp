@@ -1177,32 +1177,37 @@ bool ClientManager::sendNmdcUDP(const string& aData, const string& aIP, const st
 	return true;
 }
 
+//store offline users information for approx 10minutes, no need to be accurate.
+#define USERMAP_CLEANUP_INTERVAL_MINUTES 10
 
 // LISTENERS
 void ClientManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	
-	//store offline users information for approx 10minutes, no need to be accurate.
-	if(aTick > (lastOfflineUserCleanup + 10*60*1000)) { 
-		WLock l(cs);
-
-		// Collect some garbage...
-		auto i = users.begin();
-		while(i != users.end()) {
-			dcassert(i->second->getCID() == *i->first);
-			if(i->second->unique()) {
-				if (auto n = offlineUsers.find(const_cast<CID*>(&i->second->getCID())); n != offlineUsers.end()) 
-					offlineUsers.erase(n);
-				users.erase(i++);
-			} else {
-				++i;
-			}
-		}
+	if (aTick > (lastOfflineUserCleanup + USERMAP_CLEANUP_INTERVAL_MINUTES * 60 * 1000)) {
+		cleanUserMap();
 		lastOfflineUserCleanup = aTick;
 	}
 
 	RLock l (cs);
-	for(auto c: clients | views::values)
+	for (auto c: clients | views::values)
 		c->info();
+}
+
+void ClientManager::cleanUserMap() noexcept {
+	WLock l(cs);
+
+	// Collect some garbage...
+	auto i = users.begin();
+	while (i != users.end()) {
+		dcassert(i->second->getCID() == *i->first);
+		if (i->second.use_count() == 1) {
+			if (auto n = offlineUsers.find(const_cast<CID*>(&i->second->getCID())); n != offlineUsers.end())
+				offlineUsers.erase(n);
+			users.erase(i++);
+		} else {
+			++i;
+		}
+	}
 }
 
 void ClientManager::on(ClientListener::Connected, const Client* aClient) noexcept {

@@ -20,12 +20,10 @@
 #define DCPLUSPLUS_DCPP_CRITICALSECTION_H
 
 #include <mutex>
-
-#ifdef _WIN32
 #include <shared_mutex>
-#else
+
+#ifndef _WIN32
 #include <pthread.h>
-#include <boost/thread.hpp>
 #endif
 
 namespace dcpp {
@@ -33,11 +31,11 @@ namespace dcpp {
 using FastCriticalSection = boost::detail::spinlock;
 using FastLock = std::lock_guard<boost::detail::spinlock>;
 
+using SharedMutex = std::shared_mutex;
+using RLock = std::shared_lock<std::shared_mutex>;
+using WLock = std::unique_lock<std::shared_mutex>;
 
 #ifndef _WIN32
-typedef boost::shared_mutex	SharedMutex;
-typedef boost::shared_lock<boost::shared_mutex> RLock;
-typedef boost::unique_lock<boost::shared_mutex> WLock;
 
 // A custom implementation is required for Semaphore
 class CriticalSection {
@@ -78,10 +76,6 @@ typedef LockBase<CriticalSection> Lock;
 
 using CriticalSection = std::recursive_mutex;
 using Lock = std::scoped_lock <std::recursive_mutex>;
-
-using SharedMutex = std::shared_mutex;
-using RLock = std::shared_lock<std::shared_mutex>;
-using WLock = std::unique_lock<std::shared_mutex>;
 
 #endif
 

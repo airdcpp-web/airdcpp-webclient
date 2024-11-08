@@ -38,7 +38,7 @@
 
 namespace dcpp {
 
-class AutoSearchManager : public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, 
+class AutoSearchManager final : public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, 
 	private TimerManagerListener, private SearchManagerListener, private QueueManagerListener, private DirectoryListingManagerListener {
 public:
 	enum SearchType {
@@ -49,7 +49,7 @@ public:
 	};
 
 	AutoSearchManager() noexcept;
-	~AutoSearchManager() noexcept final;
+	~AutoSearchManager() noexcept;
 
 	using AutoSearchGroups = vector<string>;
 

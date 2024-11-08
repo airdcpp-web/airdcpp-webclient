@@ -139,7 +139,7 @@ void HBRIValidator::stopAndWait() noexcept {
 }
 
 HBRIValidator::HBRIValidator(const ConnectInfo& aConnectInfo, const string& aRequest, const LogMessageF& aMessageF) {
-	hbriThread = make_unique<jthread>([this, aConnectInfo, aRequest, aMessageF] {
+	hbriThread = make_unique<thread>([this, aConnectInfo, aRequest, aMessageF] {
 		dcdebug(
 			"HBRI: starting validation (IP: %s, port: %s, v6: %s, secure: %s)\n", 
 			aConnectInfo.ip.c_str(), aConnectInfo.port.c_str(), aConnectInfo.v6 ? "true" : "false", aConnectInfo.secure ? "true" : "false"

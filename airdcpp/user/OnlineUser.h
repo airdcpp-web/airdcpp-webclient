@@ -196,7 +196,7 @@ private:
 	SupportList supports;
 };
 
-class OnlineUser :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, private boost::noncopyable {
+class OnlineUser final :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, private boost::noncopyable {
 public:
 	static const string CLIENT_PROTOCOL;
 	static const string SECURE_CLIENT_PROTOCOL_TEST;
@@ -238,7 +238,7 @@ public:
 	};
 
 	OnlineUser(const UserPtr& ptr, const ClientPtr& client_, dcpp::SID sid_);
-	~OnlineUser() noexcept final;
+	~OnlineUser() noexcept;
 
 	dcpp::SID getToken() const noexcept {
 		return identity.getSID();

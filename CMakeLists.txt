@@ -70,7 +70,7 @@ if (NOT WIN32)
   find_package (Iconv REQUIRED)
     
   if (NOT CMAKE_CROSSCOMPILING)
-	list (APPEND airdcpp_extra_libs pthread)
+	list (APPEND airdcpp_extra_libs Threads::Threads)
     list (APPEND airdcpp_extra_libs Iconv::Iconv)
   endif (NOT CMAKE_CROSSCOMPILING)
 else ()

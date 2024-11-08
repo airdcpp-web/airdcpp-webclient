@@ -30,7 +30,7 @@ namespace dcpp {
 using std::unique_ptr;
 using std::string;
 
-class SSLSocketException : public SocketException {
+class SSLSocketException final : public SocketException {
 public:
 #ifdef _DEBUG
 	explicit SSLSocketException(const string& aError) noexcept : SocketException("SSLSocketException: " + aError) { }
@@ -38,7 +38,7 @@ public:
 	SSLSocketException(const string& aError) noexcept : SocketException(aError) { }
 #endif // _DEBUG
 	explicit SSLSocketException(int aError) noexcept : SocketException(aError) { }
-	~SSLSocketException() noexcept final = default;
+	~SSLSocketException() noexcept = default;
 };
 
 class SSLSocket : public Socket {

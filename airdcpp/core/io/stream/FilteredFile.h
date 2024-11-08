@@ -168,13 +168,13 @@ private:
 };
 
 template<class Filter, bool managed>
-class FilteredInputStream : public InputStream {
+class FilteredInputStream final : public InputStream {
 public:
 	explicit FilteredInputStream(InputStream* aFile) : buf(new uint8_t[BUF_SIZE]) { 
 		f.reset(aFile);
 	}
 
-	~FilteredInputStream() noexcept final { 
+	~FilteredInputStream() noexcept { 
 		if(!managed) 
 			f.release(); 
 	}
