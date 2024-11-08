@@ -27,7 +27,7 @@
 namespace webserver {
 	const string& Validation::validateAdcDirectoryPath(const string& aPath) {
 		if (!PathUtil::isAdcDirectoryPath(aPath)) {
-			JsonUtil::throwError("Path", JsonUtil::ERROR_INVALID, "Path " + aPath + " isn't a valid ADC directory path");
+			JsonUtil::throwError("Path", JsonException::ERROR_INVALID, "Path " + aPath + " isn't a valid ADC directory path");
 		}
 
 		return aPath;

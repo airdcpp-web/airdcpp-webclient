@@ -26,20 +26,31 @@ namespace webserver {
 
 	const json JsonUtil::emptyJson;
 
-	string JsonUtil::errorTypeToString(ErrorType aType) noexcept {
+
+	JsonException::JsonException(const std::string& aFieldName, ErrorType aType, const std::string& aMessage) : fieldName(aFieldName), type(aType), std::runtime_error(aMessage.c_str()) { 
+		dcassert(!aFieldName.empty());
+		dcassert(!aMessage.empty());
+	}
+
+	string JsonException::errorTypeToString(ArgumentException::ErrorType aType) noexcept {
 		switch (aType) {
-			case ERROR_MISSING: return "missing_field";
-			case ERROR_INVALID: return "invalid";
-			case ERROR_EXISTS: return "already_exists";
+			case ArgumentException::ERROR_MISSING: return "missing_field";
+			case ArgumentException::ERROR_INVALID: return "invalid";
+			case ArgumentException::ERROR_EXISTS: return "already_exists";
 			default: dcassert(0); return "";
 		}
 	}
 
-	json JsonUtil::getError(const string& aFieldName, ErrorType aType, const string& aMessage) noexcept {
+	json JsonException::toJSON() const noexcept {
 		return {
-			{ "message", aMessage },
-			{ "field", aFieldName },
-			{ "code", errorTypeToString(aType) }
+			{ "message", what() },
+			{ "field", fieldName },
+			{ "code", errorTypeToString(type) }
 		};
+	}
+
+
+	JsonException JsonException::toField(const string& aFieldName) const noexcept {
+		return JsonException(aFieldName, type, what());
 	}
 }

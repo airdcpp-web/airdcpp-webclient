@@ -311,7 +311,7 @@ namespace webserver {
 				if (propName) {
 					auto propId = findPropertyByName(*propName, itemHandler.properties);
 					if (propId == -1) {
-						JsonUtil::throwError("sort_property", JsonUtil::ERROR_INVALID, "Invalid sort property");
+						JsonUtil::throwError("sort_property", JsonException::ERROR_INVALID, "Invalid sort property");
 					}
 
 					updatedValues[IntCollector::TYPE_SORT_PROPERTY] = propId;

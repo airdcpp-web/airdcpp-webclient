@@ -81,7 +81,7 @@ namespace webserver {
 		try {
 			ShareManager::getInstance()->validateRootPath(path);
 		} catch (ShareException& e) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, e.what());
+			JsonUtil::throwError("path", JsonException::ERROR_INVALID, e.what());
 		}
 
 		auto info = std::make_shared<ShareDirectoryInfo>(path);
@@ -216,7 +216,7 @@ namespace webserver {
 			auto newProfiles = *profiles;
 			for (const auto& p : newProfiles) {
 				if (!ShareManager::getInstance()->getShareProfile(p)) {
-					JsonUtil::throwError("profiles", JsonUtil::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
+					JsonUtil::throwError("profiles", JsonException::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
 				}
 			}
 

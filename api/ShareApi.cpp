@@ -315,7 +315,7 @@ namespace webserver {
 			auto j = Serializer::serializeFromPosition(start, count, items, serializeShareItem);
 			aRequest.setResponseBody(j);
 		})) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path was not found");
+			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
 		return websocketpp::http::status_code::ok;
@@ -326,7 +326,7 @@ namespace webserver {
 		if (!ShareManager::getInstance()->findFileByRealPath(path, [&](const ShareDirectory::File& aFile) {
 			aRequest.setResponseBody(serializeFile(&aFile));
 		})) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path was not found");
+			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
 		return websocketpp::http::status_code::ok;
@@ -337,7 +337,7 @@ namespace webserver {
 		if (!ShareManager::getInstance()->findDirectoryByRealPath(path, [&](const ShareDirectory::Ptr& aDirectory) {
 			aRequest.setResponseBody(serializeDirectory(aDirectory));
 		})) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Path was not found");
+			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
 		return websocketpp::http::status_code::ok;
@@ -351,7 +351,7 @@ namespace webserver {
 
 		const auto filePath = aRequest.getSession()->getServer()->getHttpManager().getFileServer().getTempFilePath(fileId);
 		if (filePath.empty() || !PathUtil::fileExists(filePath)) {
-			JsonUtil::throwError("file_id", JsonUtil::ERROR_INVALID, "Source file was not found");
+			JsonUtil::throwError("file_id", JsonException::ERROR_INVALID, "Source file was not found");
 		}
 
 		const auto size = File::getSize(filePath);
@@ -432,7 +432,7 @@ namespace webserver {
 	api_return ShareApi::handleRemoveExclude(ApiRequest& aRequest) {
 		auto path = JsonUtil::getField<string>("path", aRequest.getRequestBody(), false);
 		if (!ShareManager::getInstance()->removeExcludedPath(path)) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, "Excluded path was not found");
+			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Excluded path was not found");
 		}
 
 		return websocketpp::http::status_code::no_content;
@@ -687,7 +687,7 @@ namespace webserver {
 			return ShareRefreshPriority::MANUAL;
 		}
 
-		JsonUtil::throwError("priority_type", JsonUtil::ERROR_INVALID, "Refresh priority " + priority + "doesn't exist");
+		JsonUtil::throwError("priority_type", JsonException::ERROR_INVALID, "Refresh priority " + priority + "doesn't exist");
 		return ShareRefreshPriority::NORMAL;
 	}
 

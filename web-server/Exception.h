@@ -27,13 +27,31 @@ namespace webserver {
 	class JsonException : public std::runtime_error
 	{
 	public:
-		JsonException(const json& aError, const std::string& aMessage) : error(aError), std::runtime_error(aMessage.c_str()) { }
-		JsonException(json&& aError, const std::string& aMessage) : error(std::move(aError)), std::runtime_error(aMessage.c_str()) { }
+		enum ErrorType {
+			ERROR_MISSING,
+			ERROR_INVALID,
+			ERROR_EXISTS,
+			ERROR_LAST
+		};
+
+		JsonException(const std::string& aFieldName, ErrorType aType, const std::string& aMessage);
 
 		virtual ~JsonException() noexcept { }
-		const json& getErrorJson() const { return error; }
+		json toJSON() const noexcept;
+		JsonException toField(const std::string& aFieldName) const noexcept;
+
+		const std::string& getField() const noexcept {
+			return fieldName;
+		}
+
+		const ErrorType getType() const noexcept {
+			return type;
+		}
 	protected:
-		json error;
+		const std::string fieldName;
+		const ErrorType type;
+
+		static std::string errorTypeToString(ErrorType aType) noexcept;
 	};
 
 	class RequestException : public std::runtime_error

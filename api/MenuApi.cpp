@@ -170,7 +170,7 @@ namespace webserver {
 
 			auto filelist = DirectoryListingManager::getInstance()->findList(user);
 			if (!filelist) {
-				JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid session ID");
+				JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid session ID");
 			}
 
 			return filelist;
@@ -180,7 +180,7 @@ namespace webserver {
 			auto instanceId = JsonUtil::parseValue<uint32_t>(aFieldName, aJson, false);
 			auto instance = SearchManager::getInstance()->getSearchInstance(instanceId);
 			if (!instance) {
-				JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid session ID");
+				JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid session ID");
 			}
 
 			return instance;
@@ -190,7 +190,7 @@ namespace webserver {
 			auto sessionId = JsonUtil::parseValue<uint32_t>(aFieldName, aJson, false);
 			auto instance = ClientManager::getInstance()->findClient(sessionId);
 			if (!instance) {
-				JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid session ID");
+				JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid session ID");
 			}
 
 			return instance;
@@ -200,7 +200,7 @@ namespace webserver {
 			auto cid = JsonUtil::parseValue<string>(aFieldName, aJson, false);
 			auto instance = PrivateChatManager::getInstance()->getChat(Deserializer::getUser(cid, false));
 			if (!instance) {
-				JsonUtil::throwError(aFieldName, JsonUtil::ERROR_INVALID, "Invalid session ID");
+				JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid session ID");
 			}
 
 			return instance;
@@ -232,7 +232,7 @@ namespace webserver {
 			for (const auto& elem: valuesJson.items()) {
 				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(formFieldDefinitions, elem.key());
 				if (!setting) {
-					JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Definition for the value was not found");
+					JsonUtil::throwError(elem.key(), JsonException::ERROR_INVALID, "Definition for the value was not found");
 				}
 
 				formValues[elem.key()] = SettingUtils::validateValue(elem.value(), *setting, nullptr);
@@ -291,7 +291,7 @@ namespace webserver {
 		StringMap iconInfo;
 		if (!aJson.is_null()) {
 			if (!aJson.is_object()) {
-				JsonUtil::throwError("icon", JsonUtil::ERROR_INVALID, "Field must be an object");
+				JsonUtil::throwError("icon", JsonException::ERROR_INVALID, "Field must be an object");
 			}
 
 			for (const auto& entry : aJson.items()) {
