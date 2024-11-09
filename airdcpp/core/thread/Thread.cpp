@@ -147,12 +147,32 @@ void Thread::join() {
 	}
 }
 
+#ifdef __linux__ 
+
 void Thread::setThreadPriority(Priority p) {
-	if (setpriority(PRIO_PROCESS, 0, p) != 0) {
+	sched_param params;
+	params.sched_priority = 0; // Must always 0 on Linux
+	if (pthread_setschedparam(threadHandle, p, &params) != 0) {
 		dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
 	}
 }
+
+#else
+
+void Thread::setThreadPriority(Priority p) {
+	int policy;
+	sched_param params;
+	pthread_getschedparam(threadHandle, &policy, &params);
+	params.sched_priority = p;
+	if (pthread_setschedparam(threadHandle, p, &params) != 0) {
+		dcassert(0);
+		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
+	}
+}
+
+
+#endif
 
 void Thread::yield() {
 	::sched_yield();

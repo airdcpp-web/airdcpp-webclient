@@ -37,6 +37,12 @@ if (NOT BUILD_CORE_MODULES)
 endif ()
 
 if (NOT WIN32)
+  CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
+  CHECK_INCLUDE_FILES ("mntent.h" HAVE_MNTENT_H)
+  CHECK_INCLUDE_FILES ("malloc.h;dlfcn.h;inttypes.h;memory.h;stdlib.h;strings.h;sys/stat.h;limits.h;unistd.h;" FUNCTION_H)
+  CHECK_INCLUDE_FILES ("sys/socket.h;net/if.h;ifaddrs.h;sys/types.h" HAVE_IFADDRS_H)
+  CHECK_INCLUDE_FILES ("sys/types.h;sys/statvfs.h;limits.h;stdbool.h;stdint.h" FS_USAGE_C)
+
   list (REMOVE_ITEM airdcpp_hdrs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.h)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/core/io/compress/ZipFile.cpp)
   list (REMOVE_ITEM airdcpp_srcs ${PROJECT_SOURCE_DIR}/airdcpp/connectivity/mappers/Mapper_WinUPnP.cpp)
@@ -149,7 +155,7 @@ endif()
 set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/StringDefs.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -fno-var-tracking ")
 
 if (HAVE_IFADDRS_H)
-  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/AirUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
+  set_property(SOURCE ${PROJECT_SOURCE_DIR}/airdcpp/util/NetworkUtil.cpp PROPERTY COMPILE_DEFINITIONS HAVE_IFADDRS_H APPEND)
 endif (HAVE_IFADDRS_H)
 
 if (HAVE_MNTENT_H)
