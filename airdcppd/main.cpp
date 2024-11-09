@@ -152,17 +152,22 @@ static void installHandler() {
 	signal(SIGINT, &breakHandler);
 	signal(SIGTERM, &breakHandler);
 
+	signal(SIGPIPE, SIG_IGN);
+
+#ifndef _DEBUG
 	signal(SIGBUS, &handleCrash);
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
 
-	signal(SIGPIPE, SIG_IGN);
-
 	// Note: separate from SIGTERM
 	std::set_terminate([] {
 		handleCrash(0);
 	});
+#else
+	std::cout << "Note: using debug build, crash handlers not installed" << std::endl;
+#endif
+
 }
 
 static void setPidFilePath(const string& aConfigPath, const dcpp::StartupParams& aStartupParams) {
