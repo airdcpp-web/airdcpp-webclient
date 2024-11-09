@@ -32,15 +32,6 @@ include (cmake/CheckAtomic.cmake)
 
 
 # PRE-CHECKS
-CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
-CHECK_FUNCTION_EXISTS(mallinfo HAVE_MALLINFO)
-CHECK_FUNCTION_EXISTS(malloc_stats HAVE_MALLOC_STATS)
-CHECK_FUNCTION_EXISTS(malloc_trim HAVE_MALLOC_TRIM)
-CHECK_INCLUDE_FILES ("mntent.h" HAVE_MNTENT_H)
-CHECK_INCLUDE_FILES ("malloc.h;dlfcn.h;inttypes.h;memory.h;stdlib.h;strings.h;sys/stat.h;limits.h;unistd.h;" FUNCTION_H)
-CHECK_INCLUDE_FILES ("sys/socket.h;net/if.h;ifaddrs.h;sys/types.h" HAVE_IFADDRS_H)
-CHECK_INCLUDE_FILES ("sys/types.h;sys/statvfs.h;limits.h;stdbool.h;stdint.h" FS_USAGE_C)
-
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 if (CMAKE_COMPILER_IS_GNUCXX)
