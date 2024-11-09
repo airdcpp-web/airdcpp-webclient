@@ -103,7 +103,7 @@ bool Mapper_MiniUPnPc::init() {
 #if MINIUPNPC_API_VERSION < 14
 	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 0);
 #else
-  UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 2, 0);
+	UPNPDev* devices = upnpDiscover(2000, localIp.empty() ? nullptr : localIp.c_str(), 0, 0, v6, 2, 0);
 #endif
 	if(!devices)
 		return false;
@@ -112,7 +112,7 @@ bool Mapper_MiniUPnPc::init() {
 	IGDdatas data;
 
 #if (MINIUPNPC_API_VERSION >= 18)
-	auto ret = UPNP_GetValidIGD(devices, &urls, &data, 0, 0, nullptr, 0);
+	auto ret = UPNP_GetValidIGD(devices, &urls, &data, 0, 0, 0, 0);
 #else
 	auto ret = UPNP_GetValidIGD(devices, &urls, &data, 0, 0);
 #endif
@@ -131,7 +131,7 @@ bool Mapper_MiniUPnPc::init() {
 
 		url = urls.controlURL;
 		service = data.first.servicetype;
-		device = "Generic";
+		device = localIp.empty() ? "Generic" : localIp;
 	}
 
 	if(ret) {
@@ -151,7 +151,9 @@ void Mapper_MiniUPnPc::updateLocalIp(const string& aControlUrl) noexcept {
 		auto adapters = NetworkUtil::getNetworkAdapters(v6);
 
 		// Find a local IP that is within the same subnet
-		auto p = ranges::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); });
+		auto p = ranges::find_if(adapters, [&routerIp, this](const AdapterInfo& aInfo) { 
+			return isIPInRange(aInfo.ip, routerIp, aInfo.prefix, v6); 
+		});
 		if (p != adapters.end()) {
 			localIp = p->ip;
 		}

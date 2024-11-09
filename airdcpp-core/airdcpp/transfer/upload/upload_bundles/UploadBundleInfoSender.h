@@ -30,7 +30,7 @@
 
 namespace dcpp {
 
-class UploadBundleInfoSender: public DownloadManagerListener, public QueueManagerListener {
+class UploadBundleInfoSender final: public DownloadManagerListener, public QueueManagerListener {
 public:
 	static const string FEATURE_ADC_UBN1;
 
@@ -82,7 +82,7 @@ public:
 	};
 
 	UploadBundleInfoSender() noexcept;
-	~UploadBundleInfoSender() noexcept final;
+	~UploadBundleInfoSender() noexcept;
 private:
 	mutable SharedMutex cs;
 

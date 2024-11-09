@@ -53,15 +53,26 @@ public:
 	bool isCurrentThread() const noexcept;
 #endif
 #else
+
+#ifdef __linux__
 	enum Priority {
-		IDLE = 19,
-		LOWEST = 14,
-		LOW = 7,
-		NORMAL = 0,
-		// Priorities above normal ( <0 ) can't be used without root permissions
-		HIGH = 0,
-		HIGHEST = 0
+		IDLE = SCHED_IDLE,
+		LOWEST = SCHED_BATCH,
+		LOW = SCHED_BATCH,
+		NORMAL = SCHED_OTHER,
+		HIGH = SCHED_OTHER,
+		HIGHEST = SCHED_OTHER
 	};
+#else
+	enum Priority {
+		IDLE = 0,
+		LOWEST = 2,
+		LOW = 5,
+		NORMAL = 10,
+		HIGH = 20,
+		HIGHEST = 30
+	};
+#endif
 
 	static void sleep(uint32_t millis) {
 		::usleep(millis * 1000);
