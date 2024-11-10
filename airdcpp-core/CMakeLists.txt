@@ -85,15 +85,7 @@ else ()
 endif()
 
 
-# OPTIONAL LIBRARIES
-if(ENABLE_TBB)
-  find_package (TBB)
-  if (TBB_FOUND)
-    add_definitions ( -DHAVE_INTEL_TBB )
-    list (APPEND airdcpp_extra_libs TBB::tbb)
-  endif (TBB_FOUND)
-endif()
-
+# natpmp
 if(ENABLE_NATPMP)
   find_package (natpmp)
 endif()
@@ -108,6 +100,21 @@ endif ()
 
 # Library
 add_library (${PROJECT_NAME} ${airdcpp_srcs} ${airdcpp_hdrs})
+
+# TBB
+if(ENABLE_TBB)
+  find_package (TBB)
+  if (TBB_FOUND)
+    add_definitions ( -DHAVE_INTEL_TBB )
+    list (APPEND airdcpp_extra_libs TBB::tbb)
+    set_property(
+      TARGET ${PROJECT_NAME}
+      APPEND PROPERTY
+         INTERFACE_COMPILE_DEFINITIONS "HAVE_INTEL_TBB"
+    )
+
+  endif (TBB_FOUND)
+endif()
 
 # PYTHON SCRIPTS
 
