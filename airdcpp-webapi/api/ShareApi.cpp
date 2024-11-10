@@ -43,7 +43,6 @@
 #include <airdcpp/share/SharePathValidator.h>
 #include <airdcpp/util/text/StringTokenizer.h>
 #include <airdcpp/share/temp_share/TempShareManager.h>
-#include <airdcpp/util/ValueGenerator.h>
 
 
 #define HOOK_FILE_VALIDATION "share_file_validation_hook"
@@ -273,7 +272,7 @@ namespace webserver {
 
 		// Parse share profile and query
 		auto profile = Deserializer::deserializeOptionalShareProfile(reqJson);
-		auto s = FileSearchParser::parseSearch(reqJson, true, Util::toString(ValueGenerator::rand()));
+		auto s = FileSearchParser::parseSearch(reqJson, true);
 
 		// Search
 		SearchResultList results;

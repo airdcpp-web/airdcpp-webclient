@@ -22,6 +22,7 @@
 #include <airdcpp/core/ActionHook.h>
 #include <airdcpp/core/thread/CriticalSection.h>
 #include <airdcpp/core/thread/Semaphore.h>
+#include <airdcpp/core/classes/IncrementingIdCounter.h>
 
 #include <api/base/SubscribableApiModule.h>
 
@@ -80,9 +81,7 @@ namespace webserver {
 		using PendingHookActionMap = map<int, PendingAction>;
 		PendingHookActionMap pendingHookActions;
 
-		int pendingHookIdCounter = 1;
-
-		int getNextActionId() noexcept;
+		static IncrementingIdCounter<int> hookIdCounter;
 	};
 
 }

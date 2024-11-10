@@ -26,6 +26,8 @@
 
 namespace webserver {
 
+	IncrementingIdCounter<int> HookActionHandler::hookIdCounter;
+
 	api_return HookActionHandler::handleResolveHookAction(ApiRequest& aRequest) {
 		return handleHookAction(aRequest, false);
 	}
@@ -41,12 +43,12 @@ namespace webserver {
 #endif
 
 		// Add a pending entry
-		decltype(pendingHookIdCounter) id;
+		int id;
 		Semaphore completionSemaphore;
 
 		{
 			WLock l(cs);
-			id = getNextActionId();
+			id = hookIdCounter.next();
 			pendingHookActions.try_emplace(id, completionSemaphore, nullptr);
 			//dcdebug("Adding action %d for hook %s, total pending count %d\n", id, aSubscription.c_str(), pendingHookActions.size());
 		}
@@ -80,14 +82,6 @@ namespace webserver {
 		}
 
 		return completionData;
-	}
-
-	int HookActionHandler::getNextActionId() noexcept {
-		if (pendingHookIdCounter == std::numeric_limits<int>::max()) {
-			pendingHookIdCounter = 0;
-		}
-
-		return pendingHookIdCounter++;
 	}
 
 	void HookActionHandler::stop() noexcept {

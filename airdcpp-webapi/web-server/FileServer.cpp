@@ -284,7 +284,7 @@ namespace webserver {
 
 		{
 			// Get the mime type (but get it from the original request with gzipped content)
-			auto usingEncoding = ranges::find(headers_ | views::values, "Content-Encoding").base() != headers_.end();
+			auto usingEncoding = ranges::find(headers_ | views::keys, "Content-Encoding").base() != headers_.end();
 			auto type = HttpUtil::getMimeType(usingEncoding ? requestUrl : filePath);
 			if (type) {
 				headers_.emplace_back("Content-Type", type);
