@@ -26,15 +26,17 @@
 #include <airdcpp/hash/value/Encoder.h>
 #include <airdcpp/search/SearchManager.h>
 #include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 namespace webserver {
-	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {
+	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch) {
+		auto token = Util::toString(ValueGenerator::rand());
 		auto priority = Deserializer::deserializePriority(aJson, true);
 		if (priority == Priority::DEFAULT) {
 			priority = Priority::LOW;
 		}
 
-		auto s = make_shared<Search>(priority, aToken);
+		auto s = make_shared<Search>(priority, token);
 		parseMatcher(JsonUtil::getRawField("query", aJson), s);
 		if (aIsDirectSearch) {
 			parseOptions(JsonUtil::getOptionalRawField("options", aJson), s);
