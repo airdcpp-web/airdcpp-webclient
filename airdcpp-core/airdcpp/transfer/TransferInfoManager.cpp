@@ -31,6 +31,9 @@
 
 
 namespace dcpp {
+
+	IncrementingIdCounter<TransferInfoToken> TransferInfo::idCounter;
+
 	TransferInfoManager::TransferInfoManager() {
 		DownloadManager::getInstance()->addListener(this);
 		UploadManager::getInstance()->addListener(this);

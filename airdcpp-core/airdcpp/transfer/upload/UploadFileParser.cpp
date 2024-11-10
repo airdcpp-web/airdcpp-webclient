@@ -215,7 +215,7 @@ Upload* UploadParser::toUpload(UserConnection& aSource, const UploadRequest& aRe
 
 	u->setFileSize(fileSize);
 	u->setType(type);
-	dcdebug("Created upload for file %s (conn %s, resuming: %s)\n", u->getPath().c_str(), u->getConnectionToken().c_str(), resumed ? "true" : "false");
+	dcdebug("Created upload " U32_FMT " for file %s (conn %s, resuming: %s)\n", u->getToken(), u->getPath().c_str(), u->getConnectionToken().c_str(), resumed ? "true" : "false");
 	return u;
 }
 

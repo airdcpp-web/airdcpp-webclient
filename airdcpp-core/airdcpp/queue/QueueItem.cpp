@@ -32,6 +32,8 @@
 
 namespace dcpp {
 
+IncrementingIdCounter<QueueToken> QueueItem::idCounter;
+
 namespace {
 	const string TEMP_EXTENSION = ".dctmp";
 
@@ -46,7 +48,7 @@ namespace {
 
 QueueItem::QueueItem(const string& aTarget, int64_t aSize, Priority aPriority, Flags::MaskType aFlag,
 		time_t aAdded, const TTHValue& tth, const string& aTempTarget) :
-		QueueItemBase(aTarget, aSize, aPriority, aAdded, ValueGenerator::rand(), aFlag),
+		QueueItemBase(aTarget, aSize, aPriority, aAdded, idCounter.next(), aFlag),
 		tthRoot(tth), tempTarget(aTempTarget)
 {	
 	using enum dcpp::Priority;

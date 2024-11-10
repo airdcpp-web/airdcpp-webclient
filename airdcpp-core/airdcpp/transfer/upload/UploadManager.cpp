@@ -180,6 +180,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const UploadRequest& aR
 
 		{
 			WLock l(cs);
+			dcassert(!findUploadUnsafe(u->getToken()));
 			uploads.push_back(u);
 		}
 
@@ -491,13 +492,21 @@ void UploadManager::disconnectExtraMultiConn() noexcept {
 	}
 }
 
-Upload* UploadManager::findUploadUnsafe(TransferToken aToken) const noexcept {
-	if (auto u = ranges::find_if(uploads, [&](const Upload* up) { return compare(up->getToken(), aToken) == 0; }); u != uploads.end()) {
+Upload* UploadManager::findUpload(TransferToken aToken, const UploadList& aUploadList) noexcept {
+	if (auto u = ranges::find_if(aUploadList, [&](const Upload* up) { return compare(up->getToken(), aToken) == 0; }); u != aUploadList.end()) {
 		return *u;
 	}
 
-	if (auto u = ranges::find_if(delayUploads, [&](const Upload* up) { return compare(up->getToken(), aToken) == 0; }); u != delayUploads.end()) {
-		return *u;
+	return nullptr;
+}
+
+Upload* UploadManager::findUploadUnsafe(TransferToken aToken) const noexcept {
+	if (auto u = findUpload(aToken, uploads); u) {
+		return u;
+	}
+
+	if (auto u = findUpload(aToken, delayUploads); u) {
+		return u;
 	}
 
 	return nullptr;
@@ -556,11 +565,13 @@ void UploadManager::removeUpload(Upload* aUpload, bool aDelay) noexcept {
 		if (i != delayUploads.end()) {
 			delayUploads.erase(i);
 			dcassert(!aDelay);
-			dcassert(ranges::find(uploads, aUpload) == uploads.end());
+			dcassert(!findUpload(aUpload->getToken(), uploads));
 			deleteUpload = true;
 		} else {
-			dcassert(ranges::find(uploads, aUpload) != uploads.end());
+			dcassert(findUpload(aUpload->getToken(), uploads));
+			dcassert(!findUpload(aUpload->getToken(), delayUploads));
 			uploads.erase(remove(uploads.begin(), uploads.end(), aUpload), uploads.end());
+			dcassert(!findUpload(aUpload->getToken(), uploads));
 
 			if (aDelay) {
 				delayUploads.push_back(aUpload);
@@ -571,7 +582,7 @@ void UploadManager::removeUpload(Upload* aUpload, bool aDelay) noexcept {
 	}
 
 	if (deleteUpload) {
-		dcdebug("Deleting upload %s (no delay, conn %s)\n", aUpload->getPath().c_str(), aUpload->getConnectionToken().c_str());
+		dcdebug("Deleting upload %s (no delay, conn %s, upload " U32_FMT ")\n", aUpload->getPath().c_str(), aUpload->getConnectionToken().c_str(), aUpload->getToken());
 		fire(UploadManagerListener::Removed(), aUpload);
 		{
 			RLock l(cs);
@@ -579,7 +590,7 @@ void UploadManager::removeUpload(Upload* aUpload, bool aDelay) noexcept {
 		}
 		delete aUpload;
 	} else {
-		dcdebug("Adding delay upload %s (conn %s)\n", aUpload->getPath().c_str(), aUpload->getConnectionToken().c_str());
+		dcdebug("Adding delay upload %s (conn %s, upload " U32_FMT ")\n", aUpload->getPath().c_str(), aUpload->getConnectionToken().c_str(), aUpload->getToken());
 	}
 }
 
@@ -798,7 +809,7 @@ void UploadManager::deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept 
 		logUpload(aUpload);
 	}
 
-	dcdebug("Deleting upload %s (delayed, conn %s, resuming: %s)\n", aUpload->getPath().c_str(), aUpload->getConnectionToken().c_str(), aResuming ? "true" : "false");
+	dcdebug("Deleting upload %s (delayed, conn %s, upload " U32_FMT ", resuming: %s)\n", aUpload->getPath().c_str(), aUpload->getConnectionToken().c_str(), aUpload->getToken(), aResuming ? "true" : "false");
 	fire(UploadManagerListener::Removed(), aUpload);
 
 #ifdef _DEBUG
@@ -815,13 +826,19 @@ void UploadManager::checkExpiredDelayUploads() {
 	RLock l(cs);
 	for (const auto& u : delayUploads) {
 		if (u->checkDelaySecond()) {
-			dcdebug("UploadManager::checkExpiredDelayUploads: adding delay upload %s for removal (conn %s)\n", u->getPath().c_str(), u->getConnectionToken().c_str());
+			dcdebug("UploadManager::checkExpiredDelayUploads: adding delay upload %s for removal (conn %s, upload " U32_FMT ")\n", u->getPath().c_str(), u->getConnectionToken().c_str(), u->getToken());
+
+			dcassert(!findUpload(u->getToken(), uploads));
 
 			// Delete uploads in their own thread
 			// Makes uploads safe to access in the connection thread
 			u->getUserConnection().callAsync(getAsyncWrapper(u->getToken(), [this](auto aUpload) {
+
 				{
 					WLock l(cs);
+					dcassert(findUpload(aUpload->getToken(), delayUploads));
+					dcassert(!findUpload(aUpload->getToken(), uploads));
+
 					delayUploads.erase(remove(delayUploads.begin(), delayUploads.end(), aUpload), delayUploads.end());
 				}
 
