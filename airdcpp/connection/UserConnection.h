@@ -24,6 +24,7 @@
 #include <airdcpp/forward.h>
 #include <airdcpp/connection/socket/BufferedSocketListener.h>
 #include <airdcpp/connection/socket/BufferedSocket.h>
+#include <airdcpp/core/classes/IncrementingIdCounter.h>
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/hash/value/MerkleTree.h>
 #include <airdcpp/transfer/upload/UploadSlot.h>
@@ -257,6 +258,8 @@ private:
 	AdcSupports supports;
 
 	const UserConnectionToken token;
+
+	static IncrementingIdCounter<UserConnectionToken> idCounter;
 };
 
 inline bool operator==(const UserConnection* ptr, const string& aToken) { return compare(ptr->getConnectToken(), aToken) == 0; }

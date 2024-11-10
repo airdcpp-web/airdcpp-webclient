@@ -23,6 +23,7 @@
 #include <airdcpp/queue/QueueDownloadInfo.h>
 
 #include <airdcpp/core/classes/FastAlloc.h>
+#include <airdcpp/core/classes/IncrementingIdCounter.h>
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/hash/value/MerkleTree.h>
 #include <airdcpp/core/classes/Segment.h>
@@ -273,6 +274,8 @@ public:
 	void setBlockSize(int64_t aBlockSize) noexcept { blockSize = aBlockSize; }
 
 	QueueItem& operator=(const QueueItem&) = delete;
+
+	static IncrementingIdCounter<QueueToken> idCounter;
 private:
 	friend class QueueManager;
 	friend class UserQueue;

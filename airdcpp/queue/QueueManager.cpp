@@ -2627,7 +2627,7 @@ void QueueLoader::loadQueueFile(StringPairList& attribs, bool simple) {
 		if (curBundle && inDirBundle) {
 			qm->bundleQueue.addBundleItem(qi, curBundle);
 		} else if (inLegacyQueue) {
-			createFileBundle(qi, ValueGenerator::rand());
+			createFileBundle(qi, QueueItem::idCounter.next());
 		} else if (inFileBundle) {
 			createFileBundle(qi, curFileBundleInfo.token);
 		}

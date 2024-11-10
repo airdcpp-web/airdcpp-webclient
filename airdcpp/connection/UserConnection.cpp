@@ -28,12 +28,13 @@
 #include <airdcpp/favorites/FavoriteManager.h>
 #include <airdcpp/message/Message.h>
 #include <airdcpp/util/text/StringTokenizer.h>
-#include <airdcpp/util/ValueGenerator.h>
 
 
 #include <airdcpp/transfer/download/Download.h>
 
 namespace dcpp {
+
+IncrementingIdCounter<UserConnectionToken> UserConnection::idCounter;
 
 const string UserConnection::FEATURE_MINISLOTS = "MiniSlots";
 const string UserConnection::FEATURE_XML_BZLIST = "XmlBZList";
@@ -485,7 +486,7 @@ void UserConnection::send(const string& aString) {
 	socket->write(aString);
 }
 
-UserConnection::UserConnection() noexcept : encoding(SETTING(NMDC_ENCODING)), download(nullptr), token(ValueGenerator::rand()) {
+UserConnection::UserConnection() noexcept : encoding(SETTING(NMDC_ENCODING)), download(nullptr), token(idCounter.next()) {
 }
 
 UserConnection::~UserConnection() {

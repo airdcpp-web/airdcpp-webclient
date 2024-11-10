@@ -93,6 +93,7 @@
 
 #endif
 
+#define U32_FMT "%" PRIu32
 #define I64_FMT "%" PRId64
 #define U64_FMT "%" PRIu64
 #define SIZET_FMT "%zu"

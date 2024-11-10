@@ -17,6 +17,7 @@
  */
 
 #include "stdinc.h"
+
 #include <airdcpp/transfer/Transfer.h>
 
 #include <airdcpp/hub/ClientManager.h>

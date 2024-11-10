@@ -362,6 +362,11 @@ bool AppUtil::loadBootConfig(const string& aDirectoryPath) noexcept {
 
 		boot.resetCurrentChild();
 
+		if (boot.findChild("ResourcePath")) {
+			paths[PATH_RESOURCES] = formatCustomConfigPath(boot.getChildData());
+		}
+
+		boot.resetCurrentChild();
 
 		return true;
 	} catch(const Exception& ) {

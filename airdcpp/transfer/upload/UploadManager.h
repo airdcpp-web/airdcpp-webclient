@@ -91,6 +91,7 @@ public:
 		return *queue.get();
 	}
 private:
+	static Upload* findUpload(TransferToken aToken, const UploadList& aUploadList) noexcept;
 
 	unique_ptr<UploadQueueManager> queue;
 

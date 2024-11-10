@@ -23,9 +23,9 @@
 
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/util/PathUtil.h>
+#include <airdcpp/core/classes/IncrementingIdCounter.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/transfer/Transfer.h>
-#include <airdcpp/util/ValueGenerator.h>
 
 
 namespace dcpp {
@@ -64,7 +64,7 @@ namespace dcpp {
 		using Map = unordered_map<string, Ptr>;
 
 		TransferInfo(const HintedUser& aUser, bool aIsDownload, const std::string& aStringToken) :
-			user(aUser), download(aIsDownload), stringToken(aStringToken)
+			user(aUser), download(aIsDownload), stringToken(aStringToken), token(idCounter.next())
 		{ }
 
 		IGETSET(int64_t, timeLeft, TimeLeft, -1);
@@ -128,8 +128,10 @@ namespace dcpp {
 		HintedUser user;
 		const bool download;
 
-		const TransferInfoToken token = ValueGenerator::rand();
+		const TransferInfoToken token;
 		const std::string stringToken;
+
+		static IncrementingIdCounter<TransferInfoToken> idCounter;
 	};
 
 	using TransferInfoPtr = TransferInfo::Ptr;
