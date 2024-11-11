@@ -70,17 +70,8 @@ namespace webserver {
 			}
 
 			// Size
-			auto minSize = JsonUtil::getOptionalField<int64_t>("min_size", aJson);
-			if (minSize) {
-				aSearch->size = *minSize;
-				aSearch->sizeType = Search::SIZE_ATLEAST;
-			}
-
-			auto maxSize = JsonUtil::getOptionalField<int64_t>("max_size", aJson);
-			if (maxSize) {
-				aSearch->size = *maxSize;
-				aSearch->sizeType = Search::SIZE_ATMOST;
-			}
+			aSearch->minSize = JsonUtil::getOptionalField<int64_t>("min_size", aJson);
+			aSearch->maxSize = JsonUtil::getOptionalField<int64_t>("max_size", aJson);
 		}
 
 		// Anything to search for?

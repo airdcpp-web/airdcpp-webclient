@@ -184,6 +184,24 @@ namespace webserver {
 		return ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, aKey);
 	}
 
+	bool Extension::isDisabled() const noexcept {
+		return PathUtil::fileExists(getDisabledFlag());
+	}
+
+	void Extension::setDisabled(bool aDisabled) noexcept {
+		if (aDisabled) {
+			File::createFile(getDisabledFlag());
+		} else {
+			File::deleteFile(getDisabledFlag());
+		}
+
+		fire(ExtensionListener::StateUpdated(), this);
+	}
+
+	string Extension::getDisabledFlag() const noexcept {
+		return PathUtil::joinDirectory(getRootPath(), EXT_CONFIG_DIR) + "DISABLED";
+	}
+
 	bool Extension::hasSettings() const noexcept {
 		RLock l(cs);
 		return !settings.empty(); 

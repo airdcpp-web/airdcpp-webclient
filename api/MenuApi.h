@@ -154,6 +154,11 @@ namespace webserver {
 		void on(ContextMenuManagerListener::FavoriteHubMenuSelected, const vector<FavoriteHubToken>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData& aClickData) noexcept override;
 
+		void on(ContextMenuManagerListener::HubMenuSelected, const vector<ClientToken>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::PrivateChatMenuSelected, const vector<CID>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::FilelistMenuSelected, const vector<CID>&, const ContextMenuItemClickData& aClickData) noexcept override;
+		void on(ContextMenuManagerListener::ViewedFileMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData& aClickData) noexcept override;
+
 		void on(ContextMenuManagerListener::UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData& aClickData) noexcept override;
 		void on(ContextMenuManagerListener::HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData& aClickData) noexcept override;
 

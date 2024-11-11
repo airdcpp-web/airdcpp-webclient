@@ -278,7 +278,7 @@ namespace webserver {
 		SearchResultList results;
 		
 		{
-			unique_ptr<SearchQuery> matcher(SearchQuery::getSearch(s));
+			unique_ptr<SearchQuery> matcher(SearchQuery::fromSearch(s));
 			ShareSearch search(*matcher, profile, nullptr, s->path);
 			try {
 				ShareManager::getInstance()->search(results, search);

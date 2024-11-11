@@ -50,8 +50,6 @@ namespace webserver {
 
 		class APIHook {
 		public:
-			static const string& getSubscriberId(const Session* aSession) noexcept;
-
 			APIHook(const string& aHookId, HookAddF&& aAddHandlerF, HookRemoveF&& aRemoveF, HookListF&& aListF) :
 				addHandlerF(std::move(aAddHandlerF)), removeHandlerF(std::move(aRemoveF)), listHandlerF(std::move(aListF)), hookId(aHookId) {}
 
@@ -63,6 +61,7 @@ namespace webserver {
 			}
 
 			GETPROP(string, hookId, HookId);
+			GETPROP(string, hookSubscriberId, HookSubscriberId);
 		private:
 			const HookAddF addHandlerF;
 			const HookRemoveF removeHandlerF;

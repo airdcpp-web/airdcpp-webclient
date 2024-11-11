@@ -145,6 +145,11 @@ namespace webserver {
 			"hinted_user_menuitem_selected",
 			"extension_menuitem_selected",
 
+			"hub_menuitem_selected",
+			"private_chat_menuitem_selected",
+			"filelist_menuitem_selected",
+			"view_file_menuitem_selected",
+
 			"hub_user_menuitem_selected",
 			"grouped_search_result_menuitem_selected",
 			"filelist_item_menuitem_selected",
@@ -159,10 +164,15 @@ namespace webserver {
 		CONTEXT_MENU_HANDLER("transfer", transfer, Transfer, TransferToken, Deserializer::defaultArrayValueParser<TransferToken>, Serializer::defaultArrayValueSerializer<TransferToken>, Access::ANY);
 		CONTEXT_MENU_HANDLER("favorite_hub", favoriteHub, FavoriteHub, FavoriteHubToken, Deserializer::defaultArrayValueParser<FavoriteHubToken>, Serializer::defaultArrayValueSerializer<FavoriteHubToken>, Access::ANY);
 
-		CONTEXT_MENU_HANDLER("share_root", shareRoot, ShareRoot, TTHValue, Deserializer::tthArrayValueParser, Serializer::defaultArrayValueSerializer<TTHValue>, Access::ANY);
+		CONTEXT_MENU_HANDLER("hub", hub, Hub, ClientToken, Deserializer::defaultArrayValueParser<ClientToken>, Serializer::defaultArrayValueSerializer<ClientToken>, Access::ANY);
 		CONTEXT_MENU_HANDLER("user", user, User, CID, Deserializer::cidArrayValueParser, Serializer::defaultArrayValueSerializer<CID>, Access::ANY);
 		CONTEXT_MENU_HANDLER("hinted_user", hintedUser, HintedUser, HintedUser, Deserializer::hintedUserArrayValueParser, Serializer::serializeHintedUser, Access::ANY);
 		CONTEXT_MENU_HANDLER("extension", extension, Extension, string, Deserializer::defaultArrayValueParser<string>, Serializer::defaultArrayValueSerializer<string>, Access::ANY);
+
+		CONTEXT_MENU_HANDLER("share_root", shareRoot, ShareRoot, TTHValue, Deserializer::tthArrayValueParser, Serializer::defaultArrayValueSerializer<TTHValue>, Access::ANY);
+		CONTEXT_MENU_HANDLER("private_chat", privateChat, PrivateChat, CID, Deserializer::cidArrayValueParser, Serializer::defaultArrayValueSerializer<CID>, Access::ANY);
+		CONTEXT_MENU_HANDLER("filelist", filelist, Filelist, CID, Deserializer::cidArrayValueParser, Serializer::defaultArrayValueSerializer<CID>, Access::ANY);
+		CONTEXT_MENU_HANDLER("view_file", viewedFile, ViewedFile, TTHValue, Deserializer::tthArrayValueParser, Serializer::defaultArrayValueSerializer<TTHValue>, Access::ANY);
 
 		const auto parseFilelist = [](const json& aJson, const string& aFieldName) {
 			auto cidStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
@@ -388,5 +398,21 @@ namespace webserver {
 
 	void MenuApi::on(PrivateChatMessageHighlightMenuSelected, const vector<MessageHighlightToken>& aSelectedIds, const PrivateChatPtr& aChat, const ContextMenuItemClickData& aClickData) noexcept {
 		onMenuItemSelected("private_chat_message_highlight", aSelectedIds, aClickData, aChat->getToken());
+	}
+
+	void MenuApi::on(ContextMenuManagerListener::HubMenuSelected, const vector<ClientToken>& aSelectedIds, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("hub", aSelectedIds, aClickData);
+	}
+
+	void MenuApi::on(ContextMenuManagerListener::PrivateChatMenuSelected, const vector<CID>& aSelectedIds, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("private_chat", aSelectedIds, aClickData);
+	}
+
+	void MenuApi::on(ContextMenuManagerListener::FilelistMenuSelected, const vector<CID>& aSelectedIds, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("filelist", aSelectedIds, aClickData);
+	}
+
+	void MenuApi::on(ContextMenuManagerListener::ViewedFileMenuSelected, const vector<TTHValue>& aSelectedIds, const ContextMenuItemClickData& aClickData) noexcept {
+		onMenuItemSelected("view_file", aSelectedIds, aClickData);
 	}
 }

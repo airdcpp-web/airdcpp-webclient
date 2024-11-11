@@ -86,6 +86,9 @@ namespace webserver {
 		IGETSET(bool, ready, Ready, false);
 		GETSET(StringList, engines, Engines);
 
+		bool isDisabled() const noexcept;
+		void setDisabled(bool aDisabled) noexcept;
+
 		bool isRunning() const noexcept {
 			return running;
 		}
@@ -117,6 +120,8 @@ namespace webserver {
 		Extension(Extension&) = delete;
 		Extension& operator=(Extension&) = delete;
 	private:
+		string getDisabledFlag() const noexcept;
+
 		int apiVersion = 0;
 		int minApiFeatureLevel = 0;
 
