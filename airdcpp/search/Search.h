@@ -61,8 +61,9 @@ public:
 	Search(Priority aPriority, const string& aToken) noexcept : token(aToken), priority(aPriority) { }
 	~Search() { }
 
-	SizeModes	sizeType = SIZE_DONTCARE;
-	int64_t		size = 0;
+	optional<int64_t> minSize;
+	optional<int64_t> maxSize;
+
 	TypeModes	fileType = TYPE_ANY;
 	string		query;
 	StringList	exts;
@@ -74,6 +75,42 @@ public:
 
 	optional<time_t> minDate;
 	optional<time_t> maxDate;
+
+	void setLegacySize(int64_t aSize, SizeModes aSizeMode) noexcept {
+		switch (aSizeMode) {
+			case SizeModes::SIZE_ATLEAST: {
+				minSize = aSize;
+				break;
+			}
+			case SizeModes::SIZE_ATMOST: {
+				maxSize = aSize;
+				break;
+			}
+			case SizeModes::SIZE_EXACT: {
+				maxSize = aSize;
+				minSize = aSize;
+				break;
+			}
+			case SizeModes::SIZE_DONTCARE:
+			default: break;
+		}
+	}
+
+	pair<int64_t, SizeModes> parseLegacySize() const noexcept {
+		if (minSize && maxSize && (*minSize == *maxSize)) {
+			return { *minSize,  Search::SIZE_EXACT };
+		}
+
+		if (minSize) {
+			return { *minSize, Search::SIZE_ATLEAST };
+		}
+
+		if (maxSize) {
+			return { *maxSize, Search::SIZE_ATMOST };
+		}
+
+		return { 0, Search::SIZE_DONTCARE };
+	}
 
 	// Direct searches
 	bool returnParents = false;
@@ -105,8 +142,8 @@ public:
 	const Priority priority;
 	
 	bool operator==(const Search& rhs) const {
-		return this->sizeType == rhs.sizeType && 
-				this->size == rhs.size && 
+		return this->minSize == rhs.minSize &&
+				this->maxSize == rhs.maxSize &&
 				this->fileType == rhs.fileType && 
 				this->query == rhs.query;
 	}

@@ -77,6 +77,7 @@ namespace dcpp {
 		IGETSET(bool, freeSlotsOnly, FreeSlotsOnly, false);
 	private:
 		void on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept override;
+		optional<SearchResult::RelevanceInfo> matchResult(const SearchResultPtr& aResult) noexcept;
 
 		GroupedSearchResult::Map results;
 		shared_ptr<SearchQuery> curMatcher;

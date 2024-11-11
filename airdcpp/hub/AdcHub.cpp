@@ -1214,13 +1214,12 @@ bool AdcHub::sendSearchHooked(AdcCommand& c, const SearchPtr& aSearch, const Onl
 		c.addParam("TR", aSearch->query);
 
 	} else {
-		if(aSearch->sizeType == Search::SIZE_ATLEAST) {
-			c.addParam("GE", Util::toString(aSearch->size));
-		} else if(aSearch->sizeType == Search::SIZE_ATMOST) {
-			c.addParam("LE", Util::toString(aSearch->size));
-		} else if (aSearch->sizeType == Search::SIZE_EXACT) {
-			c.addParam("GE", Util::toString(aSearch->size));
-			c.addParam("LE", Util::toString(aSearch->size));
+		if (aSearch->minSize) {
+			c.addParam("GE", Util::toString(*aSearch->minSize));
+		} 
+		
+		if (aSearch->maxSize) {
+			c.addParam("LE", Util::toString(*aSearch->maxSize));
 		}
 
 		auto searchTokens = SearchQuery::parseSearchString(aSearch->query);
