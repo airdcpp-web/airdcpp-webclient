@@ -29,7 +29,8 @@ namespace dcpp {
 				idCounter = 0;
 			}
 
-			return idCounter++;
+			idCounter++;
+			return idCounter;
 		}
 	private:
 		std::atomic<IdType> idCounter = 0;
