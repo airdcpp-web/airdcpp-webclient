@@ -152,17 +152,19 @@ SearchQuery::ItemType parseItemType(Search::TypeModes aType) noexcept {
 	return SearchQuery::ItemType::ANY;
 }
 
-SearchQuery* SearchQuery::getSearch(const SearchPtr& aSearch) noexcept {
+SearchQuery* SearchQuery::fromSearch(const SearchPtr& aSearch) noexcept {
 	SearchQuery* s = nullptr;
 
 	if(aSearch->fileType == Search::TYPE_TTH) {
 		s = new SearchQuery(TTHValue(aSearch->query));
 	} else {
 		s = new SearchQuery(aSearch->query, aSearch->excluded, aSearch->exts, aSearch->matchType);
-		if(aSearch->sizeType == Search::SIZE_ATLEAST) {
-			s->gt = aSearch->size;
-		} else if(aSearch->sizeType == Search::SIZE_ATMOST) {
-			s->lt = aSearch->size;
+		if (aSearch->minSize) {
+			s->gt = *aSearch->minSize;
+		}
+		
+		if(aSearch->maxSize) {
+			s->lt = *aSearch->maxSize;
 		}
 
 		s->itemType = parseItemType(aSearch->fileType);

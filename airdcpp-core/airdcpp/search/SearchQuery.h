@@ -47,7 +47,7 @@ namespace dcpp {
 		ResultPointsList toPointList(const string& aName) const noexcept;
 
 		// General initialization
-		static SearchQuery* getSearch(const SearchPtr& aSearch) noexcept;
+		static SearchQuery* fromSearch(const SearchPtr& aSearch) noexcept;
 		static StringList parseSearchString(const string& aString) noexcept;
 		SearchQuery(const string& aString, const StringList& aExcluded, const StringList& aExt, Search::MatchType aMatchType) noexcept;
 		explicit SearchQuery(const TTHValue& aRoot) noexcept;

@@ -82,7 +82,7 @@ namespace dcpp {
 		{
 			WLock l(cs);
 			currentSearchToken = aSearch->token;
-			curMatcher = shared_ptr<SearchQuery>(SearchQuery::getSearch(aSearch));
+			curMatcher = shared_ptr<SearchQuery>(SearchQuery::fromSearch(aSearch));
 			curParams = aSearch;
 
 			results.clear();
@@ -179,10 +179,19 @@ namespace dcpp {
 		}
 	}
 
-	void SearchInstance::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {
+	optional<SearchResult::RelevanceInfo> SearchInstance::matchResult(const SearchResultPtr& aResult) noexcept {
 		auto matcher = curMatcher; // Increase the refs
 		if (!matcher) {
-			return;
+			return nullopt;
+		}
+
+		// NMDC doesn't support both min and max size
+		if (aResult->isNMDC() && aResult->getType() == SearchResult::Type::FILE) {
+			if (!matcher->matchesSize(aResult->getSize())) {
+				filteredResultCount++;
+				fire(SearchInstanceListener::ResultFiltered());
+				return nullopt;
+			}
 		}
 
 		SearchResult::RelevanceInfo relevanceInfo;
@@ -191,13 +200,22 @@ namespace dcpp {
 			if (!aResult->getRelevance(*matcher.get(), relevanceInfo, currentSearchToken)) {
 				filteredResultCount++;
 				fire(SearchInstanceListener::ResultFiltered());
-				return;
+				return nullopt;
 			}
 		}
 
 		if (freeSlotsOnly && aResult->getFreeSlots() < 1) {
 			filteredResultCount++;
 			fire(SearchInstanceListener::ResultFiltered());
+			return nullopt;
+		}
+
+		return relevanceInfo;
+	}
+
+	void SearchInstance::on(SearchManagerListener::SR, const SearchResultPtr& aResult) noexcept {
+		auto relevanceInfo = matchResult(aResult);
+		if (!relevanceInfo) {
 			return;
 		}
 
@@ -208,7 +226,7 @@ namespace dcpp {
 			WLock l(cs);
 			auto i = results.find(aResult->getTTH());
 			if (i == results.end()) {
-				parent = std::make_shared<GroupedSearchResult>(aResult, std::move(relevanceInfo));
+				parent = std::make_shared<GroupedSearchResult>(aResult, std::move(*relevanceInfo));
 				results.try_emplace(aResult->getTTH(), parent);
 				created = true;
 			} else {

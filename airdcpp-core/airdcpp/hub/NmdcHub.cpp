@@ -1027,8 +1027,9 @@ void NmdcHub::search(const SearchPtr& s) noexcept {
 	if (s->aschOnly)
 		return;
 
-	char c1 = (s->sizeType == Search::SIZE_DONTCARE || s->sizeType == Search::SIZE_EXACT) ? 'F' : 'T';
-	char c2 = (s->sizeType == Search::SIZE_ATLEAST) ? 'F' : 'T';
+	auto [size, sizeMode] = s->parseLegacySize();
+	char c1 = (sizeMode == Search::SIZE_DONTCARE || sizeMode == Search::SIZE_EXACT) ? 'F' : 'T';
+	char c2 = (sizeMode == Search::SIZE_ATLEAST) ? 'F' : 'T';
 
 	string tmp = ((s->fileType == Search::TYPE_TTH) ? "TTH:" + s->query : fromUtf8(escape(s->query)));
 	Util::replace(tmp, "\"", ""); //can't use quotes in NMDC searches
@@ -1046,7 +1047,7 @@ void NmdcHub::search(const SearchPtr& s) noexcept {
 
 	string type = Util::toString((s->fileType == Search::TYPE_FILE ? Search::TYPE_ANY : s->fileType)+1);
 
-	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(s->size) + '?' + type + '?' + tmp + '|');
+	send("$Search " + tmp2 + ' ' + c1 + '?' + c2 + '?' + Util::toString(size) + '?' + type + '?' + tmp + '|');
 }
 
 string NmdcHub::validateMessage(string tmp, bool reverse) {
