@@ -95,13 +95,14 @@ namespace webserver {
 		api_return handleRemoveHookEntity(ApiRequest& aRequest) {
 			auto& apiHook = BaseType::getAPIHook(aRequest);
 			auto entityId = BaseType::parseEntityIdParam(aRequest);
+			auto subscriberId = apiHook.getHookSubscriberId();
 
 			BaseType::unsubscribeEntity(apiHook.getHookId(), entityId);
 			if (!BaseType::hasEntitySubscribers(apiHook.getHookId())) {
 				apiHook.disable(aRequest.getSession().get());
-				dcdebug("Subscriber %s: hook %s was disabled\n", HookApiModule::APIHook::getSubscriberId(aRequest.getSession().get()).c_str(), apiHook.getHookId().c_str());
+				dcdebug("Subscriber %s: hook %s was disabled\n", subscriberId.c_str(), apiHook.getHookId().c_str());
 			} else {
-				dcdebug("Subscriber %s: hook %s has other subscribers, not disabling\n", HookApiModule::APIHook::getSubscriberId(aRequest.getSession().get()).c_str(), apiHook.getHookId().c_str());
+				dcdebug("Subscriber %s: hook %s has other subscribers, not disabling\n", subscriberId.c_str(), apiHook.getHookId().c_str());
 			}
 
 			return websocketpp::http::status_code::no_content;

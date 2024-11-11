@@ -26,8 +26,9 @@
 
 namespace webserver {
 	bool HookApiModule::APIHook::enable(ActionHookSubscriber&& aActionHookSubscriber) noexcept {
-		auto id = aActionHookSubscriber.getId();
+		hookSubscriberId = aActionHookSubscriber.getId();
 		if (!addHandlerF(std::move(aActionHookSubscriber))) {
+			hookSubscriberId = "";
 			return false;
 		}
 
@@ -35,12 +36,13 @@ namespace webserver {
 	}
 
 	void HookApiModule::APIHook::disable(const Session* aSession) noexcept {
-		removeHandlerF(getSubscriberId(aSession));
+		removeHandlerF(hookSubscriberId);
+		hookSubscriberId = "";
 	}
 
-	const string& HookApiModule::APIHook::getSubscriberId(const Session* aSession) noexcept {
-		return aSession->getUser()->getUserName();
-	}
+	//const string& HookApiModule::APIHook::getSubscriberId(const Session* aSession) noexcept {
+	//	return aSession->getUser()->getUserName();
+	//}
 
 	HookApiModule::HookApiModule(Session* aSession, Access aSubscriptionAccess, Access aHookAccess) :
 		SubscribableApiModule(aSession, aSubscriptionAccess) 
@@ -112,8 +114,9 @@ namespace webserver {
 	}
 
 	ActionHookSubscriber HookApiModule::deserializeActionHookSubscriber(CallerPtr aOwner, Session* aSession, const json& aJson) {
+		auto id = JsonUtil::getField<string>("id", aJson, false);
 		auto name = JsonUtil::getField<string>("name", aJson, false);
-		return ActionHookSubscriber(APIHook::getSubscriberId(aSession), name, aOwner);
+		return ActionHookSubscriber(id, name, aOwner);
 	}
 
 	api_return HookApiModule::handleSubscribeHook(ApiRequest& aRequest) {

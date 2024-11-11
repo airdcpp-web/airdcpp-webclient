@@ -37,6 +37,7 @@ namespace webserver {
 		typedef X<3> SettingDefinitionsUpdated;
 
 		typedef X<4> PackageUpdated;
+		typedef X<5> StateUpdated;
 
 
 		virtual void on(ExtensionStarted, const Extension*) noexcept { }
@@ -45,6 +46,7 @@ namespace webserver {
 		virtual void on(SettingValuesUpdated, const Extension*, const SettingValueMap&) noexcept { }
 		virtual void on(SettingDefinitionsUpdated, const Extension*) noexcept { }
 		virtual void on(PackageUpdated, const Extension*) noexcept { }
+		virtual void on(StateUpdated, const Extension*) noexcept { }
 	};
 
 }

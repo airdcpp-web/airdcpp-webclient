@@ -99,8 +99,8 @@ namespace webserver {
 
 		return {
 			{ "pattern", aQuery->query },
-			{ "min_size", (aQuery->sizeType == Search::SIZE_ATLEAST && aQuery->size != 0) || aQuery->sizeType == Search::SIZE_EXACT ? json(aQuery->size) : json() },
-			{ "max_size", aQuery->sizeType == Search::SIZE_ATMOST || aQuery->sizeType == Search::SIZE_EXACT ? json(aQuery->size) : json() },
+			{ "min_size", aQuery->minSize ? json(*aQuery->minSize) : json() },
+			{ "max_size", aQuery->maxSize ? json(*aQuery->maxSize) : json() },
 			{ "file_type", FileSearchParser::serializeSearchType(Util::toString(aQuery->fileType)) }, // TODO: custom types
 			{ "extensions", aQuery->exts },
 			{ "excluded", aQuery->excluded },

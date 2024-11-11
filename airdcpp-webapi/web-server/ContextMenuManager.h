@@ -68,6 +68,11 @@ public:
 	CONTEXT_MENU(HintedUser, hintedUser, HintedUser);
 	CONTEXT_MENU(string, extension, Extension);
 
+	CONTEXT_MENU(ClientToken, hub, Hub);
+	CONTEXT_MENU(CID, privateChat, PrivateChat);
+	CONTEXT_MENU(CID, filelist, Filelist);
+	CONTEXT_MENU(TTHValue, viewedFile, ViewedFile);
+
 	ENTITY_CONTEXT_MENU(DirectoryListingItemToken, filelistItem, FilelistItem, DirectoryListingPtr);
 	ENTITY_CONTEXT_MENU(TTHValue, groupedSearchResult, GroupedSearchResult, SearchInstancePtr);
 	ENTITY_CONTEXT_MENU(dcpp::SID, hubUser, HubUser, ClientPtr);

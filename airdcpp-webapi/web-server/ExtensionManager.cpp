@@ -231,7 +231,7 @@ namespace webserver {
 		int started = 0;
 		for (const auto& path : directories) {
 			auto ext = loadLocalExtension(path);
-			if (ext && startExtensionImpl(ext, engines)) {
+			if (ext && !ext->isDisabled() && startExtensionImpl(ext, engines)) {
 				started++;
 			}
 		}
@@ -495,7 +495,9 @@ namespace webserver {
 
 		// Updating an existing extension?
 		auto extension = getExtension(extensionName);
+		auto wasStopped = false;
 		if (extension) {
+			wasStopped = !extension->isRunning();
 			if (!extension->isManaged()) {
 				failInstallation(aInstallId, STRING(WEB_EXTENSION_EXISTS), "Unmanaged extensions can't be upgraded");
 				return;
@@ -550,7 +552,10 @@ namespace webserver {
 			log(STRING_F(WEB_EXTENSION_INSTALLED, extension->getName()), LogMessage::SEV_INFO);
 		}
 
-		startExtensionImpl(extension, getEngines());
+		if (!wasStopped) {
+			startExtensionImpl(extension, getEngines());
+		}
+
 		fire(ExtensionManagerListener::InstallationSucceeded(), aInstallId, extension, updated);
 	}
 

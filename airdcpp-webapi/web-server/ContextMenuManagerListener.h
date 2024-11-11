@@ -40,6 +40,11 @@ public:
 	typedef X<8> HintedUserMenuSelected;
 	typedef X<9> ExtensionMenuSelected;
 
+	typedef X<10> HubMenuSelected;
+	typedef X<11> PrivateChatMenuSelected;
+	typedef X<12> FilelistMenuSelected;
+	typedef X<13> ViewedFileMenuSelected;
+
 	typedef X<15> FilelistItemMenuSelected;
 	typedef X<16> GroupedSearchResultMenuSelected;
 	typedef X<17> HubUserMenuSelected;
@@ -56,6 +61,11 @@ public:
 	virtual void on(HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData&) noexcept { }
 
 	virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept { }
+
+	virtual void on(HubMenuSelected, const vector<ClientToken>&, const ContextMenuItemClickData&) noexcept { }
+	virtual void on(PrivateChatMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
+	virtual void on(FilelistMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
+	virtual void on(ViewedFileMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData&) noexcept { }
 
 	virtual void on(FilelistItemMenuSelected, const vector<DirectoryListingItemToken>&, const DirectoryListingPtr&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(GroupedSearchResultMenuSelected, const vector<TTHValue>&, const SearchInstancePtr&, const ContextMenuItemClickData&) noexcept { }
