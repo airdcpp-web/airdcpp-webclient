@@ -117,7 +117,15 @@ bool Client::startup(const dcpp::StartupParams& aStartupParams) {
 		messageF,
 		nullptr, // wizard
 		progressF,
-		nullptr, // module init
+		[&] {
+			// Add the command listeners here so that we won't miss any messages while loading
+			auto cdmHub = aStartupParams.hasParam("--cdm-hub");
+			auto cdmClient = aStartupParams.hasParam("--cdm-client");
+			auto cdmWeb = aStartupParams.hasParam("--cdm-web");
+			if (cdmHub || cdmClient || cdmWeb) {
+				cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
+			}
+		}, // module init
 		[&](StartupLoader& aLoader) { // module load
 			auto webResources = aStartupParams.getValue("--web-resources");
 			aLoader.stepF(STRING(WEB_SERVER));
@@ -128,7 +136,7 @@ bool Client::startup(const dcpp::StartupParams& aStartupParams) {
 			);
 
 			wsm->waitExtensionsLoaded();
-		}
+		} // module load
 	);
 
 	if (!serverStarted) {
@@ -151,15 +159,6 @@ bool Client::startup(const dcpp::StartupParams& aStartupParams) {
 	if (!aStartupParams.hasParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
 	}
-
-    {
-        auto cdmHub = aStartupParams.hasParam("--cdm-hub");
-        auto cdmClient = aStartupParams.hasParam("--cdm-client");
-        auto cdmWeb = aStartupParams.hasParam("--cdm-web");
-        if (cdmHub || cdmClient || cdmWeb) {
-            cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
-        }
-    }
 
 	running = true;
 	return true;
