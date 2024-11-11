@@ -158,12 +158,26 @@ void Thread::setThreadPriority(Priority p) {
 	}
 }
 
+#elif __APPLE__
+
+void Thread::setThreadPriority(Priority p) {
+	if (setpriority(PRIO_DARWIN_THREAD, 0, p) != 0) {
+		dcassert(0);
+		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
+	}
+}
+
 #else
 
 void Thread::setThreadPriority(Priority p) {
 	int policy;
 	sched_param params;
-	pthread_getschedparam(threadHandle, &policy, &params);
+	if (pthread_getschedparam(threadHandle, &policy, &params) != 0) {
+		dcassert(0);
+		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
+		return;
+	}
+
 	params.sched_priority = p;
 	if (pthread_setschedparam(threadHandle, p, &params) != 0) {
 		dcassert(0);

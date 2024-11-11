@@ -63,6 +63,15 @@ public:
 		HIGH = SCHED_OTHER,
 		HIGHEST = SCHED_OTHER
 	};
+#elif __APPLE__
+	enum Priority {
+		IDLE = PRIO_DARWIN_BG,
+		LOWEST = PRIO_DARWIN_BG,
+		LOW = 0,
+		NORMAL = 0,
+		HIGH = 0,
+		HIGHEST = 0
+	};
 #else
 	enum Priority {
 		IDLE = 0,
