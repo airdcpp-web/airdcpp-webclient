@@ -303,7 +303,8 @@ BuildArch()
     rm ${AIR_ARCH_ROOT}/CMakeCache.txt
   fi
 
-  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DBUILD_SHARED_LIBS=OFF -DSTRIP=ON -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" ${AIR_ARCH_ROOT}
+  # Define the CMAKE_CXX_FLAGS variable so that we won't get any defaults from the toolchain file
+  cmake -DCMAKE_TOOLCHAIN_FILE="${BR_ARCH_PATH}/output/host/usr/share/buildroot/toolchainfile.cmake" -DSTRIP=ON -DCMAKE_CXX_FLAGS_RELWITHDEBINFO="-O2 -g -DNDEBUG" -DCMAKE_CXX_FLAGS="" -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" ${AIR_ARCH_ROOT}
 
   make -j${BUILD_THREADS}
 
