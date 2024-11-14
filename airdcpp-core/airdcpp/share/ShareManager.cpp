@@ -872,7 +872,7 @@ bool ShareManager::RefreshTaskHandler::refreshPath(const string& aRefreshPath, c
 	return pathRefreshF(aRefreshPath, aTask, totalStats, bloom, dirtyProfiles);
 }
 
-unique_ptr<ShareTasksManager::RefreshTaskHandler> ShareManager::startRefresh(const ShareRefreshTask& aTask) noexcept {
+shared_ptr<ShareTasksManager::RefreshTaskHandler> ShareManager::startRefresh(const ShareRefreshTask& aTask) noexcept {
 	auto refreshBloom = aTask.type == ShareRefreshType::REFRESH_ALL ? new ShareBloom(1 << 20) : tree->getBloom();
 	ProfileTokenSet dirtyProfiles;
 
@@ -884,7 +884,7 @@ unique_ptr<ShareTasksManager::RefreshTaskHandler> ShareManager::startRefresh(con
 		lastIncomingUpdate = GET_TICK();
 	}
 
-	return make_unique<ShareManager::RefreshTaskHandler>(
+	return make_shared<ShareManager::RefreshTaskHandler>(
 		refreshBloom,
 		std::bind_front(&ShareManager::handleRefreshPath, this),
 		std::bind_front(&ShareManager::onRefreshTaskCompleted, this)

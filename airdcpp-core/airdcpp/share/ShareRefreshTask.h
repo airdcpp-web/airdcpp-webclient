@@ -82,7 +82,7 @@ struct ShareTasksManager {
 		}
 	};
 
-	virtual unique_ptr<RefreshTaskHandler> startRefresh(const ShareRefreshTask& aTask) noexcept = 0;
+	virtual shared_ptr<RefreshTaskHandler> startRefresh(const ShareRefreshTask& aTask) noexcept = 0;
 	virtual void onRefreshQueued(const ShareRefreshTask& aTask) noexcept = 0;
 };
 

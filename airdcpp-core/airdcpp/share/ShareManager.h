@@ -116,7 +116,7 @@ public:
 	bool handleRefreshPath(const string& aPath, const ShareRefreshTask& aTask, ShareRefreshStats& totalStats, ShareBloom* bloom_, ProfileTokenSet& dirtyProfiles_) noexcept;
 	void onRefreshTaskCompleted(bool aCompleted, const ShareRefreshTask& aTask, const ShareRefreshStats& aTotalStats, ShareBloom* bloom_, ProfileTokenSet& dirtyProfiles_) noexcept;
 
-	unique_ptr<ShareTasksManager::RefreshTaskHandler> startRefresh(const ShareRefreshTask& aTask) noexcept override;
+	shared_ptr<ShareTasksManager::RefreshTaskHandler> startRefresh(const ShareRefreshTask& aTask) noexcept override;
 	void onRefreshQueued(const ShareRefreshTask& aTask) noexcept override;
 
 	ShareRefreshTaskList getRefreshTasks() const noexcept;

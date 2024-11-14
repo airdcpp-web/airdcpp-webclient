@@ -78,7 +78,7 @@ private:
 	int run() override;
 
 	void runTasks(const ProgressFunction& progressF = nullptr) noexcept;
-	void runRefreshTask(const ShareRefreshTask& aTask, const ProgressFunction& progressF) noexcept;
+	Callback runRefreshTask(const ShareRefreshTask& aTask, const ProgressFunction& progressF) noexcept;
 
 	void reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished, const ShareRefreshStats* aStats) const noexcept;
 };
