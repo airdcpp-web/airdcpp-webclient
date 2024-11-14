@@ -44,12 +44,19 @@ public:
 	typedef X<11> PrivateChatMenuSelected;
 	typedef X<12> FilelistMenuSelected;
 	typedef X<13> ViewedFileMenuSelected;
+	typedef X<14> SearchInstanceMenuSelected;
 
-	typedef X<15> FilelistItemMenuSelected;
-	typedef X<16> GroupedSearchResultMenuSelected;
-	typedef X<17> HubUserMenuSelected;
-	typedef X<18> HubMessageHighlightMenuSelected;
-	typedef X<19> PrivateChatMessageHighlightMenuSelected;
+	typedef X<20> FilelistItemMenuSelected;
+	typedef X<21> GroupedSearchResultMenuSelected;
+	typedef X<22> HubUserMenuSelected;
+	typedef X<23> HubMessageHighlightMenuSelected;
+	typedef X<24> PrivateChatMessageHighlightMenuSelected;
+
+	typedef X<30> QueueMenuSelected;
+	typedef X<31> EventsMenuSelected;
+	typedef X<32> TransfersMenuSelected;
+	typedef X<33> ShareRootsMenuSelected;
+	typedef X<34> FavoriteHubsMenuSelected;
 
 
 	virtual void on(QueueBundleMenuSelected, const vector<QueueToken>&, const ContextMenuItemClickData&) noexcept { }
@@ -57,21 +64,30 @@ public:
 	virtual void on(TransferMenuSelected, const vector<TransferToken>&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(ShareRootMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(FavoriteHubMenuSelected, const vector<FavoriteHubToken>&, const ContextMenuItemClickData&) noexcept { }
+	virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept {}
+
 	virtual void on(UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData&) noexcept { }
 
-	virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept { }
-
+	// Sessions
 	virtual void on(HubMenuSelected, const vector<ClientToken>&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(PrivateChatMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(FilelistMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(ViewedFileMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData&) noexcept { }
+	virtual void on(SearchInstanceMenuSelected, const vector<SearchInstanceToken>&, const ContextMenuItemClickData&) noexcept {}
 
+	// Entities
 	virtual void on(FilelistItemMenuSelected, const vector<DirectoryListingItemToken>&, const DirectoryListingPtr&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(GroupedSearchResultMenuSelected, const vector<TTHValue>&, const SearchInstancePtr&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(HubUserMenuSelected, const vector<dcpp::SID>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(HubMessageHighlightMenuSelected, const vector<MessageHighlightToken>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
 	virtual void on(PrivateChatMessageHighlightMenuSelected, const vector<MessageHighlightToken>&, const PrivateChatPtr&, const ContextMenuItemClickData&) noexcept { }
+
+	virtual void on(QueueMenuSelected, const ContextMenuItemClickData&) noexcept {}
+	virtual void on(EventsMenuSelected, const ContextMenuItemClickData&) noexcept {}
+	virtual void on(TransfersMenuSelected, const ContextMenuItemClickData&) noexcept {}
+	virtual void on(ShareRootsMenuSelected, const ContextMenuItemClickData&) noexcept {}
+	virtual void on(FavoriteHubsMenuSelected, const ContextMenuItemClickData&) noexcept {}
 };
 
 } // namespace webserver
