@@ -293,35 +293,42 @@ void ShareTasks::runTasks(const ProgressFunction& progressF /*nullptr*/) noexcep
 			break;
 		}
 
-		ScopedFunctor([this] { tasks.pop_front(); });
+		Callback completionF;
 
-		if (t.first == RefreshTaskType::REFRESH) {
-			auto task = static_cast<ShareRefreshTask*>(t.second);
-			if (task->type == ShareRefreshType::STARTUP && task->priority != ShareRefreshPriority::BLOCKING) {
-				Thread::sleep(5000); // let the client start first
+		{
+			ScopedFunctor([this] { tasks.pop_front(); });
+
+			if (t.first == RefreshTaskType::REFRESH) {
+				auto task = static_cast<ShareRefreshTask*>(t.second);
+				if (task->type == ShareRefreshType::STARTUP && task->priority != ShareRefreshPriority::BLOCKING) {
+					Thread::sleep(5000); // let the client start first
+				}
+
+				task->running = true;
+
+				setThreadPriority(task->priority == ShareRefreshPriority::MANUAL ? Thread::NORMAL : Thread::IDLE);
+				if (!pauser) {
+					pauser.reset(new HashManager::HashPauser());
+				}
+
+				completionF = runRefreshTask(*task, progressF);
 			}
-
-			task->running = true;
-
-			setThreadPriority(task->priority == ShareRefreshPriority::MANUAL ? Thread::NORMAL : Thread::IDLE);
-			if (!pauser) {
-				pauser.reset(new HashManager::HashPauser());
-			}
-
-			runRefreshTask(*task, progressF);
 		}
 
+		if (completionF) {
+			completionF();
+		}
 	}
 }
 
-void ShareTasks::runRefreshTask(const ShareRefreshTask& aTask, const ProgressFunction& progressF) noexcept {
+Callback ShareTasks::runRefreshTask(const ShareRefreshTask& aTask, const ProgressFunction& progressF) noexcept {
 
 	refreshRunning = true;
 	ScopedFunctor([this] { refreshRunning = false; });
 
 	auto refreshPaths = aTask.dirs;
 	if (refreshPaths.empty()) {
-		return;
+		return nullptr;
 	}
 
 	auto taskHandler = manager->startRefresh(aTask);
@@ -353,14 +360,22 @@ void ShareTasks::runRefreshTask(const ShareRefreshTask& aTask, const ProgressFun
 		}
 	} catch (const std::exception& e) {
 		log(STRING(FILE_LIST_REFRESH_FAILED) + string(e.what()), LogMessage::SEV_ERROR);
-		return;
+		return nullptr;
 	}
 
 	if (allBuildersSucceed) {
 		reportTaskStatus(aTask, true, &totalStats);
 	}
 
-	taskHandler->refreshCompleted(allBuildersSucceed, aTask, totalStats);
+	// Fire completion only after the task has been removed from the list
+	return [
+		taskHandler, 
+		allBuildersSucceed, 
+		aTask, 
+		totalStats
+	] {
+		taskHandler->refreshCompleted(allBuildersSucceed, aTask, totalStats); 
+	};
 }
 
 ShareRefreshTaskList ShareTasks::getRefreshTasks() const noexcept {

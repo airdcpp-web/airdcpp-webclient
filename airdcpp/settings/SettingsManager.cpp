@@ -834,7 +834,7 @@ SettingsManager::SettingsManager() : connectionRegex("(\\d+(\\.\\d+)?)")
 	setDefault(RESERVED_SLOT_COLOR, RGB(0, 51, 0));
 	setDefault(IGNORED_COLOR, RGB(192, 192, 192));
 	setDefault(FAVORITE_COLOR, RGB(51, 51, 255));
-	setDefault(PASIVE_COLOR, RGB(132, 132, 132));
+	setDefault(PASSIVE_COLOR, RGB(132, 132, 132));
 	setDefault(OP_COLOR, RGB(0, 0, 205));
 
 	setDefault(MAIN_WINDOW_STATE, SW_SHOWNORMAL);
