@@ -31,7 +31,26 @@
 
 
 
-#define CONTEXT_MENU(type, name, name2) \
+struct ContextMenuItemClickData;
+class ContextMenuManagerListener {
+public:
+
+	virtual ~ContextMenuManagerListener() = default;
+	template<int I>	struct X { enum { TYPE = I }; };
+};
+
+
+
+#define CONTEXT_MENU(name, name2) \
+	ActionHook<GroupedContextMenuItemPtr, const ContextMenuItemListData&> name##MenuHook; \
+	GroupedContextMenuItemList get##name2##Menu(const ContextMenuItemListData& aListData) const noexcept { \
+		return ActionHook<GroupedContextMenuItemPtr>::normalizeData(name##MenuHook.runHooksData(aListData.caller, aListData)); \
+	} \
+	void onClick##name2##Item(const ContextMenuItemClickData& aClickData) noexcept { \
+		fire(ContextMenuManagerListener::name2##MenuSelected(), aClickData); \
+	}
+
+#define ID_CONTEXT_MENU(type, name, name2) \
 	ActionHook<GroupedContextMenuItemPtr, const vector<type>&, const ContextMenuItemListData&> name##MenuHook; \
 	GroupedContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData) const noexcept { \
 		return ActionHook<GroupedContextMenuItemPtr>::normalizeData(name##MenuHook.runHooksData(aListData.caller, aItems, aListData)); \
@@ -59,25 +78,36 @@ class ContextMenuManager : public Speaker<ContextMenuManagerListener>
 public:
 	static const string URLS_SUPPORT;
 
-	CONTEXT_MENU(QueueToken, queueBundle, QueueBundle);
-	CONTEXT_MENU(QueueToken, queueFile, QueueFile);
-	CONTEXT_MENU(TTHValue, shareRoot, ShareRoot);
-	CONTEXT_MENU(CID, user, User);
-	CONTEXT_MENU(TransferToken, transfer, Transfer);
-	CONTEXT_MENU(FavoriteHubToken, favoriteHub, FavoriteHub);
-	CONTEXT_MENU(HintedUser, hintedUser, HintedUser);
-	CONTEXT_MENU(string, extension, Extension);
+	ID_CONTEXT_MENU(QueueToken, queueBundle, QueueBundle);
+	ID_CONTEXT_MENU(QueueToken, queueFile, QueueFile);
+	ID_CONTEXT_MENU(TTHValue, shareRoot, ShareRoot);
+	ID_CONTEXT_MENU(TransferToken, transfer, Transfer);
+	ID_CONTEXT_MENU(FavoriteHubToken, favoriteHub, FavoriteHub);
+	ID_CONTEXT_MENU(string, extension, Extension);
 
-	CONTEXT_MENU(ClientToken, hub, Hub);
-	CONTEXT_MENU(CID, privateChat, PrivateChat);
-	CONTEXT_MENU(CID, filelist, Filelist);
-	CONTEXT_MENU(TTHValue, viewedFile, ViewedFile);
+	ID_CONTEXT_MENU(HintedUser, hintedUser, HintedUser);
+	ID_CONTEXT_MENU(CID, user, User);
 
+	// Sessions
+	ID_CONTEXT_MENU(ClientToken, hub, Hub);
+	ID_CONTEXT_MENU(CID, privateChat, PrivateChat);
+	ID_CONTEXT_MENU(CID, filelist, Filelist);
+	ID_CONTEXT_MENU(TTHValue, viewedFile, ViewedFile);
+	ID_CONTEXT_MENU(SearchInstanceToken, searchInstance, SearchInstance);
+
+	// Entities
 	ENTITY_CONTEXT_MENU(DirectoryListingItemToken, filelistItem, FilelistItem, DirectoryListingPtr);
 	ENTITY_CONTEXT_MENU(TTHValue, groupedSearchResult, GroupedSearchResult, SearchInstancePtr);
 	ENTITY_CONTEXT_MENU(dcpp::SID, hubUser, HubUser, ClientPtr);
 	ENTITY_CONTEXT_MENU(MessageHighlightToken, hubMessageHighlight, HubMessageHighlight, ClientPtr);
 	ENTITY_CONTEXT_MENU(MessageHighlightToken, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
+
+	// Generic
+	CONTEXT_MENU(transfers, Transfers);
+	CONTEXT_MENU(shareRoots, ShareRoots);
+	CONTEXT_MENU(events, Events);
+	CONTEXT_MENU(favoriteHubs, FavoriteHubs);
+	CONTEXT_MENU(queue, Queue);
 
 	ContextMenuManager();
 	~ContextMenuManager() override;
