@@ -424,7 +424,7 @@ void BundleQueue::removeBundle(const BundlePtr& aBundle) noexcept{
 	{
 		auto infoPtr = getPathInfos(aBundle->getTarget());
 		if (infoPtr) {
-			auto& pathInfos = *infoPtr;
+			auto pathInfos = *infoPtr; // copy is required here
 			for (const auto& p : pathInfos) {
 				removePathInfo(p);
 			}
