@@ -364,7 +364,11 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 		while(writePos < writeBufTmp.size()) {
 			if(disconnecting)
 				return;
-			
+
+			// Process possible async calls 
+			// File uploads can take a really long time so we don't want to wait for it to finish
+			checkEvents();
+
 			if(written == -1) {
 				// workaround for OpenSSL (crashes when previous write failed and now retrying with different writeSize)
 				written = sock->write(&writeBufTmp[writePos], writeSize);

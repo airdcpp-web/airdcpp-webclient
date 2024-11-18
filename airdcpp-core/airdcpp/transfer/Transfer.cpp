@@ -27,6 +27,8 @@
 
 namespace dcpp {
 
+IncrementingIdCounter<UserConnectionToken> Transfer::idCounter;
+
 const string Transfer::names[] = {
 	"file", "file", "list", "tthl", "tthlist"
 };
@@ -35,11 +37,11 @@ const string Transfer::USER_LIST_NAME_EXTRACTED = "files.xml";
 const string Transfer::USER_LIST_NAME_BZ = "files.xml.bz2";
 
 Transfer::Transfer(UserConnection& conn, const string& path_, const TTHValue& tth_) : path(path_),
-	segment(0, -1), tth(tth_), userConnection(conn) { }
+	segment(0, -1), tth(tth_), userConnection(conn), token(idCounter.next()) { }
 
 
 TransferToken Transfer::getToken() const noexcept {
-	return userConnection.getToken();
+	return token;
 }
 
 void Transfer::tick() noexcept {

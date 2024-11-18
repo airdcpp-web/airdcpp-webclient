@@ -82,7 +82,7 @@ public:
 		return uploads;
 	}
 
-	using UploadCallback = std::function<void (Upload *)> &&;
+	using UploadCallback = std::function<void (Upload*)> &&;
 	Callback getAsyncWrapper(TransferToken aToken, UploadCallback&& aCallback) const noexcept;
 
 	Upload* findUploadUnsafe(TransferToken aToken) const noexcept;

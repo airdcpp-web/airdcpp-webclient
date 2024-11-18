@@ -62,7 +62,7 @@ public:
 	uint64_t getSecondsLeft() const noexcept;
 	uint64_t getUploaded() const noexcept;
 
-	void findBundlePath(const string& aName, const Upload* aUpload) noexcept;
+	void setBundlePath(const string& aBundleName, const string& aFilePath) noexcept;
 
 	/* DownloadManager */
 	void addUploadedSegment(int64_t aSize) noexcept;

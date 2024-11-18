@@ -79,7 +79,7 @@ void UploadBundle::addUpload(const Upload* u) noexcept {
 	uploads.insert(u->getToken());
 
 	if (uploads.size() == 1) {
-		findBundlePath(target, u);
+		setBundlePath(target, u->getPath());
 		delayTime = 0;
 	}
 }
@@ -148,16 +148,15 @@ uint64_t UploadBundle::countSpeed(const UploadList& aUploads) noexcept {
 	return ownBundleSpeed;
 }
 
-void UploadBundle::findBundlePath(const string& aName, const Upload* aUpload) noexcept {
-	const auto& uploadPath = aUpload->getPath();
-	auto pos = uploadPath.rfind(aName);
+void UploadBundle::setBundlePath(const string& aBundleName, const string& aFilePath) noexcept {
+	auto pos = aFilePath.rfind(aBundleName);
 	if (pos != string::npos) {
-		if (pos + aName.length() == uploadPath.length()) {
+		if (pos + aBundleName.length() == aFilePath.length()) {
 			// File bundle
-			target = uploadPath;
+			target = aFilePath;
 		} else {
 			// Directory bundle
-			target = uploadPath.substr(0, pos + aName.length());
+			target = aFilePath.substr(0, pos + aBundleName.length());
 		}
 	}
 }
