@@ -25,6 +25,7 @@
 #include <airdcpp/core/types/GetSet.h>
 #include <airdcpp/hash/value/MerkleTree.h>
 #include <airdcpp/core/classes/Segment.h>
+#include <airdcpp/core/classes/IncrementingIdCounter.h>
 
 namespace dcpp {
 
@@ -106,6 +107,10 @@ private:
 	int64_t pos = 0;
 
 	UserConnection& userConnection;
+
+	const TransferToken token;
+
+	static IncrementingIdCounter<TransferToken> idCounter;
 };
 
 } // namespace dcpp
