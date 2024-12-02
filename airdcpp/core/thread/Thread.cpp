@@ -149,13 +149,14 @@ void Thread::join() {
 
 #ifdef __linux__ 
 
-void Thread::setThreadPriority(Priority p) {
-	sched_param params;
-	params.sched_priority = 0; // Must always 0 on Linux
-	if (pthread_setschedparam(threadHandle, p, &params) != 0) {
-		dcassert(0);
+void Thread::setThreadPriority(Priority) {
+	// Disabled due to https://github.com/airdcpp-web/airdcpp-webclient/issues/487
+	//sched_param params;
+	//params.sched_priority = 0; // Must always 0 on Linux
+	//if (pthread_setschedparam(threadHandle, p, &params) != 0) {
+	//	dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
-	}
+	//}
 }
 
 #elif __APPLE__
