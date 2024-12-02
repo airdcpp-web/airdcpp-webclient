@@ -428,7 +428,7 @@ void HasherStats::addFile(int64_t aSize, uint64_t aHashTime) noexcept {
 }
 
 int Hasher::run() {
-	setThreadPriority(Thread::IDLE);
+	setCurrentThreadPriority(Thread::IDLE);
 
 	for (;;) {
 		s.wait();

@@ -69,6 +69,10 @@ void Thread::join() {
 	threadHandle = INVALID_HANDLE_VALUE;
 }
 
+void Thread::sleep(uint64_t millis) noexcept {
+	::Sleep(static_cast<DWORD>(millis));
+}
+
 void Thread::t_suspend() {
 	if (threadHandle == INVALID_HANDLE_VALUE) {
 		return;
@@ -83,16 +87,24 @@ void Thread::t_resume() {
 	::ResumeThread(threadHandle);
 }
 
-void Thread::setThreadPriority(Priority p) {
-	if (!::SetThreadPriority(threadHandle, p)) {
+void Thread::setThreadPriority(Priority p, ThreadHandleType aHandle) noexcept {
+	if (aHandle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+
+	if (!::SetThreadPriority(aHandle, p)) {
 		dcdebug("Unable to set thread priority: %s", SystemUtil::translateError(GetLastError()).c_str());
 		//dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(GetLastError()));
 	}
 }
 
-void Thread::yield() { 
+void Thread::yield() noexcept {
 	::Sleep(0);
+}
+
+Thread::ThreadHandleType Thread::getCurrentThread() noexcept {
+	return GetCurrentThread();
 }
 
 #ifdef _DEBUG
@@ -141,39 +153,45 @@ void Thread::t_resume() {
 }
 
 void Thread::join() {
-	if (threadHandle) {
-		pthread_join(threadHandle, 0);
-		threadHandle = 0;
+	if (!threadHandle) {
+		return;
 	}
+
+	pthread_join(threadHandle, 0);
+	threadHandle = 0;
 }
 
 #ifdef __linux__ 
 
-void Thread::setThreadPriority(Priority) {
-	// Disabled due to https://github.com/airdcpp-web/airdcpp-webclient/issues/487
-	//sched_param params;
-	//params.sched_priority = 0; // Must always 0 on Linux
-	//if (pthread_setschedparam(threadHandle, p, &params) != 0) {
-	//	dcassert(0);
-		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
-	//}
-}
+void Thread::setThreadPriority(Priority p, ThreadHandleType aHandle) noexcept {
+	if (!aHandle) {
+		return;
+	}
 
-#elif __APPLE__
-
-void Thread::setThreadPriority(Priority p) {
-	if (setpriority(PRIO_DARWIN_THREAD, 0, p) != 0) {
+	sched_param params;
+	params.sched_priority = 0; // Must always 0 on Linux
+	if (pthread_setschedparam(aHandle, p, &params) != 0) {
 		dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
 	}
 }
 
+#elif __APPLE__
+
+void Thread::setThreadPriority(Priority, ThreadHandleType) noexcept {
+	// Not available
+}
+
 #else
 
-void Thread::setThreadPriority(Priority p) {
+void Thread::setThreadPriority(Priority p, ThreadHandleType aHandle) noexcept {
+	if (!aHandle) {
+		return;
+	}
+
 	int policy;
 	sched_param params;
-	if (pthread_getschedparam(threadHandle, &policy, &params) != 0) {
+	if (pthread_getschedparam(aHandle, &policy, &params) != 0) {
 		dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
 		return;
@@ -189,10 +207,42 @@ void Thread::setThreadPriority(Priority p) {
 
 #endif
 
-void Thread::yield() {
+void Thread::yield() noexcept {
 	::sched_yield();
 }
 
+void Thread::sleep(uint64_t millis) noexcept {
+	::usleep(static_cast<useconds_t>(millis) * 1000);
+}
+
+Thread::ThreadHandleType Thread::getCurrentThread() noexcept {
+	return pthread_self();
+}
+
 #endif
+
+
+#if __APPLE__
+
+void Thread::setCurrentThreadPriority(Priority p) noexcept {
+	if (setpriority(PRIO_DARWIN_THREAD, 0, p) != 0) {
+		dcassert(0);
+		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
+	}
+}
+
+#else
+
+void Thread::setCurrentThreadPriority(Priority p) noexcept {
+	setThreadPriority(p, getCurrentThread());
+}
+
+#endif
+
+
+void Thread::setThreadPriority(Priority p) noexcept {
+	setThreadPriority(p, threadHandle);
+}
+
 
 } // namespace dcpp

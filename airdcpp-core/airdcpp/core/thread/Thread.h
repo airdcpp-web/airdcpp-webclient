@@ -43,10 +43,6 @@ public:
 		HIGHEST = THREAD_PRIORITY_HIGHEST
 	};
 
-	static void sleep(uint64_t millis) {
-		::Sleep(static_cast<DWORD>(millis));
-	}
-
 	typedef HANDLE ThreadHandleType;
 
 #ifdef _DEBUG
@@ -82,11 +78,6 @@ public:
 		HIGHEST = 30
 	};
 #endif
-
-	static void sleep(uint32_t millis) {
-		::usleep(millis * 1000);
-	}
-
 	typedef pthread_t ThreadHandleType;
 #endif
 	Thread();
@@ -95,18 +86,23 @@ public:
 	Thread(const Thread&) = delete;
 	Thread& operator=(const Thread&) = delete;
 
+	static void sleep(uint64_t millis) noexcept;
+	static void setCurrentThreadPriority(Priority p) noexcept;
+	static ThreadHandleType getCurrentThread() noexcept;
 
 	void start();
 	void join();
 
-	void setThreadPriority(Priority p);
+	// Note: call setCurrentThreadPriority when setting priority for the current thread
+	// (thread handle may not be initialized right after creation)
+	void setThreadPriority(Priority p) noexcept;
 
 	// Pause a worker thread, BE Careful by using this, thread must be in sync so it wont lock up any unwanted resources. 
 	// Call only from the suspended thread because of non-win implementation
 	void t_suspend();
 	void t_resume();
 
-	static void yield();
+	static void yield() noexcept;
 protected:
 	virtual int run() = 0;
 
@@ -122,6 +118,8 @@ protected:
 
 	static void* starter(void* p);
 #endif
+private:
+	static void setThreadPriority(Priority p, ThreadHandleType aHandle) noexcept;
 };
 
 } // namespace dcpp

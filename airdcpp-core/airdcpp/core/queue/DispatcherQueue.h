@@ -66,7 +66,7 @@ public:
 	}
 
 	int run() {
-		setThreadPriority(threadPriority);
+		setCurrentThreadPriority(threadPriority);
 		while (true) {
 			s.wait();
 			if (stopping) {
