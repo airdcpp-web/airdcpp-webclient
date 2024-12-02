@@ -173,6 +173,10 @@ bool PrivateChat::sendMessageHooked(const OutgoingChatMessage& aMessage, string&
 
 void PrivateChat::closeCC(bool aNow, bool aNoAutoConnect) {
 	callAsyncCCPM([this, aNoAutoConnect, aNow] {
+		if (!uc) {
+			return;
+		}
+
 		if (aNoAutoConnect) {
 			sendPMInfoHooked(NO_AUTOCONNECT);
 			allowAutoCCPM = false;

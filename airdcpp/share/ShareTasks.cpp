@@ -306,7 +306,7 @@ void ShareTasks::runTasks(const ProgressFunction& progressF /*nullptr*/) noexcep
 
 				task->running = true;
 
-				setThreadPriority(task->priority == ShareRefreshPriority::MANUAL ? Thread::NORMAL : Thread::IDLE);
+				setCurrentThreadPriority(task->priority == ShareRefreshPriority::MANUAL ? Thread::NORMAL : Thread::IDLE);
 				if (!pauser) {
 					pauser.reset(new HashManager::HashPauser());
 				}
