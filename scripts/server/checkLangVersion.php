@@ -12,9 +12,18 @@
 		return;
 	}
 
-	header('X-File-Location: https://' . $_SERVER['HTTP_HOST'] . removeFilename($_SERVER['REQUEST_URI']) . $_GET["lc"] . ".xml");
-	
-	$filePath = getcwd() . '/' . $_GET["lc"] . ".xml";
+	$locale = $_GET["lc"];
+	if (!preg_match('/^[a-z-]+$/i', $locale)) {
+		$fileContent = 'Invalid locale';
+		http_response_code(400);
+		return;
+	}
+
+
+	header('X-File-Location: https://' . $_SERVER['HTTP_HOST'] . removeFilename($_SERVER['REQUEST_URI']) . $locale . ".xml");
+
+	$filePath = getcwd() . '/' . $locale . ".xml";
+
 	if (!file_exists($filePath)) {
 		$fileContent = 'Invalid locale';
 		http_response_code(404);
