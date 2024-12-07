@@ -198,7 +198,7 @@ void Thread::setThreadPriority(Priority p, ThreadHandleType aHandle) noexcept {
 	}
 
 	params.sched_priority = p;
-	if (pthread_setschedparam(threadHandle, p, &params) != 0) {
+	if (pthread_setschedparam(aHandle, p, &params) != 0) {
 		dcassert(0);
 		//throw ThreadException("Unable to set thread priority: " + SystemUtil::translateError(errno));
 	}
