@@ -50,6 +50,7 @@ public:
 private:
 	mutable SharedMutex cs;
 	void dbgMsg(const string& aMsg, LogMessage::Severity aSeverity) noexcept;
+	static string formatDebugBundle(const UploadBundlePtr& u) noexcept;
 
 	static double parseSpeed(const string& aSpeedStr) noexcept;
 

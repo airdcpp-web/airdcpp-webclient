@@ -42,8 +42,6 @@ void UploadBundle::addUploadedSegment(int64_t aSize) noexcept {
 	if (singleUser && aSize + uploadedSegments <= size) {
 		uploadedSegments += aSize;
 		currentUploaded -= aSize;
-	} else {
-		dcassert(0);
 	}
 }
 
@@ -112,7 +110,7 @@ uint64_t UploadBundle::getUploaded() const noexcept {
 
 constexpr auto BUNDLE_DELAY_SECONDS = 60;
 bool UploadBundle::checkDelaySecond() noexcept {
-	if (uploads.empty()) {
+	if (!uploads.empty()) {
 		return false;
 	}
 
