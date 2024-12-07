@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_HUBLISTENTRY_H_
 #define DCPLUSPLUS_DCPP_HUBLISTENTRY_H_
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/util/Util.h>
 
 namespace dcpp {
 

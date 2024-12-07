@@ -20,11 +20,12 @@
 
 #include <web-server/JsonUtil.h>
 #include <web-server/Session.h>
+#include <web-server/WebUser.h>
 
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/share/ShareManager.h>
 
 namespace webserver {
 	CID Deserializer::parseCID(const string& aCID) {
@@ -101,16 +102,20 @@ namespace webserver {
 	}
 
 	Deserializer::OfflineHintedUser Deserializer::parseOfflineHintedUser(const json& aJson, const string& aFieldName, bool aAllowMe) {
-		const auto cid = JsonUtil::getField<string>("cid", aJson, false);
-		const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, false);
-		const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
+		try {
+			const auto cid = JsonUtil::getField<string>("cid", aJson, false);
+			const auto hubUrl = JsonUtil::getField<string>("hub_url", aJson, false);
+			const auto nicks = JsonUtil::getField<string>("nicks", aJson, false);
 
-		auto user = getOfflineUser(cid, nicks, hubUrl, aAllowMe);
-		if (hubUrl.empty() && user != ClientManager::getInstance()->getMe()) {
-			throw std::invalid_argument("hub_url missing");
+			auto user = getOfflineUser(cid, nicks, hubUrl, aAllowMe);
+			if (hubUrl.empty() && user != ClientManager::getInstance()->getMe()) {
+				throw std::invalid_argument("hub_url missing");
+			}
+
+			return OfflineHintedUser(user, hubUrl, nicks);
+		} catch (const ArgumentException& e) {
+			throw e.toField(aFieldName);
 		}
-
-		return OfflineHintedUser(user, hubUrl, nicks);
 	}
 
 	TTHValue Deserializer::deserializeTTH(const json& aJson) {
@@ -166,12 +171,8 @@ namespace webserver {
 			return nullptr;
 		}
 
-		auto client = ClientManager::getInstance()->getClient(*hubUrl);
+		auto client = ClientManager::getInstance()->findClient(*hubUrl);
 		if (!client) {
-			//if (aOptional) {
-			//	return nullptr;
-			//}
-
 			throw std::invalid_argument("Hub " + *hubUrl + " was not found");
 		}
 
@@ -185,7 +186,7 @@ namespace webserver {
 		};
 	}
 
-	map<string, LogMessage::Severity> severityMappings = {
+	const map<string, LogMessage::Severity> severityMappings = {
 		{ "notify", LogMessage::SEV_NOTIFY },
 		{ "verbose", LogMessage::SEV_VERBOSE },
 		{ "info", LogMessage::SEV_INFO },
@@ -202,7 +203,7 @@ namespace webserver {
 		throw std::invalid_argument("Invalid severity: " + aText);
 	}
 
-	map<string, LogMessage::Type> logMessageTypeMappings = {
+	const map<string, LogMessage::Type> logMessageTypeMappings = {
 		{ "history", LogMessage::Type::HISTORY },
 		{ "private", LogMessage::Type::PRIVATE },
 		{ "server", LogMessage::Type::SERVER },
@@ -267,5 +268,10 @@ namespace webserver {
 
 	HintedUser Deserializer::hintedUserArrayValueParser(const json& aJson, const string& aFieldName) {
 		return parseHintedUser(aJson, aFieldName, true);
+	}
+
+	string Deserializer::directoryPathArrayValueParser(const json& aJson, const string& aFieldName) {
+		auto pathStr = JsonUtil::parseValue<string>(aFieldName, aJson, false);
+		return PathUtil::validateDirectoryPath(pathStr);
 	}
 }

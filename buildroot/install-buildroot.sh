@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Debug mode
 # set -x
 
@@ -30,6 +32,13 @@ SetupEnv()
 
   # Remove old buildroot instances
   if [ -d $1 ]; then
+    echo "${bold}NOTE: an existing installation of buildroot was found, the directory will be removed${normal}"
+    read -p "Press any key to continue... " -n1 -s
+
+    #sleep 5s
+    #read -r -p "Wait 5 seconds or press any key to continue immediately" -t 5 -n 1 -s
+
+    echo "Removing previous installation"
     rm -rf $1
   fi
 

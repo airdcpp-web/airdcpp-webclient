@@ -20,16 +20,19 @@
 
 #include "AutoSearchManager.h"
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SearchResult.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/User.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/util/DupeUtil.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchQuery.h>
+#include <airdcpp/search/SearchResult.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/user/User.h>
 
-#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
 
 namespace dcpp {
 
@@ -37,7 +40,7 @@ using ranges::find_if;
 using ranges::max_element;
 using ranges::copy_if;
 
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_NAME "AutoSearch.xml"
 #define XML_GROUPING_VERSION 1
 
@@ -100,7 +103,7 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 		}
 	} 
 	if(!loading) {
-		delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
+		delayEvents.addEvent(RECALCULATE_SEARCH, [this] { resetSearchTimes(GET_TICK()); }, 1000);
 	}
 }
 
@@ -138,9 +141,9 @@ bool AutoSearchManager::setItemActive(AutoSearchPtr& as, bool toActive) noexcept
 
 	//No items enabled at this time? Schedule search for it...
 	if(toActive && nextSearch == 0 && (as->getLastSearch() + SETTING(AUTOSEARCH_EVERY) * 60 < GET_TIME()))
-		delayEvents.addEvent(SEARCH_ITEM, [=] { maybePopSearchItem(GET_TICK(), true); }, 1000);
+		delayEvents.addEvent(SEARCH_ITEM, [this] { maybePopSearchItem(GET_TICK(), true); }, 1000);
 
-	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
+	delayEvents.addEvent(RECALCULATE_SEARCH, [this] { resetSearchTimes(GET_TICK()); }, 1000);
 	dirty = true;
 	return true;
 }
@@ -155,7 +158,7 @@ bool AutoSearchManager::updateAutoSearch(AutoSearchPtr& ipw) noexcept {
 		ipw->updateExcluded();
 	}
 
-	delayEvents.addEvent(RECALCULATE_SEARCH, [=] { resetSearchTimes(GET_TICK()); }, 1000);
+	delayEvents.addEvent(RECALCULATE_SEARCH, [this] { resetSearchTimes(GET_TICK()); }, 1000);
 	//if (find_if(searchItems, [ipw](const AutoSearchPtr as) { return as->getSearchString() == ipw->getSearchString() && compare(ipw->getToken(), as->getToken()) != 0; }) != searchItems.end())
 	//	return false;
 	fire(AutoSearchManagerListener::ItemUpdated(), ipw, true);
@@ -270,11 +273,6 @@ void AutoSearchManager::clearError(AutoSearchPtr& as) noexcept {
 
 void AutoSearchManager::on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddResult& aQueueInfo, const string& /*aError*/) noexcept {
 	onBundleCreated(aQueueInfo.bundleInfo.bundle, aDirectoryInfo->getOwner());
-
-	//if (aQueueInfo.bundle) {
-	/*} else if (!aError.empty()) {
-		onBundleError(aDirectoryInfo->getOwner(), aError, aDirectoryInfo->getBundleName(), aDirectoryInfo->getUser());
-	}*/
 }
 
 void AutoSearchManager::on(DirectoryDownloadFailed, const DirectoryDownloadPtr& aDirectoryInfo, const string& aError) noexcept {
@@ -304,7 +302,7 @@ void AutoSearchManager::onBundleError(const void* aSearch, const string& aError,
 	RLock l(cs);
 	auto as = searchItems.getItem(aSearch);
 	if (as) {
-		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::getTimeString() % ClientManager::getInstance()->getFormatedNicks(aUser)));
+		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::formatCurrentTime() % ClientManager::getInstance()->getFormattedNicks(aUser)));
 		fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 	}
 
@@ -397,13 +395,14 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 	if (!lst.empty()) {
 		return false;
 	}
+
 	//allow adding only release dirs, avoid adding too common bundle names to auto search ( will result in bundle growing by pretty much anything that matches... )
-	if (!AirUtil::isRelease(aBundle->getName()))
+	if (!DupeUtil::isRelease(aBundle->getName()))
 		return false;
 
 
 	//7 days expiry
-	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, Util::getParentDir(aBundle->getTarget()), 
+	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, PathUtil::getParentDir(aBundle->getTarget()), 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, AutoSearch::FAILED_BUNDLE, false);
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
@@ -424,7 +423,8 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 	auto ftype = Search::TYPE_ANY;
 	try {
 		string name;
-		SearchManager::getInstance()->getSearchType(as->getFileType(), ftype, extList, name);
+		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		typeManager.getSearchType(as->getFileType(), ftype, extList, name);
 	} catch(const SearchTypeException&) {
 		//reset to default
 		as->setFileType(SEARCH_TYPE_ANY);
@@ -587,7 +587,7 @@ void AutoSearchManager::checkItems() noexcept {
 	{
 		WLock l(cs);
 
-		for(auto& as: searchItems.getItems() | views::values) {
+		for (const auto& as: searchItems.getItems() | views::values) {
 			bool fireUpdate = false;
 
 			//update possible priority change
@@ -648,68 +648,72 @@ void AutoSearchManager::checkItems() noexcept {
 	handleExpiredItems(expired);
 }
 
+AutoSearchList AutoSearchManager::matchResult(const SearchResultPtr& sr) noexcept {
+	AutoSearchList matches;
+
+	RLock l (cs);
+	for(auto& as: searchItems.getItems() | views::values) {
+		if (!as->allowNewItems() && !as->getManualSearch())
+			continue;
+			
+		if (as->getManualSearch()) {
+			as->setManualSearch(false);
+			as->updateStatus();
+		}
+
+		//match
+		if (as->getFileType() == SEARCH_TYPE_TTH) {
+			if (!as->match(sr->getTTH().toBase32()))
+				continue;
+		} else {
+			/* Check the type (folder) */
+			if(as->getFileType() == SEARCH_TYPE_DIRECTORY && sr->getType() != SearchResult::Type::DIRECTORY) {
+				continue;
+			} else if (as->getFileType() == SEARCH_TYPE_FILE && sr->getType() != SearchResult::Type::FILE) {
+				continue;
+			}
+
+			if (as->getMatchFullPath()) {
+				if (!as->match(sr->getAdcPath()))
+					continue;
+				if (as->isExcluded(sr->getAdcPath()))
+					continue;
+			} else {
+				const string matchPath = sr->getFileName();
+				if (!as->match(matchPath))
+					continue;
+				if (as->isExcluded(matchPath))
+					continue;
+			}
+		}
+
+		//check the nick
+		if(!as->getNickPattern().empty()) {
+			StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser());
+			bool hasMatch = find_if(nicks, [&](const string& aNick) { return as->matchNick(aNick); }) != nicks.end();
+			if((!as->getUserMatcherExclude() && !hasMatch) || (as->getUserMatcherExclude() && hasMatch))
+				continue;
+		}
+
+		//we have a valid result
+		matches.push_back(as);
+	}
+
+	return matches;
+}
+
 /* SearchManagerListener and matching */
 void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr) noexcept {
 	//don't match bundle searches
 	if (Util::stricmp(sr->getSearchToken(), "qa") == 0)
 		return;
 
-	AutoSearchList matches;
-
-	{
-		RLock l (cs);
-		for(auto& as: searchItems.getItems() | views::values) {
-			if (!as->allowNewItems() && !as->getManualSearch())
-				continue;
-			
-			if (as->getManualSearch()) {
-				as->setManualSearch(false);
-				as->updateStatus();
-			}
-
-			//match
-			if (as->getFileType() == SEARCH_TYPE_TTH) {
-				if (!as->match(sr->getTTH().toBase32()))
-					continue;
-			} else {
-				/* Check the type (folder) */
-				if(as->getFileType() == SEARCH_TYPE_DIRECTORY && sr->getType() != SearchResult::TYPE_DIRECTORY) {
-					continue;
-				} else if (as->getFileType() == SEARCH_TYPE_FILE && sr->getType() != SearchResult::TYPE_FILE) {
-					continue;
-				}
-
-				if (as->getMatchFullPath()) {
-					if (!as->match(sr->getAdcPath()))
-						continue;
-					if (as->isExcluded(sr->getAdcPath()))
-						continue;
-				} else {
-					const string matchPath = sr->getFileName();
-					if (!as->match(matchPath))
-						continue;
-					if (as->isExcluded(matchPath))
-						continue;
-				}
-			}
-
-			//check the nick
-			if(!as->getNickPattern().empty()) {
-				StringList nicks = ClientManager::getInstance()->getNicks(sr->getUser());
-				bool hasMatch = find_if(nicks, [&](const string& aNick) { return as->matchNick(aNick); }) != nicks.end();
-				if((!as->getUserMatcherExclude() && !hasMatch) || (as->getUserMatcherExclude() && hasMatch))
-					continue;
-			}
-
-			//we have a valid result
-			matches.push_back(as);
-		}
-	}
+	auto matches = matchResult(sr);
 
 	//extra checks outside the lock
 	for (auto& as: matches) {
-		if (!SearchManager::isDefaultTypeStr(as->getFileType())) {
-			if (sr->getType() == SearchResult::TYPE_DIRECTORY)
+		if (!SearchTypes::isDefaultTypeStr(as->getFileType())) {
+			if (sr->getType() == SearchResult::Type::DIRECTORY)
 				continue;
 
 			//check the extension
@@ -719,7 +723,8 @@ void AutoSearchManager::on(SearchManagerListener::SR, const SearchResultPtr& sr)
 				{
 					string typeName;
 					Search::TypeModes tmp;
-					SearchManager::getInstance()->getSearchType(as->getFileType(), tmp, exts, typeName);
+					auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+					typeManager.getSearchType(as->getFileType(), tmp, exts, typeName);
 				}
 
 				auto fileName = sr->getFileName();
@@ -796,19 +801,17 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 		}
 
 		// only download this directory
-		unordered_map<string, SearchResultList> dirList2;
-		dirList2.insert(*p);
-		dirList.swap(dirList2);
+		decltype(dirList) dirListTmp;
+		dirListTmp.insert(*p);
+		dirList.swap(dirListTmp);
 	}
 
-	for (auto& p: dirList) {
+	for (auto& [dir, resultList] : dirList) {
 		// dupe check
 		if (as->getFileType() == SEARCH_TYPE_DIRECTORY) {
-			auto& dir = p.first;
-
 			//check shared
 			if (as->getCheckAlreadyShared()) {
-				auto paths = ShareManager::getInstance()->getAdcDirectoryPaths(dir);
+				auto paths = ShareManager::getInstance()->getAdcDirectoryDupePaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_SHARED_ALREADY, paths.front()));
 					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
@@ -818,7 +821,7 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 
 			//check queued
 			if (as->getCheckAlreadyQueued() && as->getStatus() != AutoSearch::STATUS_FAILED_MISSING) {
-				auto paths = QueueManager::getInstance()->getAdcDirectoryPaths(dir);
+				auto paths = QueueManager::getInstance()->getAdcDirectoryDupePaths(dir);
 				if (!paths.empty()) {
 					as->setLastError(STRING_F(DIR_QUEUED_ALREADY, dir));
 					fire(AutoSearchManagerListener::ItemUpdated(), as, true);
@@ -827,12 +830,12 @@ void AutoSearchManager::pickNameMatch(AutoSearchPtr as) noexcept{
 			}
 		}
 
-		downloadList(p.second, as, minWantedSize);
+		downloadList(resultList, as, minWantedSize);
 	}
 }
 
 void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, int64_t minWantedSize) noexcept{
-	auto getDownloadSize = [](const SearchResultList& srl, int64_t minSize) -> int64_t {
+	auto getDownloadSize = [&srl](int64_t minSize) {
 		//pick the item that has most size matches
 		unordered_map<int64_t, int> sizeMap;
 		for (const auto& sr : srl) {
@@ -854,10 +857,10 @@ void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, i
 	};
 
 	// if we have a bundle with missing files, try to find one that is bigger than it
-	auto dlSize = getDownloadSize(srl, minWantedSize);
+	auto dlSize = getDownloadSize(minWantedSize);
 	if (dlSize == -1) {
 		//no bigger items found
-		dlSize = getDownloadSize(srl, -1);
+		dlSize = getDownloadSize(-1);
 		if (minWantedSize == dlSize) {
 			//no need to match an identical bundle again
 			return;
@@ -867,7 +870,7 @@ void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, i
 	dcassert(dlSize > -1);
 
 	//download matches with the given size
-	srl.erase(remove_if(srl.begin(), srl.end(), [dlSize](const SearchResultPtr& aSR) { return aSR->getSize() != dlSize; }), srl.end());
+	std::erase_if(srl, [dlSize](const SearchResultPtr& aSR) { return aSR->getSize() != dlSize; });
 	SearchResult::pickResults(srl, SETTING(MAX_AUTO_MATCH_SOURCES));
 
 	for (const auto& sr : srl) {
@@ -878,7 +881,7 @@ void AutoSearchManager::downloadList(SearchResultList& srl, AutoSearchPtr& as, i
 void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& as) noexcept {
 	if (as->getAction() == AutoSearch::ACTION_QUEUE || as->getAction() == AutoSearch::ACTION_DOWNLOAD) {
 		try {
-			if (sr->getType() == SearchResult::TYPE_DIRECTORY) {
+			if (sr->getType() == SearchResult::Type::DIRECTORY) {
 				if ((as->getRemove() || as->usingIncrementation()) && DirectoryListingManager::getInstance()->hasDirectoryDownload(sr->getFileName(), as.get())) {
 					return;
 				}
@@ -905,7 +908,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			if (client && client->isConnected()) {
 				//TODO: use magnet link
 				client->statusMessage(STRING(AUTO_SEARCH) + ": " +
-					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::TYPE_DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()), LogMessage::SEV_INFO);
+					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::Type::DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()), LogMessage::SEV_INFO);
 			}
 
 			if (as->getRemove()) {
@@ -982,7 +985,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 			}
 			aXml.stepOut();
 		} else {
-			groups.push_back("Failed Bundles");
+			groups.emplace_back("Failed Bundles");
 		}
 
 		aXml.resetCurrentChild();
@@ -1015,8 +1018,8 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 		aXml.getIntChildAttrib("Token"));
 
 	as->setGroup(aXml.getChildAttrib("Group"));
-	as->setExpireTime(aXml.getIntChildAttrib("ExpireTime"));
-	as->setTimeAdded(aXml.getIntChildAttrib("TimeAdded"));
+	as->setExpireTime(aXml.getTimeChildAttrib("ExpireTime"));
+	as->setTimeAdded(aXml.getTimeChildAttrib("TimeAdded"));
 
 	auto searchDays = aXml.getChildAttrib("SearchDays");
 	if (!searchDays.empty()) {
@@ -1039,7 +1042,7 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 	} else {
 		as->endTime = SearchTime(true);
 	}
-	as->setLastSearch(aXml.getIntChildAttrib("LastSearchTime"));
+	as->setLastSearch(aXml.getTimeChildAttrib("LastSearchTime"));
 
 	if (as->getTarget().empty()) {
 		as->setTarget(SETTING(DOWNLOAD_DIRECTORY));
@@ -1059,7 +1062,7 @@ AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
 	if (aXml.findChild("FinishedPaths")) {
 		aXml.stepIn();
 		while (aXml.findChild("Path")) {
-			auto time = aXml.getIntChildAttrib("FinishTime");
+			auto time = aXml.getTimeChildAttrib("FinishTime");
 			aXml.stepIn();
 			as->addPath(aXml.getData(), time);
 			aXml.stepOut();
@@ -1107,7 +1110,7 @@ void AutoSearchManager::load() noexcept {
 	resetSearchTimes(GET_TICK());
 }
 
-time_t AutoSearchManager::toTimeT(uint64_t& aValue, uint64_t currentTick/* = GET_TICK()*/) {
+time_t AutoSearchManager::toTimeT(uint64_t aValue, uint64_t currentTick/* = GET_TICK()*/) {
 	if (aValue == 0)
 		return 0;
 

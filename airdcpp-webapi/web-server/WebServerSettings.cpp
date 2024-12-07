@@ -22,14 +22,13 @@
 #include <web-server/WebServerSettings.h>
 #include <api/common/SettingUtils.h>
 
-#include <airdcpp/File.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/core/timer/TimerManager.h>
 
 namespace webserver {
 
 #define CONFIG_NAME "web-server.json"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_VERSION 1
 
 #ifdef _WIN32
@@ -85,11 +84,20 @@ namespace webserver {
 			{ "outgoing_chat_message_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
 			{ "incoming_chat_message_hook_timeout",			ResourceManager::WEB_CFG_INCOMING_CHAT_MESSAGE_HOOK_TIMEOUT,			2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
 
+			{ "outgoing_hub_command_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_HUB_COMMAND_HOOK_TIMEOUT,				2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
+			{ "outgoing_udp_command_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_UDP_COMMAND_HOOK_TIMEOUT,				2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
+			{ "outgoing_tcp_command_hook_timeout",			ResourceManager::WEB_CFG_OUTGOING_TCP_COMMAND_HOOK_TIMEOUT,				2, ApiSettingItem::TYPE_NUMBER, false,	{ 1, 60,	ResourceManager::SECONDS_LOWER } },
+
 			{ "queue_add_bundle_file_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT,			5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 300,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_add_bundle_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_BUNDLE_HOOK_TIMEOUT,					10, ApiSettingItem::TYPE_NUMBER, false, { 1, 600,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_add_source_hook_timeout",				ResourceManager::WEB_CFG_QUEUE_ADD_SOURCE_HOOK_TIMEOUT,					5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_file_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_FILE_FINISHED_HOOK_TIMEOUT,				60, ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
 			{ "queue_bundle_finished_hook_timeout",			ResourceManager::WEB_CFG_QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT,			120,ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
+
+			{ "filelist_load_directory_hook_timeout",		ResourceManager::WEB_CFG_FILELIST_LOAD_DIRECTORY_HOOK_TIMEOUT,			5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
+			{ "filelist_load_file_hook_timeout",			ResourceManager::WEB_CFG_FILELIST_LOAD_FILE_HOOK_TIMEOUT,				5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
+
+			{ "search_incoming_user_result_hook_timeout",	ResourceManager::WEB_CFG_SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT,		5,	ApiSettingItem::TYPE_NUMBER, false, { 1, 3600,	ResourceManager::SECONDS_LOWER } },
 
 			{ "list_menuitems_hook_timeout",				ResourceManager::WEB_CFG_LIST_MENUITEMS_HOOK_TIMEOUT,					1,	ApiSettingItem::TYPE_NUMBER, false, { 1, 60,	ResourceManager::SECONDS_LOWER } },
 		}),
@@ -106,11 +114,11 @@ namespace webserver {
 		wsm->removeListener(this);
 	}
 
-	bool WebServerSettings::loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
-		const auto parseJsonFile = [&](const string& aPath) {
+	bool WebServerSettings::loadSettingFile(AppUtil::Paths aPath, const string& aFileName, const JsonParseCallback& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept {
+		const auto parseJsonFile = [&aParseCallback, &aCustomErrorF, aMaxConfigVersion](const string& aFilePath) {
 			try {
 				// Parse
-				auto parsed = json::parse(File(aPath, File::READ, File::OPEN).read());
+				auto parsed = json::parse(File(aFilePath, File::READ, File::OPEN).read());
 
 				// Check version
 				int configVersion = parsed.at("version");
@@ -121,7 +129,7 @@ namespace webserver {
 				// Parse settings
 				aParseCallback(parsed.at("settings"), configVersion);
 			} catch (const std::exception& e) {
-				aCustomErrorF(STRING_F(LOAD_FAILED_X, aPath % e.what()));
+				aCustomErrorF(STRING_F(LOAD_FAILED_X, aFilePath % e.what()));
 				return false;
 			}
 
@@ -131,57 +139,12 @@ namespace webserver {
 		return SettingsManager::loadSettingFile(aPath, aFileName, parseJsonFile, aCustomErrorF);
 	}
 
-
-	void WebServerSettings::loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept {
-		if (aXml.findChild(aTagName)) {
-			// getChildIntAttrib returns 0 also for non-existing attributes, get as string instead...
-			const auto port = aXml.getChildAttrib("Port");
-			if (!port.empty()) {
-				aPort.setValue(Util::toInt(port));
-			}
-
-			aBindAddress.setValue(aXml.getChildAttrib("BindAddress"));
-
-			if (aTls) {
-				getSettingItem(WebServerSettings::TLS_CERT_PATH).setValue(aXml.getChildAttrib("Certificate"));
-				getSettingItem(WebServerSettings::TLS_CERT_KEY_PATH).setValue(aXml.getChildAttrib("CertificateKey"));
-			}
-		}
-
-		aXml.resetCurrentChild();
-	}
-
-	void WebServerSettings::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept {
-		if (aXml.findChild("Config")) {
-			aXml.stepIn();
-			loadLegacyServer(aXml, "Server", getSettingItem(WebServerSettings::PLAIN_PORT), getSettingItem(WebServerSettings::PLAIN_BIND), false);
-			loadLegacyServer(aXml, "TLSServer", getSettingItem(WebServerSettings::TLS_PORT), getSettingItem(WebServerSettings::TLS_BIND), true);
-
-			if (aXml.findChild("Threads")) {
-				aXml.stepIn();
-				getSettingItem(WebServerSettings::SERVER_THREADS).setValue(max(Util::toInt(aXml.getData()), 1));
-				aXml.stepOut();
-			}
-			aXml.resetCurrentChild();
-
-			if (aXml.findChild("ExtensionsDebugMode")) {
-				aXml.stepIn();
-				getSettingItem(WebServerSettings::EXTENSIONS_DEBUG_MODE).setValue(Util::toInt(aXml.getData()) > 0 ? true : false);
-				aXml.stepOut();
-			}
-			aXml.resetCurrentChild();
-
-			aXml.stepOut();
-		}
-	}
-
-
 	string WebServerSettings::getConfigFilePath() const noexcept {
-		return Util::getPath(CONFIG_DIR) + CONFIG_NAME;
+		return AppUtil::getPath(CONFIG_DIR) + CONFIG_NAME;
 	}
 
 	void WebServerSettings::on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept {
-		loadSettingFile(CONFIG_DIR, CONFIG_NAME, std::bind(&WebServerSettings::fromJsonThrow, this, placeholders::_1, placeholders::_2), aErrorF, CONFIG_VERSION);
+		loadSettingFile(CONFIG_DIR, CONFIG_NAME, std::bind_front(&WebServerSettings::fromJsonThrow, this), aErrorF, CONFIG_VERSION);
 	}
 
 	void WebServerSettings::on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept {
@@ -193,7 +156,7 @@ namespace webserver {
 		isDirty = false;
 	}
 
-	bool WebServerSettings::saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept {
+	bool WebServerSettings::saveSettingFile(const json& aJson, AppUtil::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept {
 		auto data = json({
 			{ "version", aConfigVersion },
 			{ "settings", aJson },
@@ -208,7 +171,7 @@ namespace webserver {
 
 	json WebServerSettings::toJson() const noexcept {
 		json ret;
-		for (const auto s: settings) {
+		for (const auto& s: settings) {
 			if (!s.isDefault()) {
 				ret[s.name] = s.getValue();
 			}

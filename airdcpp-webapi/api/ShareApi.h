@@ -21,16 +21,28 @@
 
 #include <api/base/HookApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/ShareManager.h>
-#include <airdcpp/ShareManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/share/ShareDirectory.h>
+#include <airdcpp/share/ShareManagerListener.h>
+#include <airdcpp/share/temp_share/TempShareManagerListener.h>
+#include <airdcpp/share/ShareRefreshTask.h>
 
 namespace webserver {
-	class ShareApi : public HookApiModule, private ShareManagerListener {
+	class ShareApi : public HookApiModule, private ShareManagerListener, private TempShareManagerListener {
 	public:
-		ShareApi(Session* aSession);
-		~ShareApi();
+		explicit ShareApi(Session* aSession);
+		~ShareApi() override;
 	private:
+		struct ShareItem {
+			explicit ShareItem(const ShareDirectory::File* aFile) : file(aFile) {}
+			explicit ShareItem(const ShareDirectory::Ptr& aDirectory) : directory(aDirectory) {}
+
+			const ShareDirectory::File* file = nullptr;
+			const ShareDirectory::Ptr directory = nullptr;
+
+			using List = vector<ShareItem>;
+		};
+
 		ActionHookResult<> fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept;
 		ActionHookResult<> directoryValidationHook(const string& aPath, const ActionHookResultGetter<>& aResultGetter) noexcept;
 		ActionHookResult<> newDirectoryValidationHook(const string& aPath, bool aNewParent, const ActionHookResultGetter<>& aResultGetter) noexcept;
@@ -38,11 +50,16 @@ namespace webserver {
 
 		api_return handleRefreshShare(ApiRequest& aRequest);
 		api_return handleRefreshPaths(ApiRequest& aRequest);
-		api_return handleRefreshVirtualName(ApiRequest& aRequest);
 		api_return handleRefreshVirtualPath(ApiRequest& aRequest);
 		api_return handleAbortRefreshShare(ApiRequest& aRequest);
 		api_return handleAbortRefreshTask(ApiRequest& aRequest);
 		api_return handleGetRefreshTasks(ApiRequest& aRequest);
+
+		api_return handleGetFilesByTTH(ApiRequest& aRequest);
+
+		api_return handleGetFileByReal(ApiRequest& aRequest);
+		api_return handleGetDirectoryByReal(ApiRequest& aRequest);
+		api_return handleGetDirectoryContentByReal(ApiRequest& aRequest);
 
 		api_return handleAddExclude(ApiRequest& aRequest);
 		api_return handleRemoveExclude(ApiRequest& aRequest);
@@ -71,16 +88,20 @@ namespace webserver {
 		void on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept override;
 		void on(ShareManagerListener::ExcludeRemoved, const string& aPath) noexcept override;
 
-		void on(ShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept override;
-		void on(ShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept override;
+		void on(TempShareManagerListener::TempFileAdded, const TempShareInfo& aFile) noexcept override;
+		void on(TempShareManagerListener::TempFileRemoved, const TempShareInfo& aFile) noexcept override;
 
 		static string refreshTypeToString(ShareRefreshType aType) noexcept;
 
-		static json serializeShareItem(const SearchResultPtr& aSR) noexcept;
-		static json serializeRefreshQueueInfo(const ShareManager::RefreshTaskQueueInfo& aRefreshQueueInfo) noexcept;
+		static json serializeShareItem(const ShareItem& aItem) noexcept;
+		static json serializeFile(const ShareDirectory::File* aFile) noexcept;
+		static json serializeDirectory(const ShareDirectory::Ptr& aDirectory) noexcept;
+		static json serializeVirtualItem(const SearchResultPtr& aSR) noexcept;
+
+		static json serializeRefreshQueueInfo(const RefreshTaskQueueInfo& aRefreshQueueInfo) noexcept;
 		static json serializeRefreshTask(const ShareRefreshTask& aRefreshTask) noexcept;
 
-		static string refreshResultToString(ShareManager::RefreshTaskQueueResult aRefreshQueueResult) noexcept;
+		static string refreshResultToString(RefreshTaskQueueResult aRefreshQueueResult) noexcept;
 		static string refreshPriorityToString(ShareRefreshPriority aPriority) noexcept;
 
 		static ShareRefreshPriority parseRefreshPriority(const json& aJson);

@@ -22,15 +22,17 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
-#include <airdcpp/FavoriteManager.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/favorites/FavoriteManager.h>
+#include <airdcpp/util/LinkUtil.h>
+#include <airdcpp/share/ShareManager.h>
 
 
 namespace webserver {
 	FavoriteHubApi::FavoriteHubApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW, { "favorite_hub_created", "favorite_hub_updated", "favorite_hub_removed" }),
+		SubscribableApiModule(aSession, Access::FAVORITE_HUBS_VIEW),
 		view("favorite_hub_view", this, FavoriteHubUtils::propertyHandler, getEntryList) {
+
+		createSubscriptions({ "favorite_hub_created", "favorite_hub_updated", "favorite_hub_removed" });
 
 		METHOD_HANDLER(Access::FAVORITE_HUBS_VIEW, METHOD_GET,		(RANGE_START_PARAM, RANGE_MAX_PARAM),	FavoriteHubApi::handleGetHubs);
 		METHOD_HANDLER(Access::FAVORITE_HUBS_EDIT, METHOD_POST,		(),										FavoriteHubApi::handleAddHub);
@@ -64,7 +66,7 @@ namespace webserver {
 			auto server = JsonUtil::getOptionalField<string>("hub_url", j, aNewHub);
 			if (server) {
 				if (!FavoriteManager::getInstance()->isUnique(*server, aEntry->getToken())) {
-					JsonUtil::throwError("hub_url", JsonUtil::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));
+					JsonUtil::throwError("hub_url", JsonException::ERROR_EXISTS, STRING(FAVORITE_HUB_ALREADY_EXISTS));
 				}
 			}
 
@@ -80,17 +82,17 @@ namespace webserver {
 
 		// Optional values
 		for (const auto& i : j.items()) {
-			auto key = i.key();
+			const auto& key = i.key();
 			if (key == "share_profile") {
 				auto shareProfileToken = JsonUtil::getOptionalFieldDefault("share_profile", j, HUB_SETTING_DEFAULT_INT);
 				if (shareProfileToken != HUB_SETTING_DEFAULT_INT) {
-					if (!AirUtil::isAdcHub(aEntry->getServer()) && shareProfileToken != SETTING(DEFAULT_SP) && shareProfileToken != SP_HIDDEN) {
-						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
+					if (!LinkUtil::isAdcHub(aEntry->getServer()) && shareProfileToken != SETTING(DEFAULT_SP) && shareProfileToken != SP_HIDDEN) {
+						JsonUtil::throwError("share_profile", JsonException::ERROR_INVALID, "Share profiles can't be changed for NMDC hubs");
 					}
 
 					auto shareProfilePtr = ShareManager::getInstance()->getShareProfile(shareProfileToken, false);
 					if (!shareProfilePtr) {
-						JsonUtil::throwError("share_profile", JsonUtil::ERROR_INVALID, "Invalid share profile");
+						JsonUtil::throwError("share_profile", JsonException::ERROR_INVALID, "Invalid share profile");
 					}
 				}
 

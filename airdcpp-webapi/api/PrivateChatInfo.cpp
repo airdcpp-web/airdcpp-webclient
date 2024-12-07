@@ -24,8 +24,8 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Client.h>
-#include <airdcpp/PrivateChat.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/private_chat/PrivateChat.h>
 
 namespace webserver {
 	StringList PrivateChatInfo::subscriptionList = {
@@ -36,8 +36,10 @@ namespace webserver {
 	};
 
 	PrivateChatInfo::PrivateChatInfo(ParentType* aParentModule, const PrivateChatPtr& aChat) :
-		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32(), subscriptionList), chat(aChat),
+		SubApiModule(aParentModule, aChat->getUser()->getCID().toBase32()), chat(aChat),
 		chatHandler(this, aChat.get(), "private_chat", Access::PRIVATE_CHAT_VIEW, Access::PRIVATE_CHAT_EDIT, Access::PRIVATE_CHAT_SEND) {
+
+		createSubscriptions(subscriptionList);
 
 		METHOD_HANDLER(Access::PRIVATE_CHAT_VIEW, METHOD_PATCH,		(),							PrivateChatInfo::handleUpdateSession);
 
@@ -72,12 +74,12 @@ namespace webserver {
 	}
 
 	api_return PrivateChatInfo::handleStartTyping(ApiRequest&) {
-		chat->sendPMInfo(PrivateChat::TYPING_ON);
+		chat->setTypingState(true);
 		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return PrivateChatInfo::handleEndTyping(ApiRequest&) {
-		chat->sendPMInfo(PrivateChat::TYPING_OFF);
+		chat->setTypingState(false);
 		return websocketpp::http::status_code::no_content;
 	}
 
@@ -93,9 +95,9 @@ namespace webserver {
 
 	string PrivateChatInfo::formatCCPMState(PrivateChat::CCPMState aState) noexcept {
 		switch (aState) {
-			case PrivateChat::DISCONNECTED: return "disconnected";
-			case PrivateChat::CONNECTING: return "connecting";
-			case PrivateChat::CONNECTED: return "connected";
+			case PrivateChat::CCPMState::DISCONNECTED: return "disconnected";
+			case PrivateChat::CCPMState::CONNECTING: return "connecting";
+			case PrivateChat::CCPMState::CONNECTED: return "connected";
 		}
 
 		dcassert(0);

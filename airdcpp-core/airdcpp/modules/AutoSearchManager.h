@@ -24,21 +24,21 @@
 #include "AutoSearchManagerListener.h"
 #include "AutoSearchQueue.h"
 
-#include <airdcpp/DirectoryListingManagerListener.h>
-#include <airdcpp/SearchManagerListener.h>
-#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/filelist/DirectoryListingManagerListener.h>
+#include <airdcpp/search/SearchManagerListener.h>
+#include <airdcpp/queue/QueueManagerListener.h>
 
-#include <airdcpp/DelayedEvents.h>
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/TimerManagerListener.h>
+#include <airdcpp/core/queue/DelayedEvents.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/core/timer/TimerManagerListener.h>
 
 
 namespace dcpp {
 
-class AutoSearchManager : public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, 
+class AutoSearchManager final : public Singleton<AutoSearchManager>, public Speaker<AutoSearchManagerListener>, 
 	private TimerManagerListener, private SearchManagerListener, private QueueManagerListener, private DirectoryListingManagerListener {
 public:
 	enum SearchType {
@@ -51,7 +51,8 @@ public:
 	AutoSearchManager() noexcept;
 	~AutoSearchManager() noexcept;
 
-	//AutoSearchPtr getNameDupe(const string& aName, bool report, const AutoSearchPtr& thisSearch = nullptr) const noexcept;
+	using AutoSearchGroups = vector<string>;
+
 	bool addFailedBundle(const BundlePtr& aBundle) noexcept;
 	void addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bool loading = false) noexcept;
 	AutoSearchPtr addAutoSearch(const string& ss, const string& targ, bool isDirectory, AutoSearch::ItemType asType, bool aRemove = true, bool aSearch = true, int aExpiredays = 0) noexcept;
@@ -85,8 +86,8 @@ public:
 	void onBundleCreated(const BundlePtr& aBundle, const void* aSearch) noexcept;
 	void onBundleError(const void* aSearch, const string& aError, const string& aBundleName, const HintedUser& aUser) noexcept;
 
-	vector<string> getGroups() { RLock l(cs);  return groups; }
-	void setGroups(vector<string>& newGroups) { WLock l(cs);  groups = newGroups; }
+	AutoSearchGroups getGroups() { RLock l(cs);  return groups; }
+	void setGroups(const AutoSearchGroups& newGroups) { WLock l(cs);  groups = newGroups; }
 	void moveItemToGroup(AutoSearchPtr& as, const string& aGroupName);
 	bool hasGroup(const string& aGroup) { RLock l(cs);  return (find(groups.begin(), groups.end(), aGroup) != groups.end()); }
 	int getGroupIndex(const AutoSearchPtr& as);
@@ -105,7 +106,7 @@ private:
 	//Delayed events used to collect search results and calculate search times.
 	DelayedEvents<int> delayEvents;
 	
-	vector<string> groups;
+	AutoSearchGroups groups;
 
 
 	void performSearch(AutoSearchPtr& as, StringList& aHubs, SearchType aType, uint64_t aTick = GET_TICK()) noexcept;
@@ -143,11 +144,12 @@ private:
 	void on(DirectoryListingManagerListener::DirectoryDownloadProcessed, const DirectoryDownloadPtr& aDirectoryInfo, const DirectoryBundleAddResult& aQueueInfo, const string& aError) noexcept override;
 	void on(DirectoryDownloadFailed, const DirectoryDownloadPtr&, const string&) noexcept override;
 
-	//bool onBundleStatus(BundlePtr& aBundle, const ProfileTokenSet& aSearches);
 	void onRemoveBundle(const BundlePtr& aBundle, bool finished) noexcept;
 	void handleExpiredItems(AutoSearchList& asList) noexcept;
 
-	time_t toTimeT(uint64_t& aValue, uint64_t currentTick = GET_TICK());
+	time_t toTimeT(uint64_t aValue, uint64_t currentTick = GET_TICK());
+
+	AutoSearchList matchResult(const SearchResultPtr& aResult) noexcept;
 };
 }
 #endif

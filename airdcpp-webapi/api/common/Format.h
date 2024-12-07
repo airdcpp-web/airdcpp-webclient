@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_FORMAT_H
 #define DCPLUSPLUS_DCPP_FORMAT_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 namespace webserver {
 	class Format {
@@ -27,8 +27,11 @@ namespace webserver {
 		static std::string formatIp(const string& aIP, const string& aCountryCode) noexcept;
 		static std::string formatIp(const string& aIP) noexcept;
 
-		static std::string formatNicks(const HintedUser& aUser) noexcept;
-		static std::string formatHubs(const HintedUser& aUser) noexcept;
+		// Basic string conversion for copying/filtering (will ignore the hint)
+		static std::string nicksToString(const HintedUser& aUser) noexcept;
+
+		// Basic string conversion for copying/filtering (will ignore the hint)
+		static std::string hubsToString(const HintedUser& aUser) noexcept;
 	};
 }
 

@@ -26,10 +26,11 @@
 
 #include <web-server/ApiSettingItem.h>
 #include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/SettingHolder.h>
+#include <airdcpp/settings/SettingHolder.h>
 
 namespace webserver {
 	SettingApi::SettingApi(Session* aSession) : ApiModule(aSession) {
@@ -48,7 +49,7 @@ namespace webserver {
 		const auto& requestJson = aRequest.getRequestBody();
 
 		json retJson = json::array();
-		parseSettingKeys(requestJson, [&](ApiSettingItem& aItem) {
+		parseSettingKeys(requestJson, [&](const ApiSettingItem& aItem) {
 			retJson.push_back(SettingUtils::serializeDefinition(aItem));
 		}, aRequest.getSession()->getServer());
 
@@ -69,8 +70,6 @@ namespace webserver {
 	}
 
 	api_return SettingApi::handleSetDefaultValues(ApiRequest& aRequest) {
-		const auto& requestJson = aRequest.getRequestBody();
-
 		auto hasSet = false;
 		parseSettingValues(aRequest.getRequestBody(), [&](ApiSettingItem& aItem, const json& aValue) {
 			decltype(auto) settings = aRequest.getSession()->getServer()->getSettingsManager();
@@ -104,23 +103,23 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	void SettingApi::parseSettingKeys(const json& aJson, KeyParserF aHandler, WebServerManager* aWsm) {
+	void SettingApi::parseSettingKeys(const json& aJson, const KeyParserF& aHandler, WebServerManager* aWsm) {
 		auto keys = JsonUtil::getField<StringList>("keys", aJson, true);
 		for (const auto& key : keys) {
 			auto setting = getSettingItem(key, aWsm);
 			if (!setting) {
-				JsonUtil::throwError(key, JsonUtil::ERROR_INVALID, "Setting not found");
+				JsonUtil::throwError(key, JsonException::ERROR_INVALID, "Setting not found");
 			}
 
 			aHandler(*setting);
 		}
 	}
 
-	void SettingApi::parseSettingValues(const json& aJson, ValueParserF aHandler, WebServerManager* aWsm) {
+	void SettingApi::parseSettingValues(const json& aJson, const ValueParserF& aHandler, WebServerManager* aWsm) {
 		for (const auto& elem: aJson.items()) {
 			auto setting = getSettingItem(elem.key(), aWsm);
 			if (!setting) {
-				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
+				JsonUtil::throwError(elem.key(), JsonException::ERROR_INVALID, "Setting not found");
 			}
 
 			auto value = SettingUtils::validateValue(elem.value(), *setting, nullptr);
@@ -141,9 +140,8 @@ namespace webserver {
 
 	api_return SettingApi::handleSetValues(ApiRequest& aRequest) {
 		auto server = aRequest.getSession()->getServer();
-		decltype(auto) settings = aRequest.getSession()->getServer()->getSettingsManager();
 		auto holder = make_shared<SettingHolder>(
-			[=](const string& aError) {
+			[server](const string& aError) {
 				server->log(aError, LogMessage::SEV_ERROR);
 			}
 		);
@@ -160,7 +158,7 @@ namespace webserver {
 		SettingsManager::getInstance()->save();
 
 		// This may take a while, don't wait
-		addAsyncTask([=] {
+		addAsyncTask([holder] {
 			holder->apply();
 		});
 

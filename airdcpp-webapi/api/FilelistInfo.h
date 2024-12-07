@@ -22,23 +22,24 @@
 #include <api/FilelistUtils.h>
 #include <api/FilelistItemInfo.h>
 
+#include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/DirectoryListingListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/filelist/DirectoryListingListener.h>
 
 
 namespace webserver {
 
-	class FilelistInfo : public SubApiModule<CID, FilelistInfo, std::string>, private DirectoryListingListener {
+	class FilelistInfo : public SubApiModule<CID, FilelistInfo, std::string, HookApiModule>, private DirectoryListingListener {
 	public:
-		typedef shared_ptr<FilelistInfo> Ptr;
+		using Ptr = shared_ptr<FilelistInfo>;
 
 		static const StringList subscriptionList;
 
 		FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist);
-		~FilelistInfo();
+		~FilelistInfo() override;
 
 		DirectoryListingPtr getList() const noexcept { return dl; }
 
@@ -55,7 +56,7 @@ namespace webserver {
 		api_return handleGetItems(ApiRequest& aRequest);
 		api_return handleGetItem(ApiRequest& aRequest);
 
-		DirectoryListing::Directory::Ptr ensureCurrentDirectoryLoaded();
+		DirectoryListing::DirectoryPtr ensureCurrentDirectoryLoaded() const;
 
 		void on(DirectoryListingListener::LoadingFinished, int64_t aStart, const string& aDir, uint8_t aType) noexcept override;
 		void on(DirectoryListingListener::LoadingFailed, const string& aReason) noexcept override;
@@ -69,19 +70,11 @@ namespace webserver {
 
 		void addListTask(Callback&& aTask) noexcept;
 
-		/*void on(DirectoryListingListener::QueueMatched, const string& aMessage) noexcept;
-		void on(DirectoryListingListener::Close) noexcept;
-		void on(DirectoryListingListener::SearchStarted) noexcept;
-		void on(DirectoryListingListener::SearchFailed, bool timedOut) noexcept;
-		void on(DirectoryListingListener::RemovedQueue, const string& aDir) noexcept;
-		void on(DirectoryListingListener::SetActive) noexcept;
-		void on(DirectoryListingListener::HubChanged) noexcept;*/
-
 		FilelistItemInfo::List getCurrentViewItems();
 
 		DirectoryListingPtr dl;
 
-		typedef ListViewController<FilelistItemInfoPtr, FilelistUtils::PROP_LAST> DirectoryView;
+		using DirectoryView = ListViewController<FilelistItemInfoPtr, FilelistUtils::PROP_LAST>;
 		DirectoryView directoryView;
 
 		void onSessionUpdated(const json& aData) noexcept;
@@ -94,7 +87,7 @@ namespace webserver {
 		SharedMutex cs;
 	};
 
-	typedef FilelistInfo::Ptr FilelistInfoPtr;
+	using FilelistInfoPtr = FilelistInfo::Ptr;
 }
 
 #endif

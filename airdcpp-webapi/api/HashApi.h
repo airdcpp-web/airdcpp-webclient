@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_HASHAPI_H
 #define DCPLUSPLUS_DCPP_HASHAPI_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/HashManager.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/hash/HashManager.h>
 
 namespace webserver {
 	class HashApi : public SubscribableApiModule, private HashManagerListener {
@@ -48,8 +48,11 @@ namespace webserver {
 
 		api_return handleRenamePath(ApiRequest& aRequest);
 
-		void on(HashManagerListener::DirectoryHashed, const string& aPath, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
-		void on(HashManagerListener::HasherFinished, int aDirshashed, int aFilesHashed, int64_t aSizeHashed, time_t aHashDuration, int aHasherId) noexcept override;
+		void on(HashManagerListener::FileHashed, const string& aPath, HashedFile& aFileInfo, int aHasherId) noexcept override;
+		void on(HashManagerListener::FileFailed, const string& aFilePath, const string& aErrorId, const string& aMessage, int aHasherId) noexcept override;
+
+		void on(HashManagerListener::DirectoryHashed, const string& aPath, const HasherStats& aStats, int aHasherId) noexcept override;
+		void on(HashManagerListener::HasherFinished, int aDirsHashed, const HasherStats& aStats, int aHasherId) noexcept override;
 
 		void on(HashManagerListener::MaintananceStarted) noexcept override;
 		void on(HashManagerListener::MaintananceFinished) noexcept override;

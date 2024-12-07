@@ -22,12 +22,12 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Util.h>
+#include <airdcpp/util/PathUtil.h>
 
 namespace webserver {
 	const string& Validation::validateAdcDirectoryPath(const string& aPath) {
-		if (!Util::isAdcDirectoryPath(aPath)) {
-			JsonUtil::throwError("Path", JsonUtil::ERROR_INVALID, "Path " + aPath + " isn't a valid ADC directory path");
+		if (!PathUtil::isAdcDirectoryPath(aPath)) {
+			JsonUtil::throwError("Path", JsonException::ERROR_INVALID, "Path " + aPath + " isn't a valid ADC directory path");
 		}
 
 		return aPath;

@@ -23,17 +23,20 @@
 #include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/Encoder.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/hash/value/Encoder.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 namespace webserver {
-	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch, const string& aToken) {
+	SearchPtr FileSearchParser::parseSearch(const json& aJson, bool aIsDirectSearch) {
+		auto token = Util::toString(ValueGenerator::rand());
 		auto priority = Deserializer::deserializePriority(aJson, true);
 		if (priority == Priority::DEFAULT) {
 			priority = Priority::LOW;
 		}
 
-		auto s = make_shared<Search>(priority, aToken);
+		auto s = make_shared<Search>(priority, token);
 		parseMatcher(JsonUtil::getRawField("query", aJson), s);
 		if (aIsDirectSearch) {
 			parseOptions(JsonUtil::getOptionalRawField("options", aJson), s);
@@ -52,7 +55,8 @@ namespace webserver {
 		if (fileTypeStr) {
 			try {
 				string name;
-				SearchManager::getInstance()->getSearchType(parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
+				const auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+				typeManager.getSearchType(parseSearchType(*fileTypeStr), aSearch->fileType, aSearch->exts, name);
 			} catch (...) {
 				throw std::domain_error("Invalid file type");
 			}
@@ -66,17 +70,8 @@ namespace webserver {
 			}
 
 			// Size
-			auto minSize = JsonUtil::getOptionalField<int64_t>("min_size", aJson);
-			if (minSize) {
-				aSearch->size = *minSize;
-				aSearch->sizeType = Search::SIZE_ATLEAST;
-			}
-
-			auto maxSize = JsonUtil::getOptionalField<int64_t>("max_size", aJson);
-			if (maxSize) {
-				aSearch->size = *maxSize;
-				aSearch->sizeType = Search::SIZE_ATMOST;
-			}
+			aSearch->minSize = JsonUtil::getOptionalField<int64_t>("min_size", aJson);
+			aSearch->maxSize = JsonUtil::getOptionalField<int64_t>("max_size", aJson);
 		}
 
 		// Anything to search for?

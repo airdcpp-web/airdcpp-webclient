@@ -25,12 +25,12 @@
 namespace airdcppd {
 
 CDMDebug::CDMDebug(bool aClientCommands, bool aHubCommands, bool aWebCommands) : showHubCommands(aHubCommands), showClientCommands(aClientCommands), showWebCommands(aWebCommands) {
-	DebugManager::getInstance()->addListener(this);
+	ProtocolCommandManager::getInstance()->addListener(this);
 	WebServerManager::getInstance()->addListener(this);
 }
 
 CDMDebug::~CDMDebug() {
-	DebugManager::getInstance()->removeListener(this);
+	ProtocolCommandManager::getInstance()->removeListener(this);
 	WebServerManager::getInstance()->removeListener(this);
 }
 
@@ -44,7 +44,7 @@ void CDMDebug::printMessage(const string& aType, bool aIncoming, const string& a
 	}
 
 	cmd += "[" + aIP + "]\t" + aData;
-	
+
 	printf("%s\n", cmd.c_str());
 }
 
@@ -70,20 +70,20 @@ void CDMDebug::on(WebServerManagerListener::Data, const string& aData, Transport
 	printMessage(type, aDirection == Direction::INCOMING, aData, aIP);
 }
 
-void CDMDebug::on(DebugManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& aIP) noexcept{
+void CDMDebug::on(ProtocolCommandManagerListener::DebugCommand, const string& aLine, uint8_t aType, uint8_t aDirection, const string& aIP) noexcept{
 	string type;
 	switch (aType) {
-	case DebugManager::TYPE_HUB:
+	case ProtocolCommandManager::TYPE_HUB:
 		if (!showHubCommands)
 			return;
 		type = "Hub";
 		break;
-	case DebugManager::TYPE_CLIENT:
+	case ProtocolCommandManager::TYPE_CLIENT:
 		if (!showClientCommands)
 			return;
 		type = "Client (TCP)";
 		break;
-	case DebugManager::TYPE_CLIENT_UDP:
+	case ProtocolCommandManager::TYPE_CLIENT_UDP:
 		if (!showClientCommands)
 			return;
 		type = "Client (UDP)";
@@ -91,7 +91,7 @@ void CDMDebug::on(DebugManagerListener::DebugCommand, const string& aLine, uint8
 	default: dcassert(0);
 	}
 
-	printMessage(type, aDirection == DebugManager::INCOMING, aLine, aIP);
+	printMessage(type, aDirection == ProtocolCommandManager::INCOMING, aLine, aIP);
 }
 
 }

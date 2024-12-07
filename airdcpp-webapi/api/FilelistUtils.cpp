@@ -23,6 +23,8 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
+#include <airdcpp/util/PathUtil.h>
+
 
 namespace webserver {
 	const PropertyList FilelistUtils::properties = {
@@ -61,7 +63,7 @@ namespace webserver {
 
 				StringList paths;
 				try {
-					aItem->getLocalPaths(paths);
+					aItem->getLocalPathsThrow(paths);
 				} catch (const ShareException&) {
 					// Hmm...
 				}
@@ -88,10 +90,10 @@ namespace webserver {
 			}
 
 			if (a->isDirectory() && b->isDirectory()) {
-				return Util::directoryContentSort(a->dir->getContentInfo(), b->dir->getContentInfo());
+				return DirectoryContentInfo::Sort(a->dir->getContentInfo(), b->dir->getContentInfo());
 			}
 
-			return Util::DefaultSort(Util::getFileExt(a->getName()), Util::getFileExt(b->getName()));
+			return Util::DefaultSort(PathUtil::getFileExt(a->getName()), PathUtil::getFileExt(b->getName()));
 		}
 		default: dcassert(0); return 0;
 		}

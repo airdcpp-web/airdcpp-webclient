@@ -41,7 +41,7 @@ namespace webserver {
 		virtual void on(UserRemoved, const WebUserPtr&) noexcept { }
 
 		virtual void on(SessionCreated, const SessionPtr&) noexcept { }
-		virtual void on(SessionRemoved, const SessionPtr&, bool /*aTimedOut*/) noexcept { }
+		virtual void on(SessionRemoved, const SessionPtr&, int /*aReason*/) noexcept { }
 	};
 
 }

@@ -23,15 +23,14 @@
 
 #include <web-server/Access.h>
 #include <web-server/ApiRequest.h>
-#include <web-server/SessionListener.h>
+
+#include <airdcpp/core/header/debug.h>
 
 namespace webserver {
 	using boost::regex;
 
-	class WebSocket;
 	class ApiModule {
 	public:
-#define LISTENER_PARAM_ID "listener_param"
 #define MAX_COUNT "max_count_param"
 #define START_POS "start_pos_param"
 
@@ -51,12 +50,28 @@ namespace webserver {
 #define EXACT_PARAM(pattern) (ApiModule::RequestHandler::Param(pattern, regex("^" + string(pattern) + "$")))
 
 #define BRACED_INIT_LIST(...) {__VA_ARGS__}
-#define MODULE_METHOD_HANDLER(module, access, method, params, func) (module->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, std::bind(&func, this, placeholders::_1))))
-#define INLINE_MODULE_METHOD_HANDLER(access, method, params, func) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, func)))
 
+// Private
+#define INLINE_MODULE_METHOD_HANDLER(module, access, method, params, func) (module->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, func)))
+#define MODULE_METHOD_HANDLER_BOUND(module, access, method, params, func, bound) INLINE_MODULE_METHOD_HANDLER(module, access, method, params, std::bind_front(&func, bound))
+
+
+// Public
+
+// Module is a variable module with a module handler method as a member of the calling class
+#define MODULE_METHOD_HANDLER(module, access, method, params, func) MODULE_METHOD_HANDLER_BOUND(module, access, method, params, func, this)
+
+// Handler for the current module with a lambda handler (forwarding to INLINE_MODULE_METHOD_HANDLER causes errors with GCC in MenuApi...)
+// #define INLINE_METHOD_HANDLER(access, method, params, func) INLINE_MODULE_METHOD_HANDLER(this, access, method, params, func)
+#define INLINE_METHOD_HANDLER(access, method, params, func) (this->getRequestHandlers().push_back(ApiModule::RequestHandler(access, method, BRACED_INIT_LIST params, func)))
+
+// Regular handler for the current module with a module handler method
 #define METHOD_HANDLER(access, method, params, func) MODULE_METHOD_HANDLER(this, access, method, params, func)
 
-		ApiModule(Session* aSession);
+// Handler is bound to a custom variable
+#define VARIABLE_METHOD_HANDLER(access, method, params, func, bound) MODULE_METHOD_HANDLER_BOUND(this, access, method, params, func, bound)
+
+		explicit ApiModule(Session* aSession);
 		virtual ~ApiModule();
 
 		struct RequestHandler {
@@ -67,13 +82,13 @@ namespace webserver {
 				regex reg;
 			};
 
-			typedef vector<Param> ParamList;
+			using ParamList = vector<Param>;
 
-			typedef std::function<api_return(ApiRequest& aRequest)> HandlerFunction;
+			using HandlerFunction = std::function<api_return (ApiRequest &)>;
 
 			// Regular handler
-			RequestHandler(Access aAccess, RequestMethod aMethod, ParamList&& aParams, HandlerFunction aFunction) :
-				method(aMethod), params(std::move(aParams)), f(aFunction), access(aAccess) {
+			RequestHandler(Access aAccess, RequestMethod aMethod, ParamList&& aParams, HandlerFunction&& aFunction) :
+				method(aMethod), params(std::move(aParams)), f(std::move(aFunction)), access(aAccess) {
 			
 			}
 
@@ -85,7 +100,7 @@ namespace webserver {
 			optional<ApiRequest::NamedParamMap> matchParams(const ApiRequest::PathTokenList& aPathTokens) const noexcept;
 		};
 
-		typedef std::vector<RequestHandler> RequestHandlerList;
+		using RequestHandlerList = std::vector<RequestHandler>;
 
 		api_return handleRequest(ApiRequest& aRequest);
 
@@ -114,64 +129,7 @@ namespace webserver {
 		RequestHandlerList requestHandlers;
 	};
 
-	
-	class SubscribableApiModule : public ApiModule, protected SessionListener {
-	public:
-		SubscribableApiModule(Session* aSession, Access aSubscriptionAccess, const StringList& aSubscriptions);
-		virtual ~SubscribableApiModule();
-
-		typedef std::map<const string, bool> SubscriptionMap;
-
-		virtual bool send(const json& aJson);
-		virtual bool send(const string& aSubscription, const json& aJson);
-
-		typedef std::function<json()> JsonCallback;
-		virtual bool maybeSend(const string& aSubscription, JsonCallback aCallback);
-
-		// All custom async tasks should be run inside this to
-		// ensure that the session won't get deleted
-
-		virtual void setSubscriptionState(const string& aSubscription, bool active) noexcept {
-			subscriptions[aSubscription] = active;
-		}
-
-		virtual bool subscriptionActive(const string& aSubscription) const noexcept {
-			auto s = subscriptions.find(aSubscription);
-			dcassert(s != subscriptions.end());
-			return s->second;
-		}
-
-		virtual bool subscriptionExists(const string& aSubscription) const noexcept {
-			auto i = subscriptions.find(aSubscription);
-			return i != subscriptions.end();
-		}
-
-		virtual void createSubscription(const string& aSubscription) noexcept {
-			dcassert(subscriptions.find(aSubscription) == subscriptions.end());
-			subscriptions[aSubscription];
-		}
-
-		Access getSubscriptionAccess() const noexcept {
-			return subscriptionAccess;
-		}
-
-		const WebSocketPtr& getSocket() const noexcept {
-			return socket;
-		}
-	protected:
-		virtual void on(SessionListener::SocketConnected, const WebSocketPtr&) noexcept override;
-		virtual void on(SessionListener::SocketDisconnected) noexcept override;
-
-		const Access subscriptionAccess;
-
-		virtual api_return handleSubscribe(ApiRequest& aRequest);
-		virtual api_return handleUnsubscribe(ApiRequest& aRequest);
-	private:
-		WebSocketPtr socket = nullptr;
-		SubscriptionMap subscriptions;
-	};
-
-	typedef std::unique_ptr<ApiModule> HandlerPtr;
+	using HandlerPtr = std::unique_ptr<ApiModule>;
 }
 
 #endif

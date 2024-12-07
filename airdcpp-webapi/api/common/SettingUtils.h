@@ -19,15 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_SETTING_UTILS_H
 #define DCPLUSPLUS_DCPP_SETTING_UTILS_H
 
-#include <airdcpp/forward.h>
+#include "forward.h"
 
 #include <web-server/ApiSettingItem.h>
-
 
 namespace webserver {
 	class SettingUtils {
 	public:
-		static json validateValue(const json& aValue, const ApiSettingItem& aItem, UserList* userReferences_);
+		static json validateValue(const json& aValue, const ApiSettingItem& aItem, SettingReferenceList* references_);
 
 		static ExtensionSettingItem deserializeDefinition(const json& aJson, bool aIsListValue = false);
 		static ExtensionSettingItem::List deserializeDefinitions(const json& aJson);
@@ -35,10 +34,10 @@ namespace webserver {
 		static json serializeDefinition(const ApiSettingItem& aItem) noexcept;
 	private:
 		static void validateEnumValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, const ApiSettingItem::EnumOption::List& aEnumOptions);
-		static json validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue, UserList* userReferences_);
+		static json validateObjectListValue(const ApiSettingItem::PtrList& aPropertyDefinitions, const json& aValue, SettingReferenceList* references_);
 
-		static json convertValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, const ApiSettingItem::PtrList& aObjectValues, UserList* userReferences_);
-		static json convertListCompatibleValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, UserList* userReferences_);
+		static json convertValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, ApiSettingItem::Type aItemType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, const ApiSettingItem::PtrList& aObjectValues, SettingReferenceList* references_);
+		static json convertListCompatibleValue(const json& aValue, const string& aKey, ApiSettingItem::Type aType, bool aOptional, const ApiSettingItem::MinMax& aMinMax, SettingReferenceList* references_);
 
 
 		static json parseEnumOptionId(const json& aJson, ApiSettingItem::Type aType);

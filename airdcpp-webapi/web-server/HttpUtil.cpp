@@ -20,8 +20,9 @@
 
 #include <web-server/HttpUtil.h>
 
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/Util.h>
 
 #include "boost/algorithm/string/replace.hpp"
 
@@ -30,7 +31,7 @@ namespace webserver {
 	using namespace dcpp;
 
 	struct mime { const char* ext; const char* type; };
-	struct mime mimes[] = {
+	const struct mime mimes[] = {
 		{ "exe", "application/octet-stream" },
 		{ "pdf", "application/pdf" },
 		{ "zip", "application/zip" },
@@ -101,12 +102,12 @@ namespace webserver {
 		{ "html", "text/html; charset=utf-8" },
 		{ "txt", "text/plain" },
 		{ "xml", "text/xml" },
-		{ NULL, NULL }
+		{ nullptr, nullptr }
 	};
 
 	const char* HttpUtil::getMimeType(const string& aFileName) noexcept {
 		auto extension = getExtension(aFileName);
-		for (int i = 0; mimes[i].ext != NULL; i++) {
+		for (int i = 0; mimes[i].ext; i++) {
 			if (extension == mimes[i].ext) {
 				return mimes[i].type;
 			}
@@ -116,7 +117,7 @@ namespace webserver {
 	}
 
 	string HttpUtil::getExtension(const string& aResource) noexcept {
-		auto extension = Util::getFileExt(aResource);
+		auto extension = PathUtil::getFileExt(aResource);
 		if (!extension.empty()) {
 			// Strip the dot
 			extension = extension.substr(1);
@@ -175,7 +176,7 @@ namespace webserver {
 		return true;
 	}
 
-	bool HttpUtil::unespaceUrl(const std::string& in, std::string& out) noexcept {
+	bool HttpUtil::unescapeUrl(const std::string& in, std::string& out) noexcept {
 		out.clear();
 		out.reserve(in.size());
 		for (std::size_t i = 0; i < in.size(); ++i) {

@@ -25,18 +25,21 @@
 
 #include <web-server/WebUser.h>
 
-#include <airdcpp/AirUtil.h>
-#include <airdcpp/Bundle.h>
-#include <airdcpp/Client.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/DirectoryListing.h>
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/GeoManager.h>
-#include <airdcpp/OnlineUser.h>
-#include <airdcpp/QueueItem.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/queue/Bundle.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/filelist/DirectoryListing.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/util/DupeUtil.h>
+#include <airdcpp/core/geo/GeoManager.h>
+#include <airdcpp/user/OnlineUser.h>
+#include <airdcpp/queue/QueueItem.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchResult.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/share/profiles/ShareProfile.h>
 
 namespace webserver {
 	// USERS
@@ -107,7 +110,7 @@ namespace webserver {
 		return {
 			{ "id", aUser->getCID().toBase32() },
 			{ "cid", aUser->getCID().toBase32() },
-			{ "nicks", Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
+			{ "nicks",  Util::listToString(ClientManager::getInstance()->getNicks(aUser->getCID())) },
 			{ "hub_names", Util::listToString(ClientManager::getInstance()->getHubNames(aUser->getCID())) },
 			{ "hub_urls", ClientManager::getInstance()->getHubUrls(aUser->getCID()) },
 			{ "flags", getUserFlags(aUser) }
@@ -125,9 +128,9 @@ namespace webserver {
 
 		return {
 			{ "cid", aUser.user->getCID().toBase32() },
-			{ "nicks", ClientManager::getInstance()->getFormatedNicks(aUser) },
+			{ "nicks", ClientManager::getInstance()->getFormattedNicks(aUser) },
 			{ "hub_url", aUser.hint },
-			{ "hub_names", ClientManager::getInstance()->getFormatedHubNames(aUser) },
+			{ "hub_names", ClientManager::getInstance()->getFormattedHubNames(aUser) },
 			{ "hub_urls", ClientManager::getInstance()->getHubUrls(aUser.user->getCID()) },
 			{ "flags", flags }
 		};
@@ -135,6 +138,15 @@ namespace webserver {
 
 	json Serializer::serializeOnlineUser(const OnlineUserPtr& aUser) noexcept {
 		return serializeItem(aUser, OnlineUserUtils::propertyHandler);
+	}
+
+
+	json Serializer::serializeClient(const Client* aClient) noexcept {
+		return {
+			{ "id", aClient->getToken() },
+			{ "name", aClient->getHubName() },
+			{ "hub_url", aClient->getHubUrl() },
+		};
 	}
 
 
@@ -156,12 +168,13 @@ namespace webserver {
 	}
 
 	string Serializer::toFileContentType(const string& aExt) noexcept {
-		auto typeName = getFileTypeId(SearchManager::getInstance()->getTypeIdByExtension(aExt, true));
+		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		auto typeName = getFileTypeId(typeManager.getTypeIdByExtension(aExt, true));
 		return typeName;
 	}
 
-	json Serializer::serializeFileType(const string& aPath) noexcept {
-		auto ext = Util::formatFileType(aPath);
+	json Serializer::serializeFileType(const string& aName) noexcept {
+		auto ext = Util::formatFileType(aName);
 		return{
 			{ "id", "file" },
 			{ "content_type", toFileContentType(ext) },
@@ -175,7 +188,7 @@ namespace webserver {
 			{ "str", Util::formatDirectoryContent(aContentInfo) }
 		};
 
-		if (Util::hasContentInfo(aContentInfo)) {
+		if (aContentInfo.isInitialized()) {
 			retJson["files"] = aContentInfo.files;
 			retJson["directories"] = aContentInfo.directories;
 		}
@@ -192,6 +205,9 @@ namespace webserver {
 			case DUPE_FINISHED_PARTIAL: return "finished_partial";
 			case DUPE_FINISHED_FULL: return "finished_full";
 			case DUPE_SHARE_QUEUE: return "share_queue";
+			case DUPE_SHARE_FINISHED: return "share_finished";
+			case DUPE_QUEUE_FINISHED: return "queue_finished";
+			case DUPE_SHARE_QUEUE_FINISHED: return "share_queue_finished";
 			default: dcassert(0); return Util::emptyString;
 		}
 	}
@@ -201,7 +217,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		return serializeDupe(aDupeType, AirUtil::getFileDupePaths(aDupeType, aTTH));
+		return serializeDupe(aDupeType, DupeUtil::getFileDupePaths(aDupeType, aTTH));
 	}
 
 	json Serializer::serializeDirectoryDupe(DupeType aDupeType, const string& aAdcPath) noexcept {
@@ -209,7 +225,7 @@ namespace webserver {
 			return nullptr;
 		}
 
-		return serializeDupe(aDupeType, AirUtil::getAdcDirectoryDupePaths(aDupeType, aAdcPath));
+		return serializeDupe(aDupeType, DupeUtil::getAdcDirectoryDupePaths(aDupeType, aAdcPath));
 	}
 
 	json Serializer::serializeDupe(DupeType aDupeType, StringList&& aPaths) noexcept {
@@ -352,7 +368,7 @@ namespace webserver {
 	json Serializer::serializePriority(const QueueItemBase& aItem) noexcept {
 		return {
 			{ "id", serializePriorityId(aItem.getPriority()) },
-			{ "str", AirUtil::getPrioText(aItem.getPriority()) },
+			{ "str", Util::formatPriority(aItem.getPriority()) },
 			{ "auto", aItem.getAutoPriority() }
 		};
 	}
@@ -370,8 +386,8 @@ namespace webserver {
 		}
 
 		return{
-			{ "hook_id", aError->hookId },
-			{ "hook_name", aError->hookName },
+			{ "hook_id", aError->subscriberId }, // TODO: bad name
+			{ "hook_name", aError->subscriberName }, // TODO: bad name
 			{ "error_id", aError->rejectId },
 			{ "str", aError->message },
 		};
@@ -383,7 +399,7 @@ namespace webserver {
 		};
 
 		if (aInfo.isDirectory) {
-			ret["type"] = Serializer::serializeFolderType(DirectoryContentInfo());
+			ret["type"] = Serializer::serializeFolderType(DirectoryContentInfo::uninitialized());
 		} else {
 			ret["type"] = Serializer::serializeFileType(aInfo.name);
 			ret["size"] = aInfo.size;

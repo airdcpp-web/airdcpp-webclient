@@ -20,16 +20,17 @@
 
 #include "Format.h"
 
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/GeoManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/core/geo/GeoManager.h>
+#include <airdcpp/user/HintedUser.h>
+#include <airdcpp/core/localization/ResourceManager.h>
 
 namespace webserver {
-	std::string Format::formatNicks(const HintedUser& aUser) noexcept {
+	std::string Format::nicksToString(const HintedUser& aUser) noexcept {
 		return Util::listToString(ClientManager::getInstance()->getNicks(aUser));
 	}
 
-	std::string Format::formatHubs(const HintedUser& aUser) noexcept {
+	std::string Format::hubsToString(const HintedUser& aUser) noexcept {
 		return Util::listToString(ClientManager::getInstance()->getHubNames(aUser));
 	}
 

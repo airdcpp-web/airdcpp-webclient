@@ -19,9 +19,12 @@
 #include "stdinc.h"
 
 #include <airdcpp/DCPlusPlus.h>
-#include <airdcpp/Util.h>
-#include <airdcpp/version.h>
-#include <airdcpp/File.h>
+#include <airdcpp/util/AppUtil.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/util/Util.h>
+#include <airdcpp/util/SystemUtil.h>
+#include <airdcpp/core/version.h>
+#include <airdcpp/core/io/File.h>
 
 #include <web-server/WebServerManager.h>
 
@@ -65,22 +68,22 @@ static void handleCrash(int sig) {
         std::cerr << std::endl << std::endl;
         std::cerr << "Signal: " << std::to_string(sig) << std::endl;
         std::cerr << "Process ID: " << getpid() << std::endl;
-        std::cerr << "Time: " << Util::getTimeString() << std::endl;
-        std::cerr << "OS version: " << Util::getOsVersion() << std::endl;
+        std::cerr << "Time: " << Util::formatCurrentTime() << std::endl;
+        std::cerr << "OS version: " << SystemUtil::getOsVersion() << std::endl;
         std::cerr << "Client version: " << shortVersionString << std::endl << std::endl;
 #if USE_STACKTRACE
 	std::cerr << "Collecting crash information, please wait..." << std::endl;
-	cow::StackTrace trace(Util::getAppPath());
+	cow::StackTrace trace(AppUtil::getAppPath());
 	trace.generate_frames();
 	std::copy(trace.begin(), trace.end(),
 	std::ostream_iterator<cow::StackFrame>(std::cerr, "\n"));
 
-	auto stackPath = Util::getPath(Util::PATH_USER_CONFIG) + "exceptioninfo.txt";
+	auto stackPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "exceptioninfo.txt";
 	std::ofstream f;
 	f.open(stackPath.c_str());
 
-	f << "Time: " + Util::getTimeString() << std::endl;
-	f << "OS version: " + Util::getOsVersion() << std::endl;
+	f << "Time: " + Util::formatCurrentTime() << std::endl;
+	f << "OS version: " + SystemUtil::getOsVersion() << std::endl;
 	f << "Client version: " + shortVersionString << std::endl << std::endl;
 
 	std::copy(trace.begin(), trace.end(),
@@ -149,27 +152,34 @@ static void installHandler() {
 	signal(SIGINT, &breakHandler);
 	signal(SIGTERM, &breakHandler);
 
+	signal(SIGPIPE, SIG_IGN);
+
+#ifndef _DEBUG
 	signal(SIGBUS, &handleCrash);
 	signal(SIGFPE, &handleCrash);
 	signal(SIGSEGV, &handleCrash);
 	signal(SIGILL, &handleCrash);
 
-	signal(SIGPIPE, SIG_IGN);
-
 	// Note: separate from SIGTERM
 	std::set_terminate([] {
 		handleCrash(0);
 	});
+#else
+	std::cout << "Note: using debug build, crash handlers not installed" << std::endl;
+#endif
+
 }
 
-static void savePid(int aPid, const string& aConfigPath) noexcept {
-	auto pidParam = Util::getStartupParam("-p");
-	if (pidParam) {
-		pidFileName = *pidParam;
-	} else {
-		pidFileName = File::makeAbsolutePath(aConfigPath, "airdcppd.pid");
-	}
+static void setPidFilePath(const string& aConfigPath, const dcpp::StartupParams& aStartupParams) {
+    auto pidParam = aStartupParams.getValue("-p");
+    if (pidParam) {
+        pidFileName = *pidParam;
+    } else {
+        pidFileName = aConfigPath + "airdcppd.pid";
+    }
+}
 
+static void savePid(int aPid) noexcept {
 	try {
 		pidFile.reset(new File(pidFileName, File::WRITE, File::CREATE | File::OPEN | File::TRUNCATE));
 		pidFile->write(Util::toString(aPid));
@@ -185,8 +195,8 @@ static void reportError(const char* aMessage) noexcept {
 
 #include <fcntl.h>
 
-static void daemonize(const string& aConfigPath) noexcept {
-	auto doFork = [&aConfigPath](const char* aErrorMessage) {
+static void daemonize(const dcpp::StartupParams& aStartupParams) noexcept {
+	auto doFork = [&](const char* aErrorMessage) {
 		auto ret = fork();
 
 		switch(ret) {
@@ -195,7 +205,7 @@ static void daemonize(const string& aConfigPath) noexcept {
 			exit(5);
 		case 0: break;
 		default:
-			savePid(ret, aConfigPath);
+			savePid(ret);
 			//printf("%d\n", ret); fflush(stdout);
 			_exit(0);
 		}
@@ -234,15 +244,15 @@ static void daemonize(const string& aConfigPath) noexcept {
 
 #include <sys/wait.h>
 
-static void runDaemon(const string& aConfigPath) {
-	daemonize(aConfigPath);
+static void runDaemon(const dcpp::StartupParams& aStartupParams) {
+	daemonize(aStartupParams);
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
 
 		init();
 
-		client->run();
+		client->run(aStartupParams);
 
 		client.reset();
 	} catch(const std::exception& e) {
@@ -252,10 +262,10 @@ static void runDaemon(const string& aConfigPath) {
 	uninit();
 }
 
-static void runConsole(const string& aConfigPath) {
+static void runConsole(const dcpp::StartupParams& aStartupParams) {
 	printf("Starting.\n"); fflush(stdout);
 
-	savePid(static_cast<int>(getpid()), aConfigPath);
+	savePid(static_cast<int>(getpid()));
 
 	try {
 		client = unique_ptr<airdcppd::Client>(new airdcppd::Client(asdaemon));
@@ -263,7 +273,7 @@ static void runConsole(const string& aConfigPath) {
 
 		init();
 
-		client->run();
+		client->run(aStartupParams);
 
 		client.reset();
 	} catch(const std::exception& e) {
@@ -313,32 +323,34 @@ static void setApp(char* argv[]) {
 		path = getenv("_");
 	}
 
-	Util::setApp(path == NULL ? argv[0] : path);
+	AppUtil::setApp(path == NULL ? argv[0] : path);
 }
 
 int main(int argc, char* argv[]) {
 	setApp(argv);
 
+    dcpp::StartupParams startupParams;
 	while (argc > 0) {
-		Util::addStartupParam(Text::toUtf8(*argv));
+        startupParams.addParam(Text::toUtf8(*argv));
 		argc--;
 		argv++;
 	}
 
-	if (dcpp::Util::hasStartupParam("-h") || Util::hasStartupParam("--help")) {
+	if (startupParams.hasParam("-h") || startupParams.hasParam("--help")) {
 		printUsage();
 		return 0;
 	}
 
-	if (dcpp::Util::hasStartupParam("-v") || Util::hasStartupParam("--version")) {
+	if (startupParams.hasParam("-v") || startupParams.hasParam("--version")) {
 		printf("%s\n", shortVersionString.c_str());
 		return 0;
 	}
 
-	auto configDir = Util::getStartupParam("-c");
-
-	dcpp::Util::initialize(configDir ? *configDir : "");
-	auto configF = airdcppd::ConfigPrompt::checkArgs();
+    {
+        auto customConfigDir = startupParams.getValue("-c");
+        initializeUtil(customConfigDir ? AppUtil::formatCustomConfigPath(*customConfigDir) : "");
+    }
+	auto configF = airdcppd::ConfigPrompt::checkArgs(startupParams);
 	if (configF) {
 		init();
 		signal(SIGINT, [](int) {
@@ -354,17 +366,18 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	if (dcpp::Util::hasStartupParam("-d")) {
+	if (startupParams.hasParam("-d")) {
 		asdaemon = true;
 	}
 
 
 	setlocale(LC_ALL, "");
 
-	string configPath = Util::getPath(Util::PATH_USER_CONFIG);
+	string configPath = AppUtil::getPath(AppUtil::PATH_USER_CONFIG);
+    setPidFilePath(configPath, startupParams);
 	if (asdaemon) {
-		runDaemon(configPath);
+		runDaemon(startupParams);
 	} else {
-		runConsole(configPath);
+		runConsole(startupParams);
 	}
 }

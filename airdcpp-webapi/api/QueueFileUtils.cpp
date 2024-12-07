@@ -22,10 +22,10 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/AirUtil.h>
-#include <airdcpp/Bundle.h>
-#include <airdcpp/QueueItem.h>
-#include <airdcpp/QueueManager.h>
+#include <airdcpp/queue/Bundle.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/queue/QueueItem.h>
+#include <airdcpp/queue/QueueManager.h>
 
 
 namespace webserver {
@@ -65,7 +65,7 @@ namespace webserver {
 		case PROP_TARGET: return aItem->getTarget();
 		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return formatDisplayStatus(aItem);
-		case PROP_PRIORITY: return AirUtil::getPrioText(aItem->getPriority());
+		case PROP_PRIORITY: return Util::formatPriority(aItem->getPriority());
 		case PROP_SOURCES: return formatFileSources(aItem);
 		case PROP_TTH: return aItem->getTTH().toBase32();
 		default: dcassert(0); return Util::emptyString;
@@ -99,10 +99,10 @@ namespace webserver {
 	int QueueFileUtils::compareFiles(const QueueItemPtr& a, const QueueItemPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_NAME: {
-			return Util::pathSort(a->getTarget(), b->getTarget());
+			return PathUtil::pathSort(a->getTarget(), b->getTarget());
 		}
 		case PROP_TYPE: {
-			return Util::stricmp(Util::getFileExt(a->getTarget()), Util::getFileExt(b->getTarget()));
+			return Util::stricmp(PathUtil::getFileExt(a->getTarget()), PathUtil::getFileExt(b->getTarget()));
 		}
 		case PROP_PRIORITY: {
 			COMPARE_IS_DOWNLOADED(a, b);

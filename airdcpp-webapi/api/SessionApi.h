@@ -21,19 +21,19 @@
 
 #include <web-server/WebUserManagerListener.h>
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 namespace webserver {
 	class SessionApi : public SubscribableApiModule, private WebUserManagerListener {
 	public:
-		SessionApi(Session* aSession);
-		~SessionApi();
+		explicit SessionApi(Session* aSession);
+		~SessionApi() override;
 
 		// Session isn't associated yet when these get called...
-		static api_return handleLogin(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
-		static api_return handleSocketConnect(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket);
+		static api_return handleLogin(RouterRequest& aRequest);
+		static api_return handleSocketConnect(RouterRequest& aRequest);
 	private:
 		api_return failAuthenticatedRequest(ApiRequest& aRequest);
 
@@ -41,7 +41,7 @@ namespace webserver {
 		api_return handleActivity(ApiRequest& aRequest);
 
 		api_return handleGetSessions(ApiRequest& aRequest);
-		api_return handleGetCurrentSession(ApiRequest& aRequest);
+		api_return handleGetCurrentSession(ApiRequest& aRequest) const;
 
 		api_return handleGetSession(ApiRequest& aRequest);
 		api_return handleRemoveSession(ApiRequest& aRequest);
@@ -53,7 +53,7 @@ namespace webserver {
 		static string getSessionType(const SessionPtr& aSession) noexcept;
 
 		void on(WebUserManagerListener::SessionCreated, const SessionPtr& aSession) noexcept override;
-		void on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, bool aTimedOut) noexcept override;
+		void on(WebUserManagerListener::SessionRemoved, const SessionPtr& aSession, int aReason) noexcept override;
 
 		SessionPtr parseSessionParam(ApiRequest& aRequest);
 	};

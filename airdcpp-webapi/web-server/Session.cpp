@@ -20,6 +20,7 @@
 #include <web-server/Session.h>
 #include <web-server/ApiRequest.h>
 
+#include <api/AdcCommandApi.h>
 #include <api/ConnectivityApi.h>
 #include <api/ExtensionApi.h>
 #include <api/EventApi.h>
@@ -45,18 +46,20 @@
 #include <api/WebUserApi.h>
 #include <api/ViewFileApi.h>
 
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 
 namespace webserver {
 #define ADD_MODULE(name, type) (apiHandlers.emplace(name, LazyModuleWrapper([this] { return make_unique<type>(this); })))
 
 	Session::Session(const WebUserPtr& aUser, const string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP) :
-		id(Util::rand()), user(aUser), token(aToken), started(GET_TICK()), 
-		lastActivity(GET_TICK()), sessionType(aSessionType), server(aServer),
-		maxInactivity(maxInactivityMinutes*1000*60),
-		ip(aIP) {
+		maxInactivity(maxInactivityMinutes*1000*60), started(GET_TICK()), lastActivity(GET_TICK()), id(ValueGenerator::rand()), 
+		token(aToken), sessionType(aSessionType), ip(aIP),
+		user(aUser),
+		server(aServer) {
 
+		ADD_MODULE("adc_commands", AdcCommandApi);
 		ADD_MODULE("connectivity", ConnectivityApi);
 		ADD_MODULE("extensions", ExtensionApi);
 		ADD_MODULE("events", EventApi);
@@ -94,31 +97,23 @@ namespace webserver {
 	}
 
 	websocketpp::http::status_code::value Session::handleRequest(ApiRequest& aRequest) {
-		auto module = getModule(aRequest.getApiModule());
-		if (!module) {
+		auto m = getModule(aRequest.getApiModule());
+		if (!m) {
 			aRequest.setResponseErrorStr("Section not found");
 			return websocketpp::http::status_code::not_found;
 		}
 
-		return module->handleRequest(aRequest);
+		return m->handleRequest(aRequest);
 	}
 
 	void Session::onSocketConnected(const WebSocketPtr& aSocket) noexcept {
-		auto oldSocket = getServer()->getSocket(id);
-		if (oldSocket) {
-			oldSocket->debugMessage("Replace session socket");
-
-			// This must be called before the new socket is associated with this session
-			fire(SessionListener::SocketConnected(), oldSocket);
-			oldSocket->setSession(nullptr);
-
-			oldSocket->close(websocketpp::close::status::policy_violation, "Another socket was connected to this session");
-		}
-
+		hasSocket = true;
 		fire(SessionListener::SocketConnected(), aSocket);
 	}
 
 	void Session::onSocketDisconnected() noexcept {
+		hasSocket = false;
+
 		// Set the expiration time from this moment if there is no further activity
 		updateActivity();
 
@@ -127,6 +122,15 @@ namespace webserver {
 
 	void Session::updateActivity() noexcept {
 		lastActivity = GET_TICK();
+	}
+
+	bool Session::isTimeout(uint64_t aTick) const noexcept {
+		// Don't remove sessions with an active socket
+		if (hasSocket) {
+			return false;
+		}
+
+		return maxInactivity > 0 && lastActivity + maxInactivity < aTick;
 	}
 
 	void Session::reportError(const string& aError) noexcept {

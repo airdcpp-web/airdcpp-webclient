@@ -25,8 +25,8 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/util/Util.h>
 
 
 namespace webserver {

@@ -21,8 +21,8 @@
 
 #include <api/common/Property.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/HubEntry.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/favorites/HubEntry.h>
 
 
 namespace webserver {

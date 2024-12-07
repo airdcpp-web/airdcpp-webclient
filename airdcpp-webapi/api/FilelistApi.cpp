@@ -22,11 +22,19 @@
 
 #include <api/common/Deserializer.h>
 #include <api/common/Validation.h>
-#include <web-server/JsonUtil.h>
 
-#include <airdcpp/QueueManager.h>
+#include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
+
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/queue/QueueManager.h>
 
 namespace webserver {
+
+#define HOOK_LOAD_DIRECTORY "filelist_load_directory_hook"
+#define HOOK_LOAD_FILE "filelist_load_file_hook"
+
 	StringList FilelistApi::subscriptionList = {
 		"filelist_created",
 		"filelist_removed",
@@ -37,15 +45,19 @@ namespace webserver {
 	};
 
 	FilelistApi::FilelistApi(Session* aSession) : 
-		ParentApiModule(CID_PARAM, Access::FILELISTS_VIEW, aSession, FilelistApi::subscriptionList,
-			FilelistInfo::subscriptionList, 
+		ParentApiModule(CID_PARAM, Access::FILELISTS_VIEW, aSession, 
 			[](const string& aId) { return Deserializer::parseCID(aId); },
-			[](const FilelistInfo& aInfo) { return serializeList(aInfo.getList()); }
+			[](const FilelistInfo& aInfo) { return serializeList(aInfo.getList()); },
+			Access::FILELISTS_EDIT
 		) 
 	{
+		createSubscriptions(subscriptionList, FilelistInfo::subscriptionList);
 
-		DirectoryListingManager::getInstance()->addListener(this);;
+		// Hooks
+		HOOK_HANDLER(HOOK_LOAD_DIRECTORY,	DirectoryListingManager::getInstance()->loadHooks.directoryLoadHook,	FilelistApi::directoryLoadHook);
+		HOOK_HANDLER(HOOK_LOAD_FILE,		DirectoryListingManager::getInstance()->loadHooks.fileLoadHook,			FilelistApi::fileLoadHook);
 
+		// Methods
 		METHOD_HANDLER(Access::FILELISTS_EDIT,	METHOD_POST,	(),													FilelistApi::handlePostList);
 		METHOD_HANDLER(Access::FILELISTS_EDIT,	METHOD_POST,	(EXACT_PARAM("self")),								FilelistApi::handleOwnList);
 
@@ -56,6 +68,10 @@ namespace webserver {
 
 		METHOD_HANDLER(Access::QUEUE_EDIT,		METHOD_POST,	(EXACT_PARAM("match_queue")),						FilelistApi::handleMatchQueue);
 
+		// Listeners
+		DirectoryListingManager::getInstance()->addListener(this);;
+
+		// Init
 		auto rawLists = DirectoryListingManager::getInstance()->getLists();
 		for (const auto& list : rawLists | views::values) {
 			addList(list);
@@ -64,6 +80,32 @@ namespace webserver {
 
 	FilelistApi::~FilelistApi() {
 		DirectoryListingManager::getInstance()->removeListener(this);
+	}
+
+	ActionHookResult<> FilelistApi::directoryLoadHook(const DirectoryListing::Directory::Ptr& aDirectory, const DirectoryListing& aList, const ActionHookResultGetter<>& aResultGetter) noexcept {
+		return HookCompletionData::toResult(
+			maybeFireHook(HOOK_LOAD_DIRECTORY, WEBCFG(FILELIST_LOAD_DIRECTORY_HOOK_TIMEOUT).num(), [&]() {
+				auto info = std::make_shared<FilelistItemInfo>(aDirectory, aList.getShareProfile());
+
+				return json({
+					{ "directory", Serializer::serializeItem(info, FilelistUtils::propertyHandler) },
+					{ "filelist_id", aList.getToken().toBase32() },
+				});
+			}),
+			aResultGetter
+		);
+	}
+	ActionHookResult<> FilelistApi::fileLoadHook(const DirectoryListing::File::Ptr& aFile, const DirectoryListing& aList, const ActionHookResultGetter<>& aResultGetter) noexcept {
+		return HookCompletionData::toResult(
+			maybeFireHook(HOOK_LOAD_FILE, WEBCFG(FILELIST_LOAD_FILE_HOOK_TIMEOUT).num(), [&]() {
+				auto info = std::make_shared<FilelistItemInfo>(aFile, aList.getShareProfile());
+				return json({
+					{ "file", Serializer::serializeItem(info, FilelistUtils::propertyHandler) },
+					{ "filelist_id", aList.getToken().toBase32() },
+				});
+			}),
+			aResultGetter
+		);
 	}
 
 	void FilelistApi::addList(const DirectoryListingPtr& aList) noexcept {
@@ -254,7 +296,7 @@ namespace webserver {
 		const auto& reqJson = aRequest.getRequestBody();
 		auto listPath = Validation::validateAdcDirectoryPath(JsonUtil::getField<string>("list_path", aRequest.getRequestBody(), false));
 
-		string targetDirectory, targetBundleName = Util::getAdcLastDir(listPath);
+		string targetDirectory, targetBundleName = PathUtil::getAdcLastDir(listPath);
 		Priority prio;
 		Deserializer::deserializeDownloadParams(aRequest.getRequestBody(), aRequest.getSession().get(), targetDirectory, targetBundleName, prio);
 

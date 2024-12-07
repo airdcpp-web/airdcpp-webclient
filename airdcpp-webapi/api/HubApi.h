@@ -23,17 +23,17 @@
 #include <api/base/HookApiModule.h>
 #include <api/HubInfo.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/Client.h>
-#include <airdcpp/ClientManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/hub/ClientManagerListener.h>
 
 namespace webserver {
 	class HubApi : public ParentApiModule<ClientToken, HubInfo, HookApiModule>, private ClientManagerListener {
 	public:
 		static StringList subscriptionList;
 
-		HubApi(Session* aSession);
-		~HubApi();
+		explicit HubApi(Session* aSession);
+		~HubApi() override;
 
 		static json serializeClient(const ClientPtr& aClient) noexcept;
 	private:

@@ -21,19 +21,20 @@
 
 #include <api/SearchUtils.h>
 
+#include <api/base/HookApiModule.h>
 #include <api/base/HierarchicalApiModule.h>
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/SearchInstanceListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/search/SearchInstanceListener.h>
 
 
 namespace webserver {
-	class SearchEntity : public SubApiModule<SearchInstanceToken, SearchEntity, SearchInstanceToken>, private SearchInstanceListener {
+	class SearchEntity : public SubApiModule<SearchInstanceToken, SearchEntity, SearchInstanceToken, HookApiModule>, private SearchInstanceListener {
 	public:
 		static const StringList subscriptionList;
 
-		typedef ParentApiModule<SearchInstanceToken, SearchEntity> ParentType;
+		typedef ParentApiModule<SearchInstanceToken, SearchEntity, HookApiModule> ParentType;
 		typedef shared_ptr<SearchEntity> Ptr;
 
 		SearchEntity(ParentType* aParentModule, const SearchInstancePtr& aSearch);
@@ -48,12 +49,12 @@ namespace webserver {
 		void init() noexcept override;
 
 		static json serializeSearchQuery(const SearchPtr& aQuery) noexcept;
+		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
 	private:
 		const SearchInstancePtr search;
 
 		GroupedSearchResultList getResultList() noexcept;
 
-		static json serializeSearchResult(const SearchResultPtr& aSR) noexcept;
 		json serializeSearchQueueInfo(uint64_t aQueueItem, size_t aQueueCount) noexcept;
 
 		api_return handlePostHubSearch(ApiRequest& aRequest);

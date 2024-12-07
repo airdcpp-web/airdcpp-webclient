@@ -19,9 +19,8 @@
 #ifndef DCPLUSPLUS_DCPP_DCPLUSPLUS_H
 #define DCPLUSPLUS_DCPP_DCPLUSPLUS_H
 
-#include "compiler.h"
-#include "typedefs.h"
-#include "Exception.h"
+#include <airdcpp/core/header/compiler.h>
+#include <airdcpp/core/header/typedefs.h>
 
 namespace dcpp {
 
@@ -36,7 +35,7 @@ public:
 	// Tasks to run after everything has finished loading
 	// Use for task involving hooks
 	void addPostLoadTask(Callback&& aCallback) noexcept {
-		postLoadTasks.push_back(aCallback);
+		postLoadTasks.push_back(std::move(aCallback));
 	}
 
 	const vector<Callback>& getPostLoadTasks() const noexcept {
@@ -46,13 +45,15 @@ private:
 	vector<Callback> postLoadTasks;
 };
 
-typedef function<void(StartupLoader&)> StartupLoadCallback;
-typedef function<void(StepFunction&, ProgressFunction&)> ShutdownUnloadCallback;
+using StartupLoadCallback = function<void (StartupLoader&)>;
+using ShutdownUnloadCallback = function<void (StepFunction&, ProgressFunction&)>;
 
 // This will throw AbortException in case of fatal errors (such as hash database initialization errors)
 extern void startup(StepFunction stepF, MessageFunction messageF, Callback runWizard, ProgressFunction progressF, Callback moduleInitF = nullptr, StartupLoadCallback moduleLoadF = nullptr);
 
 extern void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCallback moduleUnloadF = nullptr, Callback moduleDestroyF = nullptr);
+
+extern void initializeUtil(const string& aConfigPath = "") noexcept;
 
 } // namespace dcpp
 

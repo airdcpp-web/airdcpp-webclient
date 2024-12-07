@@ -20,21 +20,27 @@
 #define DCPLUSPLUS_WEBSERVER_APISETTINGITEM_H
 
 #include "forward.h"
-#include "json.h"
+#include "stdinc.h"
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/SettingItem.h>
-#include <airdcpp/ResourceManager.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/settings/SettingItem.h>
+#include <airdcpp/core/localization/ResourceManager.h>
 
 namespace webserver {
+
+
+// Keep possible smart pointers referred by the setting item alive
+using SettingReference = std::shared_ptr<void>;
+using SettingReferenceList = std::vector<SettingReference>;
+
 #define MAX_INT_VALUE std::numeric_limits<int>::max()
 	class ApiSettingItem {
 	public:
-		typedef vector<ApiSettingItem> List;
-		typedef vector<const ApiSettingItem*> PtrList;
+		using List = vector<ApiSettingItem>;
+		using PtrList = vector<const ApiSettingItem *>;
 
-		typedef vector<int> ListNumber;
-		typedef vector<string> ListString;
+		using ListNumber = vector<int>;
+		using ListString = vector<string>;
 		enum Type {
 			TYPE_NUMBER,
 			TYPE_BOOLEAN,
@@ -51,7 +57,7 @@ namespace webserver {
 		};
 
 		struct MinMax {
-			MinMax() {}
+			MinMax() = default;
 			MinMax(int aMin, int aMax) : min(aMin), max(aMax) {}
 
 			const int min = 0;
@@ -81,7 +87,8 @@ namespace webserver {
 		struct EnumOption {
 			const json id;
 			const string text;
-			typedef vector<EnumOption> List;
+
+			using List = vector<EnumOption>;
 		};
 
 		virtual EnumOption::List getEnumOptions() const noexcept = 0;
@@ -95,7 +102,7 @@ namespace webserver {
 
 		template<typename T, typename ListT>
 		static T* findSettingItem(ListT& aSettings, const string& aKey) noexcept {
-			auto p = find_if(aSettings.begin(), aSettings.end(), [&](const T& aItem) { return aItem.name == aKey; });
+			auto p = ranges::find_if(aSettings, [&](const T& aItem) { return aItem.name == aKey; });
 			if (p != aSettings.end()) {
 				return &(*p);
 			}
@@ -193,8 +200,6 @@ namespace webserver {
 		json getDefaultValue() const noexcept override;
 
 		EnumOption::List getEnumOptions() const noexcept override;
-		//ServerSettingItem(ServerSettingItem&& rhs) noexcept = default;
-		//ServerSettingItem& operator=(ServerSettingItem&& rhs) noexcept = default;
 
 		void setValue(const json& aJson) override;
 		void unset() noexcept override;
@@ -217,7 +222,7 @@ namespace webserver {
 			const ResourceManager::Strings unitKey;
 		};
 
-		typedef vector<ServerSettingItem> List;
+		using List = vector<ServerSettingItem>;
 
 		ServerSettingItem(const string& aKey, const ResourceManager::Strings aTitleKey, const json& aDefaultValue, Type aType, bool aOptional,
 			const NumberInfo& aNumInfo = NumberInfo(), const ResourceManager::Strings aHelpKey = ResourceManager::LAST, Type aListItemType = TYPE_LAST, const List& aListObjectFields = emptyDefinitionList);
@@ -237,7 +242,7 @@ namespace webserver {
 
 	class ExtensionSettingItem : public JsonSettingItem {
 	public:
-		typedef vector<ExtensionSettingItem> List;
+		using List = vector<ExtensionSettingItem>;
 
 		ExtensionSettingItem(const string& aKey, const string& aTitle, const json& aDefaultValue, Type aType, bool aOptional,
 			const MinMax& aMinMax = MinMax(), const List& aListObjectFields = List(), const string& aHelp = "",

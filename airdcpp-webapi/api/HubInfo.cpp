@@ -25,7 +25,7 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/ClientManager.h>
+#include <airdcpp/hub/ClientManager.h>
 
 
 namespace webserver {
@@ -42,11 +42,13 @@ namespace webserver {
 	};
 
 	HubInfo::HubInfo(ParentType* aParentModule, const ClientPtr& aClient) :
-		SubApiModule(aParentModule, aClient->getToken(), subscriptionList), client(aClient),
+		SubApiModule(aParentModule, aClient->getToken()), client(aClient),
 		chatHandler(this, aClient.get(), "hub", Access::HUBS_VIEW, Access::HUBS_EDIT, Access::HUBS_SEND),
 		view("hub_user_view", this, OnlineUserUtils::propertyHandler, std::bind(&HubInfo::getUsers, this), 500), 
 		timer(getTimer([this] { onTimer(); }, 1000)) 
 	{
+		createSubscriptions(subscriptionList);
+
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_PATCH, (),							HubInfo::handleUpdateHub);
 
 		METHOD_HANDLER(Access::HUBS_EDIT, METHOD_POST,	(EXACT_PARAM("reconnect")),	HubInfo::handleReconnect);
@@ -167,6 +169,7 @@ namespace webserver {
 		return {
 			{ "name", aClient->getHubName() },
 			{ "description", aClient->getHubDescription() },
+			{ "supports", aClient->getSupports().getAll() },
 		};
 	}
 
@@ -338,7 +341,7 @@ namespace webserver {
 			OnlineUserUtils::PROP_SHARED, OnlineUserUtils::PROP_DESCRIPTION, 
 			OnlineUserUtils::PROP_TAG, OnlineUserUtils::PROP_UPLOAD_SPEED, 
 			OnlineUserUtils::PROP_DOWNLOAD_SPEED, OnlineUserUtils::PROP_EMAIL, 
-			OnlineUserUtils::PROP_FILES, OnlineUserUtils::PROP_FLAGS,
+			OnlineUserUtils::PROP_FILES, OnlineUserUtils::PROP_FLAGS, OnlineUserUtils::PROP_SUPPORTS,
 			OnlineUserUtils::PROP_UPLOAD_SLOTS
 		});
 	}

@@ -20,10 +20,10 @@
 #define DCPLUSPLUS_DCPP_PREVIEWAPP_MANAGER_H
 
 #include <airdcpp/forward.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/types/GetSet.h>
 
-#include <airdcpp/SettingsManagerListener.h>
-#include <airdcpp/Singleton.h>
+#include <airdcpp/settings/SettingsManagerListener.h>
+#include <airdcpp/core/Singleton.h>
 
 namespace dcpp {
 

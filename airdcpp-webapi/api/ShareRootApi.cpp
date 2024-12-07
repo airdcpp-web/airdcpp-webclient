@@ -24,17 +24,19 @@
 
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
-#include <airdcpp/HashManager.h>
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/hash/HashManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/share/ShareManager.h>
 
 namespace webserver {
 	ShareRootApi::ShareRootApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::SETTINGS_VIEW, { "share_root_created", "share_root_updated", "share_root_removed" }),
+		SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
 		roots(ShareManager::getInstance()->getRootInfos()),
 		rootView("share_root_view", this, ShareUtils::propertyHandler, std::bind(&ShareRootApi::getRoots, this)),
 		timer(getTimer([this] { onTimer(); }, 5000)) 
 	{
+		createSubscriptions({ "share_root_created", "share_root_updated", "share_root_removed" });
+
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,		(),				ShareRootApi::handleGetRoots);
 
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,		(),				ShareRootApi::handleAddRoot);
@@ -73,13 +75,13 @@ namespace webserver {
 	api_return ShareRootApi::handleAddRoot(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		auto path = Util::validatePath(JsonUtil::getField<string>("path", reqJson, false), true);
+		auto path = PathUtil::validateDirectoryPath(JsonUtil::getField<string>("path", reqJson, false));
 
 		// Validate the path
 		try {
 			ShareManager::getInstance()->validateRootPath(path);
 		} catch (ShareException& e) {
-			JsonUtil::throwError("path", JsonUtil::ERROR_INVALID, e.what());
+			JsonUtil::throwError("path", JsonException::ERROR_INVALID, e.what());
 		}
 
 		auto info = std::make_shared<ShareDirectoryInfo>(path);
@@ -214,7 +216,7 @@ namespace webserver {
 			auto newProfiles = *profiles;
 			for (const auto& p : newProfiles) {
 				if (!ShareManager::getInstance()->getShareProfile(p)) {
-					JsonUtil::throwError("profiles", JsonUtil::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
+					JsonUtil::throwError("profiles", JsonException::ERROR_INVALID, "Share profile " +  Util::toString(p)  + " was not found");
 				}
 			}
 
@@ -239,7 +241,7 @@ namespace webserver {
 
 			for (const auto& p : hashedPaths) {
 				auto i = ranges::find_if(roots, [&](const ShareDirectoryInfoPtr& aInfo) {
-					return AirUtil::isParentOrExactLocal(aInfo->path, p);
+					return PathUtil::isParentOrExactLocal(aInfo->path, p);
 				});
 
 				if (i != roots.end()) {
@@ -264,8 +266,8 @@ namespace webserver {
 		}
 	}
 
-	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile&) noexcept {
+	void ShareRootApi::on(HashManagerListener::FileHashed, const string& aFilePath, HashedFile&, int) noexcept {
 		WLock l(cs);
-		hashedPaths.insert(Util::getFilePath(aFilePath));
+		hashedPaths.insert(PathUtil::getFilePath(aFilePath));
 	}
 }

@@ -27,7 +27,8 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/File.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
 
 
 #define EXTENSION_PARAM_ID "extension"
@@ -41,15 +42,16 @@ namespace webserver {
 		"extension_installation_failed",
 	};
 
-	ExtensionApi::ExtensionApi(Session* aSession) : /*HookApiModule(aSession, Access::ADMIN, nullptr, Access::ADMIN),*/ 
-		em(aSession->getServer()->getExtensionManager()),
-		ParentApiModule(EXTENSION_PARAM, Access::SETTINGS_VIEW, aSession, ExtensionApi::subscriptionList,
-			ExtensionInfo::subscriptionList,
+	ExtensionApi::ExtensionApi(Session* aSession) : 
+		ParentApiModule(EXTENSION_PARAM, Access::SETTINGS_VIEW, aSession,
 			[](const string& aId) { return aId; },
 			[](const ExtensionInfo& aInfo) { return ExtensionInfo::serializeExtension(aInfo.getExtension()); }
-		)
+		),
+		em(aSession->getServer()->getExtensionManager())
 	{
 		em.addListener(this);
+
+		createSubscriptions(subscriptionList, ExtensionInfo::subscriptionList);
 
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (), ExtensionApi::handlePostExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("download")), ExtensionApi::handleDownloadExtension);
@@ -94,7 +96,7 @@ namespace webserver {
 		auto sha = JsonUtil::getOptionalFieldDefault<string>("shasum", reqJson, Util::emptyString);
 
 		if (Util::findSubString(url, "http://") != 0 && Util::findSubString(url, "https://") != 0) {
-			JsonUtil::throwError("url", JsonUtil::ERROR_INVALID, "Invalid URL");
+			JsonUtil::throwError("url", JsonException::ERROR_INVALID, "Invalid URL");
 		}
 
 		if (!em.downloadExtension(installId, url, sha)) {

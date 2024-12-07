@@ -19,7 +19,7 @@
 #ifndef DCPLUSPLUS_DCPP_VIEWTASKS_H
 #define DCPLUSPLUS_DCPP_VIEWTASKS_H
 
-#include <airdcpp/CriticalSection.h>
+#include <airdcpp/core/thread/CriticalSection.h>
 
 
 namespace webserver {
@@ -61,7 +61,7 @@ public:
 		}
 	};
 
-	typedef map<T, MergeTask> TaskMap;
+	using TaskMap = map<T, MergeTask>;
 
 	void addItem(const T& aItem) {
 		WLock l(cs);

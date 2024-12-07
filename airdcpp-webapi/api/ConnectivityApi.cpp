@@ -23,13 +23,15 @@
 
 #include <api/common/Serializer.h>
 
-#include <airdcpp/ConnectionManager.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/search/SearchManager.h>
 
 namespace webserver {
 	ConnectivityApi::ConnectivityApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::SETTINGS_VIEW, { "connectivity_detection_message", "connectivity_detection_started", "connectivity_detection_finished" }) 
+		SubscribableApiModule(aSession, Access::SETTINGS_VIEW) 
 	{
+		createSubscriptions({ "connectivity_detection_message", "connectivity_detection_started", "connectivity_detection_finished" });
+
 		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("status")), ConnectivityApi::handleGetStatus);
 		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("detect")), ConnectivityApi::handleDetect);
 

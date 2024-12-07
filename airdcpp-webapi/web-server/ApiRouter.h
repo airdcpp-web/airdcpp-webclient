@@ -21,21 +21,16 @@
 
 #include "forward.h"
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 namespace webserver {
+	struct RouterRequest;
+
 	class ApiRouter {
 	public:
-		ApiRouter();
-		~ApiRouter();
-
-		void handleSocketRequest(const std::string& aMessage, const WebSocketPtr& aSocket, bool aIsSecure) noexcept;
-		api_return handleHttpRequest(const std::string& aRequestPath, const websocketpp::http::parser::request& aRequest,
-			json& output_, json& error_, bool aIsSecure, const string& aIp, const SessionPtr& aSession, const ApiDeferredHandler& aDeferredHandler) noexcept;
+		static api_return handleRequest(RouterRequest& aRequest) noexcept;
 	private:
-		api_return handleRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp) noexcept;
-
-		api_return routeAuthRequest(ApiRequest& aRequest, bool aIsSecure, const WebSocketPtr& aSocket, const string& aIp);
+		static api_return routeAuthRequest(RouterRequest& aRequest);
 	};
 }
 

@@ -17,42 +17,55 @@
  */
 
 #include "stdinc.h"
-#include "DCPlusPlus.h"
+#include <airdcpp/DCPlusPlus.h>
 
-#include "format.h"
-#include "File.h"
-#include "StringTokenizer.h"
+#include <airdcpp/core/header/format.h>
+#include <airdcpp/util/AppUtil.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/util/ValueGenerator.h>
 
-#include "ActivityManager.h"
-#include "AirUtil.h"
-#include "ClientManager.h"
-#include "ConnectionManager.h"
-#include "ConnectivityManager.h"
-#include "CryptoManager.h"
-#include "DebugManager.h"
-#include "DirectoryListingManager.h"
-#include "DownloadManager.h"
-#include "FavoriteManager.h"
-#include "GeoManager.h"
-#include "HashManager.h"
-#include "IgnoreManager.h"
-#include "Localization.h"
-#include "LogManager.h"
-#include "PrivateChatManager.h"
-#include "QueueManager.h"
-#include "RecentManager.h"
-#include "ShareManager.h"
-#include "SearchManager.h"
-#include "SettingsManager.h"
-#include "ThrottleManager.h"
-#include "TransferInfoManager.h"
-#include "UpdateManager.h"
-#include "UploadManager.h"
-#include "ViewFileManager.h"
+#include <airdcpp/hub/activity/ActivityManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/connectivity/ConnectivityManager.h>
+#include <airdcpp/core/crypto/CryptoManager.h>
+#include <airdcpp/protocol/ProtocolCommandManager.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/transfer/download/DownloadManager.h>
+#include <airdcpp/favorites/FavoriteManager.h>
+#include <airdcpp/favorites/FavoriteUserManager.h>
+#include <airdcpp/core/geo/GeoManager.h>
+#include <airdcpp/hash/HashManager.h>
+#include <airdcpp/user/ignore/IgnoreManager.h>
+#include <airdcpp/core/localization/Localization.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/queue/partial_sharing/PartialSharingManager.h>
+#include <airdcpp/private_chat/PrivateChatManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/recents/RecentManager.h>
+#include <airdcpp/share/ShareManager.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/settings/SettingsManager.h>
+#include <airdcpp/share/temp_share/TempShareManager.h>
+#include <airdcpp/connection/ThrottleManager.h>
+#include <airdcpp/transfer/TransferInfoManager.h>
+#include <airdcpp/transfer/upload/upload_bundles/UploadBundleManager.h>
+#include <airdcpp/core/update/UpdateManager.h>
+#include <airdcpp/transfer/upload/UploadManager.h>
+#include <airdcpp/hub/user_command/UserCommandManager.h>
+#include <airdcpp/viewed_files/ViewFileManager.h>
 
 namespace dcpp {
 
-#define RUNNING_FLAG Util::getPath(Util::PATH_USER_LOCAL) + "RUNNING"
+#define RUNNING_FLAG AppUtil::getPath(AppUtil::PATH_USER_LOCAL) + "RUNNING"
+
+void initializeUtil(const string& aConfigPath) noexcept {
+	AppUtil::initialize(aConfigPath);
+	ValueGenerator::initialize();
+	Text::initialize();
+}
 
 void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizardF, ProgressFunction aProgressF, Callback aModuleInitF /*nullptr*/, StartupLoadCallback aModuleLoadF /*nullptr*/) {
 	// "Dedicated to the near-memory of Nev. Let's start remembering people while they're still alive."
@@ -66,15 +79,14 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 #endif
 
 	//create the running flag
-	if (Util::fileExists(RUNNING_FLAG)) {
-		Util::wasUncleanShutdown = true;
+	if (PathUtil::fileExists(RUNNING_FLAG)) {
+		AppUtil::wasUncleanShutdown = true;
 	} else {
 		File::createFile(RUNNING_FLAG);
 	}
 
 	ResourceManager::newInstance();
 	SettingsManager::newInstance();
-	AirUtil::init();
 
 	LogManager::newInstance();
 	TimerManager::newInstance();
@@ -90,9 +102,10 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	ThrottleManager::newInstance();
 	QueueManager::newInstance();
 	FavoriteManager::newInstance();
+	FavoriteUserManager::newInstance();
 	ConnectivityManager::newInstance();
 	DirectoryListingManager::newInstance();
-	DebugManager::newInstance();
+	ProtocolCommandManager::newInstance();
 	GeoManager::newInstance();
 	UpdateManager::newInstance();
 	ViewFileManager::newInstance();
@@ -100,6 +113,10 @@ void startup(StepFunction aStepF, MessageFunction aMessageF, Callback aRunWizard
 	RecentManager::newInstance();
 	IgnoreManager::newInstance();
 	TransferInfoManager::newInstance();
+	PartialSharingManager::newInstance();
+	UploadBundleManager::newInstance();
+	UserCommandManager::newInstance();
+	TempShareManager::newInstance();
 
 	if (aModuleInitF) {
 		aModuleInitF();
@@ -209,6 +226,10 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 		aModuleDestroyF();
 	}
 
+	TempShareManager::deleteInstance();
+	UserCommandManager::deleteInstance();
+	UploadBundleManager::deleteInstance();
+	PartialSharingManager::deleteInstance();
 	TransferInfoManager::deleteInstance();
 	IgnoreManager::deleteInstance();
 	RecentManager::deleteInstance();
@@ -217,10 +238,11 @@ void shutdown(StepFunction stepF, ProgressFunction progressF, ShutdownUnloadCall
 	UpdateManager::deleteInstance();
 	GeoManager::deleteInstance();
 	ConnectivityManager::deleteInstance();
-	DebugManager::deleteInstance();
+	ProtocolCommandManager::deleteInstance();
 	CryptoManager::deleteInstance();
 	ThrottleManager::deleteInstance();
 	DirectoryListingManager::deleteInstance();
+	FavoriteUserManager::deleteInstance();
 	QueueManager::deleteInstance();
 	DownloadManager::deleteInstance();
 	UploadManager::deleteInstance();

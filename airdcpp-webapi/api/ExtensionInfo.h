@@ -23,7 +23,7 @@
 
 #include <api/base/HierarchicalApiModule.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 namespace webserver {
 	class ExtensionManager;
@@ -57,10 +57,12 @@ namespace webserver {
 		void on(ExtensionListener::ExtensionStarted, const Extension*) noexcept override;
 		void on(ExtensionListener::ExtensionStopped, const Extension*, bool aFailed) noexcept override;
 		void on(ExtensionListener::PackageUpdated, const Extension*) noexcept override;
+		void on(ExtensionListener::StateUpdated, const Extension*) noexcept override;
 
 		api_return handleStartExtension(ApiRequest& aRequest);
 		api_return handleStopExtension(ApiRequest& aRequest);
 		api_return handleReady(ApiRequest& aRequest);
+		api_return handleUpdateProperties(ApiRequest& aRequest);
 
 		api_return handleGetSettingDefinitions(ApiRequest& aRequest);
 		api_return handlePostSettingDefinitions(ApiRequest& aRequest);

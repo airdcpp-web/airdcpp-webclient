@@ -19,8 +19,8 @@
 #ifndef COLORSETTINGS_H
 #define COLORSETTINGS_H
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/types/GetSet.h>
 
 namespace dcpp {
 class ColorSettings

@@ -28,7 +28,8 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/File.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
 
 
 namespace webserver {
@@ -41,9 +42,12 @@ namespace webserver {
 	};
 
 	ExtensionInfo::ExtensionInfo(ParentType* aParentModule, const ExtensionPtr& aExtension) : 
-		SubApiModule(aParentModule, aExtension->getName(), subscriptionList),
+		SubApiModule(aParentModule, aExtension->getName()),
 		extension(aExtension) 
 	{
+		createSubscriptions(subscriptionList);
+
+		METHOD_HANDLER(Access::ADMIN, METHOD_PATCH, (), ExtensionInfo::handleUpdateProperties);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("start")), ExtensionInfo::handleStartExtension);
 		METHOD_HANDLER(Access::ADMIN, METHOD_POST, (EXACT_PARAM("stop")), ExtensionInfo::handleStopExtension);
 		METHOD_HANDLER(Access::ANY, METHOD_POST, (EXACT_PARAM("ready")), ExtensionInfo::handleReady);
@@ -65,6 +69,17 @@ namespace webserver {
 
 	ExtensionInfo::~ExtensionInfo() {
 		extension->removeListener(this);
+	}
+
+	api_return ExtensionInfo::handleUpdateProperties(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+
+		auto disabled = JsonUtil::getOptionalField<bool>("disabled", reqJson, false);
+		if (disabled) {
+			extension->setDisabled(*disabled);
+		}
+
+		return websocketpp::http::status_code::no_content;
 	}
 
 	api_return ExtensionInfo::handleStartExtension(ApiRequest& aRequest) {
@@ -125,13 +140,13 @@ namespace webserver {
 
 	api_return ExtensionInfo::handlePostSettings(ApiRequest& aRequest) {
 		SettingValueMap settings;
-		UserList userReferences;
+		SettingReferenceList userReferences;
 
 		// Validate values
 		for (const auto& elem : aRequest.getRequestBody().items()) {
 			auto setting = extension->getSetting(elem.key());
 			if (!setting) {
-				JsonUtil::throwError(elem.key(), JsonUtil::ERROR_INVALID, "Setting not found");
+				JsonUtil::throwError(elem.key(), JsonException::ERROR_INVALID, "Setting not found");
 			}
 
 			settings[elem.key()] = SettingUtils::validateValue(elem.value(), *setting, &userReferences);
@@ -150,6 +165,7 @@ namespace webserver {
 			{ "version", aExtension->getVersion() },
 			{ "homepage", aExtension->getHomepage() },
 			{ "author", aExtension->getAuthor() },
+			{ "disabled", aExtension->isDisabled() },
 			{ "running", aExtension->isRunning() },
 			{ "private", aExtension->isPrivate() },
 			{ "logs", ExtensionInfo::serializeLogs(aExtension) },
@@ -175,6 +191,14 @@ namespace webserver {
 
 	json ExtensionInfo::serializeLogs(const ExtensionPtr& aExtension) noexcept {
 		return Serializer::serializeList(aExtension->getLogs(), Serializer::serializeFilesystemItem);
+	}
+
+	void ExtensionInfo::on(ExtensionListener::StateUpdated, const Extension*) noexcept {
+		onUpdated([&] {
+			return json({
+				{ "disabled", extension->isDisabled() }
+			});
+		});
 	}
 
 	void ExtensionInfo::on(ExtensionListener::ExtensionStarted, const Extension*) noexcept {

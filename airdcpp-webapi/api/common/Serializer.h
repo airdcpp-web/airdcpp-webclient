@@ -23,13 +23,14 @@
 
 #include <web-server/Access.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/tribool.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/classes/tribool.h>
 
-#include <airdcpp/DirectoryDownload.h>
-#include <airdcpp/DupeType.h>
-#include <airdcpp/QueueItemBase.h>
-#include <airdcpp/TrackableDownloadItem.h>
+#include <airdcpp/core/types/DirectoryContentInfo.h>
+#include <airdcpp/filelist/DirectoryDownload.h>
+#include <airdcpp/core/types/DupeType.h>
+#include <airdcpp/queue/QueueItemBase.h>
+#include <airdcpp/transfer/download/TrackableDownloadItem.h>
 
 
 namespace dcpp {
@@ -45,10 +46,11 @@ namespace webserver {
 		static json serializeUser(const UserPtr& aUser) noexcept;
 		static json serializeHintedUser(const HintedUser& aUser) noexcept;
 		static json serializeOnlineUser(const OnlineUserPtr& aUser) noexcept;
+		static json serializeClient(const Client* aClient) noexcept;
 
 		static string toFileContentType(const string& aExt) noexcept;
 		static string getFileTypeId(const string& aName) noexcept;
-		static json serializeFileType(const string& aPath) noexcept;
+		static json serializeFileType(const string& aName) noexcept;
 		static json serializeFolderType(const DirectoryContentInfo& aContentInfo) noexcept;
 
 		static json serializeIp(const string& aIP) noexcept;
@@ -94,8 +96,8 @@ namespace webserver {
 				throw std::domain_error("Invalid range");
 			}
 
-			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
-			auto beginIter = aList.begin();
+			auto listSize = static_cast<int>(std::distance(std::begin(aList), std::end(aList)));
+			auto beginIter = std::begin(aList);
 			if (aCount > 0 && listSize > aCount) {
 				std::advance(beginIter, listSize - aCount);
 			}
@@ -115,26 +117,26 @@ namespace webserver {
 				throw std::domain_error("Invalid range");
 			}
 
-			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
-			auto endIter = aList.end();
+			auto listSize = static_cast<int>(std::distance(std::begin(aList), std::end(aList)));
+			auto endIter = std::end(aList);
 			if (aCount > 0 && listSize > aCount) {
-				endIter = aList.begin();
+				endIter = std::begin(aList);
 				std::advance(endIter, aCount);
 			}
 
-			return serializeRange(aList.begin(), endIter, aF);
+			return serializeRange(std::begin(aList), endIter, aF);
 		}
 
 		template <class ContainerT, class FuncT>
 		static json serializeList(const ContainerT& aList, const FuncT& aF) noexcept {
-			return serializeRange(aList.begin(), aList.end(), aF);
+			return serializeRange(std::begin(aList), std::end(aList), aF);
 		}
 
 		// Serialize n messages from position
 		// Throws for invalid parameters
 		template <class ContainerT, class FuncT>
 		static json serializeFromPosition(int aBeginPos, int aCount, const ContainerT& aList, const FuncT& aF) {
-			auto listSize = static_cast<int>(std::distance(aList.begin(), aList.end()));
+			auto listSize = static_cast<int>(std::distance(std::begin(aList), std::end(aList)));
 			if (listSize == 0) {
 				return json::array();
 			}
@@ -143,7 +145,7 @@ namespace webserver {
 				throw std::domain_error("Invalid range");
 			}
 
-			auto beginIter = aList.begin();
+			auto beginIter = std::begin(aList);
 			std::advance(beginIter, aBeginPos);
 
 			auto endIter = beginIter;
@@ -164,7 +166,7 @@ namespace webserver {
 		// Serialize a list of items provider by the handler
 		template <class T, class ContainerT>
 		static json serializeItemList(const PropertyItemHandler<T>& aHandler, const ContainerT& aItems) {
-			return Serializer::serializeRange(aItems.begin(), aItems.end(), [&aHandler](const T& aItem) {
+			return Serializer::serializeRange(std::begin(aItems), std::end(aItems), [&aHandler](const T& aItem) {
 				return Serializer::serializeItem(aItem, aHandler);
 			});
 		}

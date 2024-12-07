@@ -24,17 +24,17 @@
 #include <web-server/ExtensionListener.h>
 #include <web-server/ApiSettingItem.h>
 
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/User.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/user/User.h>
+#include <airdcpp/util/Util.h>
 
 namespace webserver {
-#define EXTENSION_DIR_ROOT Util::getPath(Util::PATH_USER_CONFIG) + "extensions" + PATH_SEPARATOR_STR
+#define EXTENSION_DIR_ROOT AppUtil::getPath(AppUtil::PATH_USER_CONFIG) + "extensions" + PATH_SEPARATOR_STR
 
 	class Extension : public Speaker<ExtensionListener> {
 	public:
-		typedef std::function<void(const Extension*, uint32_t /*exitCode*/)> ErrorF;
+		using ErrorF = std::function<void (const Extension*, uint32_t /*exitCode*/)>;
 
 		// Managed extension
 		// Throws on errors
@@ -44,7 +44,7 @@ namespace webserver {
 		// Throws on errors
 		Extension(const SessionPtr& aSession, const json& aPackageJson);
 
-		~Extension();
+		~Extension() override;
 
 		// Reload package.json from the supplied path
 		// Throws on errors
@@ -59,7 +59,7 @@ namespace webserver {
 
 		// Check that the extension is compatible with the current API
 		// Throws on errors
-		void checkCompatibilityThrow();
+		void checkCompatibilityThrow() const;
 
 #define EXT_ENGINE_NODE "node"
 
@@ -86,6 +86,9 @@ namespace webserver {
 		IGETSET(bool, ready, Ready, false);
 		GETSET(StringList, engines, Engines);
 
+		bool isDisabled() const noexcept;
+		void setDisabled(bool aDisabled) noexcept;
+
 		bool isRunning() const noexcept {
 			return running;
 		}
@@ -104,11 +107,11 @@ namespace webserver {
 		void resetSettings() noexcept;
 		void resetSession() noexcept;
 
-		typedef map<string, json> SettingValueMap;
+		using SettingValueMap = map<string, json>;
 
 		// Values and keys should have been validated earlier
-		void setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept;
-		SettingValueMap getSettingValues() noexcept;
+		void setValidatedSettingValues(const SettingValueMap& aValues, const SettingReferenceList& aReferences) noexcept;
+		SettingValueMap getSettingValues() const noexcept;
 
 		void swapSettingDefinitions(ExtensionSettingItem::List& aDefinitions) noexcept;
 
@@ -117,6 +120,8 @@ namespace webserver {
 		Extension(Extension&) = delete;
 		Extension& operator=(Extension&) = delete;
 	private:
+		string getDisabledFlag() const noexcept;
+
 		int apiVersion = 0;
 		int minApiFeatureLevel = 0;
 
@@ -128,7 +133,8 @@ namespace webserver {
 		ExtensionSettingItem::List settings;
 
 		// Keep references to all users in settings to avoid them from being deleted
-		unordered_set<UserPtr, User::Hash> userReferences;
+		// unordered_set<UserPtr, User::Hash> userReferences;
+		unordered_set<SettingReference> references;
 
 		// Load package JSON
 		// Throws on errors

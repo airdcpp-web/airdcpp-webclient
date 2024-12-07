@@ -23,14 +23,13 @@
 
 #include <web-server/LazyInitWrapper.h>
 #include <web-server/SessionListener.h>
-#include <web-server/WebUser.h>
 
 #include <api/base/ApiModule.h>
 
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/GetSet.h>
-#include <airdcpp/typedefs.h>
-#include <airdcpp/Speaker.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/Speaker.h>
 
 namespace webserver {
 	// Sessions are owned by WebUserManager and WebSockets (websockets are closed when session is removed)
@@ -44,7 +43,7 @@ namespace webserver {
 		};
 
 		Session(const WebUserPtr& aUser, const std::string& aToken, SessionType aSessionType, WebServerManager* aServer, uint64_t maxInactivityMinutes, const string& aIP);
-		~Session();
+		~Session() override;
 
 		const std::string& getAuthToken() const noexcept {
 			return token;
@@ -90,11 +89,13 @@ namespace webserver {
 		}
 
 		void reportError(const string& aError) noexcept;
-	private:
+		bool isTimeout(uint64_t aTick) const noexcept;
 	private:
 		const uint64_t maxInactivity;
 		const time_t started;
+
 		uint64_t lastActivity;
+		bool hasSocket = false;
 
 		const LocalSessionId id;
 		const std::string token;
@@ -106,7 +107,7 @@ namespace webserver {
 
 		mutable CriticalSection cs;
 
-		typedef LazyInitWrapper<ApiModule> LazyModuleWrapper;
+		using LazyModuleWrapper = LazyInitWrapper<ApiModule>;
 		std::map<std::string, LazyModuleWrapper> apiHandlers;
 	};
 }

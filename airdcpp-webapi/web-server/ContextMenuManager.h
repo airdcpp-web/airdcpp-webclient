@@ -22,17 +22,35 @@
 #include "forward.h"
 
 #include "Access.h"
+#include "ContextMenuItem.h"
+#include "ContextMenuManagerListener.h"
 
-#include <web-server/ApiSettingItem.h>
-
-#include <airdcpp/ActionHook.h>
-#include <airdcpp/GetSet.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Speaker.h>
-
+#include <airdcpp/core/ActionHook.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/core/Speaker.h>
 
 
-#define CONTEXT_MENU(type, name, name2) \
+
+struct ContextMenuItemClickData;
+class ContextMenuManagerListener {
+public:
+
+	virtual ~ContextMenuManagerListener() = default;
+	template<int I>	struct X { enum { TYPE = I }; };
+};
+
+
+
+#define CONTEXT_MENU(name, name2) \
+	ActionHook<GroupedContextMenuItemPtr, const ContextMenuItemListData&> name##MenuHook; \
+	GroupedContextMenuItemList get##name2##Menu(const ContextMenuItemListData& aListData) const noexcept { \
+		return ActionHook<GroupedContextMenuItemPtr>::normalizeData(name##MenuHook.runHooksData(aListData.caller, aListData)); \
+	} \
+	void onClick##name2##Item(const ContextMenuItemClickData& aClickData) noexcept { \
+		fire(ContextMenuManagerListener::name2##MenuSelected(), aClickData); \
+	}
+
+#define ID_CONTEXT_MENU(type, name, name2) \
 	ActionHook<GroupedContextMenuItemPtr, const vector<type>&, const ContextMenuItemListData&> name##MenuHook; \
 	GroupedContextMenuItemList get##name2##Menu(const vector<type>& aItems, const ContextMenuItemListData& aListData) const noexcept { \
 		return ActionHook<GroupedContextMenuItemPtr>::normalizeData(name##MenuHook.runHooksData(aListData.caller, aItems, aListData)); \
@@ -53,122 +71,47 @@
 
 
 namespace webserver {
-	typedef StringList ContextMenuSupportList;
 
-	struct ContextMenuItemListData {
-		ContextMenuItemListData(const ContextMenuSupportList& aSupports, const AccessList aAccess, const void* aCaller) noexcept :
-			supports(aSupports), access(aAccess), caller(aCaller) {}
+class ContextMenuManager : public Speaker<ContextMenuManagerListener>
+{
 
-		const void* caller;
-		const ContextMenuSupportList supports;
-		const AccessList access;
-	};
+public:
+	static const string URLS_SUPPORT;
 
-	struct ContextMenuItemClickData {
-		ContextMenuItemClickData(const string& aHookId, const string& aMenuItemId, const ContextMenuSupportList& aSupports, const AccessList aAccess, const SettingValueMap& aFormValues) noexcept :
-			hookId(aHookId), menuItemId(aMenuItemId), supports(aSupports), access(aAccess), formValues(aFormValues) {}
+	ID_CONTEXT_MENU(QueueToken, queueBundle, QueueBundle);
+	ID_CONTEXT_MENU(QueueToken, queueFile, QueueFile);
+	ID_CONTEXT_MENU(TTHValue, shareRoot, ShareRoot);
+	ID_CONTEXT_MENU(TransferToken, transfer, Transfer);
+	ID_CONTEXT_MENU(FavoriteHubToken, favoriteHub, FavoriteHub);
+	ID_CONTEXT_MENU(string, extension, Extension);
 
-		const string hookId;
-		const string menuItemId;
-		const ContextMenuSupportList supports;
-		const AccessList access;
-		const SettingValueMap formValues;
-	};
+	ID_CONTEXT_MENU(HintedUser, hintedUser, HintedUser);
+	ID_CONTEXT_MENU(CID, user, User);
 
-	class ContextMenuManagerListener {
-	public:
+	// Sessions
+	ID_CONTEXT_MENU(ClientToken, hub, Hub);
+	ID_CONTEXT_MENU(CID, privateChat, PrivateChat);
+	ID_CONTEXT_MENU(CID, filelist, Filelist);
+	ID_CONTEXT_MENU(TTHValue, viewedFile, ViewedFile);
+	ID_CONTEXT_MENU(SearchInstanceToken, searchInstance, SearchInstance);
 
-		virtual ~ContextMenuManagerListener() { }
-		template<int I>	struct X { enum { TYPE = I }; };
+	// Entities
+	ENTITY_CONTEXT_MENU(DirectoryListingItemToken, filelistItem, FilelistItem, DirectoryListingPtr);
+	ENTITY_CONTEXT_MENU(TTHValue, groupedSearchResult, GroupedSearchResult, SearchInstancePtr);
+	ENTITY_CONTEXT_MENU(dcpp::SID, hubUser, HubUser, ClientPtr);
+	ENTITY_CONTEXT_MENU(MessageHighlightToken, hubMessageHighlight, HubMessageHighlight, ClientPtr);
+	ENTITY_CONTEXT_MENU(MessageHighlightToken, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
 
-		typedef X<1> QueueBundleMenuSelected;
-		typedef X<2> QueueFileMenuSelected;
-		typedef X<3> TransferMenuSelected;
-		typedef X<4> ShareRootMenuSelected;
-		typedef X<5> FavoriteHubMenuSelected;
-		typedef X<6> UserMenuSelected;
-		typedef X<8> HintedUserMenuSelected;
-		typedef X<9> ExtensionMenuSelected;
+	// Generic
+	CONTEXT_MENU(transfers, Transfers);
+	CONTEXT_MENU(shareRoots, ShareRoots);
+	CONTEXT_MENU(events, Events);
+	CONTEXT_MENU(favoriteHubs, FavoriteHubs);
+	CONTEXT_MENU(queue, Queue);
 
-		typedef X<15> FilelistItemMenuSelected;
-		typedef X<16> GroupedSearchResultMenuSelected;
-		typedef X<17> HubUserMenuSelected;
-		typedef X<18> HubMessageHighlightMenuSelected;
-		typedef X<19> PrivateChatMessageHighlightMenuSelected;
-
-
-		virtual void on(QueueBundleMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(QueueFileMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(TransferMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(ShareRootMenuSelected, const vector<TTHValue>&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(FavoriteHubMenuSelected, const vector<uint32_t>&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(UserMenuSelected, const vector<CID>&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(HintedUserMenuSelected, const vector<HintedUser>&, const ContextMenuItemClickData&) noexcept { }
-
-		virtual void on(ExtensionMenuSelected, const vector<string>&, const ContextMenuItemClickData&) noexcept { }
-
-		virtual void on(FilelistItemMenuSelected, const vector<uint32_t>&, const DirectoryListingPtr&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(GroupedSearchResultMenuSelected, const vector<TTHValue>&, const SearchInstancePtr&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(HubUserMenuSelected, const vector<uint32_t>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(HubMessageHighlightMenuSelected, const vector<uint32_t>&, const ClientPtr&, const ContextMenuItemClickData&) noexcept { }
-		virtual void on(PrivateChatMessageHighlightMenuSelected, const vector<uint32_t>&, const PrivateChatPtr&, const ContextMenuItemClickData&) noexcept { }
-	};
-
-	class ContextMenuItem {
-	public:
-		ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const ActionHookSubscriber& aHook, const StringList& aUrls, const ExtensionSettingItem::List& aFormFieldDefinitions) :
-			id(aId), title(aTitle), iconInfo(aIconInfo), hook(aHook), urls(aUrls), formFieldDefinitions(aFormFieldDefinitions) {
-
-		}
-
-		GETSET(string, id, Id);
-		GETSET(string, title, Title);
-		GETSET(StringMap, iconInfo, IconInfo);
-		GETSET(ActionHookSubscriber, hook, Hook);
-		GETSET(StringList, urls, Urls);
-		GETSET(ExtensionSettingItem::List, formFieldDefinitions, FormFieldDefinitions);
-	private:
-	};
-
-	class GroupedContextMenuItem {
-	public:
-		GroupedContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const ContextMenuItemList& aItems) :
-			id(aId), title(aTitle), iconInfo(aIconInfo), items(aItems) {
-
-		}
-
-		GETSET(string, id, Id);
-		GETSET(string, title, Title);
-		GETSET(StringMap, iconInfo, IconInfo);
-
-		GETSET(ContextMenuItemList, items, Items);
-	};
-
-	class ContextMenuManager : public Speaker<ContextMenuManagerListener>
-	{
-
-	public:
-		static const string URLS_SUPPORT;
-
-		CONTEXT_MENU(uint32_t, queueBundle, QueueBundle);
-		CONTEXT_MENU(uint32_t, queueFile, QueueFile);
-		CONTEXT_MENU(TTHValue, shareRoot, ShareRoot);
-		CONTEXT_MENU(CID, user, User);
-		CONTEXT_MENU(uint32_t, transfer, Transfer);
-		CONTEXT_MENU(uint32_t, favoriteHub, FavoriteHub);
-		CONTEXT_MENU(HintedUser, hintedUser, HintedUser);
-		CONTEXT_MENU(string, extension, Extension);
-
-		ENTITY_CONTEXT_MENU(uint32_t, filelistItem, FilelistItem, DirectoryListingPtr);
-		ENTITY_CONTEXT_MENU(TTHValue, groupedSearchResult, GroupedSearchResult, SearchInstancePtr);
-		ENTITY_CONTEXT_MENU(uint32_t, hubUser, HubUser, ClientPtr);
-		ENTITY_CONTEXT_MENU(uint32_t, hubMessageHighlight, HubMessageHighlight, ClientPtr);
-		ENTITY_CONTEXT_MENU(uint32_t, privateChatMessageHighlight, PrivateChatMessageHighlight, PrivateChatPtr);
-
-		ContextMenuManager();
-		~ContextMenuManager();
-	private:
-	};
+	ContextMenuManager();
+	~ContextMenuManager() override;
+};
 
 } // namespace webserver
 

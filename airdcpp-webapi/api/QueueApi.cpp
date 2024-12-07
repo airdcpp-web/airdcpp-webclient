@@ -17,16 +17,18 @@
 */
 
 #include "stdinc.h"
-#include <web-server/JsonUtil.h>
 
 #include <api/QueueApi.h>
+
+#include <web-server/JsonUtil.h>
+#include <web-server/WebServerSettings.h>
 
 #include <api/common/Serializer.h>
 #include <api/common/Deserializer.h>
 
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/DownloadManager.h>
-#include <airdcpp/SearchManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/transfer/download/DownloadManager.h>
+#include <airdcpp/search/SearchManager.h>
 
 
 
@@ -41,77 +43,42 @@ namespace webserver {
 #define HOOK_ADD_SOURCE "queue_add_source_hook"
 
 	QueueApi::QueueApi(Session* aSession) : 
-		HookApiModule(
-			aSession, 
-			Access::QUEUE_VIEW, 
-			{
-				"queue_bundle_added",
-				"queue_bundle_removed",
-				"queue_bundle_updated",
-
-				// These are included in queue_bundle_updated events as well
-				"queue_bundle_tick",
-				"queue_bundle_content",
-				"queue_bundle_priority",
-				"queue_bundle_status",
-				"queue_bundle_sources",
-
-				"queue_file_added",
-				"queue_file_removed",
-				"queue_file_updated",
-
-				// These are included in queue_file_updated events as well
-				"queue_file_priority",
-				"queue_file_status",
-				"queue_file_sources",
-				"queue_file_tick",
-			}, 
-			Access::QUEUE_EDIT
-		), 
+		HookApiModule(aSession, Access::QUEUE_VIEW, Access::QUEUE_EDIT), 
 		bundleView("queue_bundle_view", this, QueueBundleUtils::propertyHandler, getBundleList), 
 		fileView("queue_file_view", this, QueueFileUtils::propertyHandler, getFileList) 
 	{
+		createSubscriptions({
+			"queue_bundle_added",
+			"queue_bundle_removed",
+			"queue_bundle_updated",
 
-		createHook(HOOK_FILE_FINISHED, [this](ActionHookSubscriber&& aSubscriber) {
-			return QueueManager::getInstance()->fileCompletionHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::fileCompletionHook));
-		}, [this](const string& aId) {
-			QueueManager::getInstance()->fileCompletionHook.removeSubscriber(aId);
-		}, [this] {
-			return QueueManager::getInstance()->fileCompletionHook.getSubscribers();
+			// These are included in queue_bundle_updated events as well
+			"queue_bundle_tick",
+			"queue_bundle_content",
+			"queue_bundle_priority",
+			"queue_bundle_status",
+			"queue_bundle_sources",
+
+			"queue_file_added",
+			"queue_file_removed",
+			"queue_file_updated",
+
+			// These are included in queue_file_updated events as well
+			"queue_file_priority",
+			"queue_file_status",
+			"queue_file_sources",
+			"queue_file_tick",
 		});
 
-		createHook(HOOK_BUNDLE_FINISHED, [this](ActionHookSubscriber&& aSubscriber) {
-			return QueueManager::getInstance()->bundleCompletionHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleCompletionHook));
-		}, [this](const string& aId) {
-			QueueManager::getInstance()->bundleCompletionHook.removeSubscriber(aId);
-		}, [this] {
-			return QueueManager::getInstance()->bundleCompletionHook.getSubscribers();
-		});
+		// Hooks
+		HOOK_HANDLER(HOOK_FILE_FINISHED,	QueueManager::getInstance()->fileCompletionHook,	QueueApi::fileCompletionHook);
+		HOOK_HANDLER(HOOK_BUNDLE_FINISHED,	QueueManager::getInstance()->bundleCompletionHook,	QueueApi::bundleCompletionHook);
 
-		createHook(HOOK_ADD_BUNDLE, [this](ActionHookSubscriber&& aSubscriber) {
-			return QueueManager::getInstance()->bundleValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleAddHook));
-		}, [this](const string& aId) {
-			QueueManager::getInstance()->bundleValidationHook.removeSubscriber(aId);
-		}, [this] {
-			return QueueManager::getInstance()->bundleValidationHook.getSubscribers();
-		});
+		HOOK_HANDLER(HOOK_ADD_BUNDLE,		QueueManager::getInstance()->bundleValidationHook,		QueueApi::bundleAddHook);
+		HOOK_HANDLER(HOOK_ADD_BUNDLE_FILE,	QueueManager::getInstance()->bundleFileValidationHook,	QueueApi::bundleFileAddHook);
+		HOOK_HANDLER(HOOK_ADD_SOURCE,		QueueManager::getInstance()->sourceValidationHook,		QueueApi::sourceAddHook);
 
-		createHook(HOOK_ADD_BUNDLE_FILE, [this](ActionHookSubscriber&& aSubscriber) {
-			return QueueManager::getInstance()->bundleFileValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::bundleFileAddHook));
-		}, [this](const string& aId) {
-			QueueManager::getInstance()->bundleFileValidationHook.removeSubscriber(aId);
-		}, [this] {
-			return QueueManager::getInstance()->bundleFileValidationHook.getSubscribers();
-		});
-
-		createHook(HOOK_ADD_SOURCE, [this](ActionHookSubscriber&& aSubscriber) {
-			return QueueManager::getInstance()->sourceValidationHook.addSubscriber(std::move(aSubscriber), HOOK_HANDLER(QueueApi::sourceAddHook));
-		}, [this](const string& aId) {
-			QueueManager::getInstance()->sourceValidationHook.removeSubscriber(aId);
-		}, [this] {
-			return QueueManager::getInstance()->sourceValidationHook.getSubscribers();
-		});
-
+		// Methods
 		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("bundles"), RANGE_START_PARAM, RANGE_MAX_PARAM),			QueueApi::handleGetBundles);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("remove_completed")),				QueueApi::handleRemoveCompletedBundles);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), EXACT_PARAM("priority")),						QueueApi::handleBundlePriorities);
@@ -127,11 +94,13 @@ namespace webserver {
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("remove")),			QueueApi::handleRemoveBundle);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("priority")),			QueueApi::handleBundlePriority);
 
-		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("search")),			QueueApi::handleSearchBundle);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("search")),			QueueApi::handleSearchBundleAlternates);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("bundles"), TOKEN_PARAM, EXACT_PARAM("share")),			QueueApi::handleShareBundle);
 
+		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),										QueueApi::handleGetFilesByTTH);
+
 		METHOD_HANDLER(Access::QUEUE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TOKEN_PARAM),									QueueApi::handleGetFile);
-		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("search")),				QueueApi::handleSearchFile);
+		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("search")),				QueueApi::handleSearchFileAlternates);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("priority")),			QueueApi::handleFilePriority);
 		METHOD_HANDLER(Access::QUEUE_EDIT,	METHOD_POST,	(EXACT_PARAM("files"), TOKEN_PARAM, EXACT_PARAM("remove")),				QueueApi::handleRemoveFile);
 
@@ -146,6 +115,7 @@ namespace webserver {
 		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),										QueueApi::handleFindDupePaths);
 		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("check_path_queued")),										QueueApi::handleIsPathQueued);
 
+		// Listeners
 		QueueManager::getInstance()->addListener(this);
 		DownloadManager::getInstance()->addListener(this);
 	}
@@ -157,14 +127,14 @@ namespace webserver {
 
 	ActionHookResult<BundleFileAddHookResult> QueueApi::bundleFileAddHook(const string& aTarget, BundleFileAddData& aInfo, const ActionHookResultGetter<BundleFileAddHookResult>& aResultGetter) noexcept {
 		return HookCompletionData::toResult<BundleFileAddHookResult>(
-			fireHook(HOOK_ADD_BUNDLE_FILE, WEBCFG(QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_ADD_BUNDLE_FILE, WEBCFG(QUEUE_ADD_BUNDLE_FILE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "target_directory", aTarget },
 					{ "file_data", serializeBundleFileInfo(aInfo) },
 				});
 			}),
 			aResultGetter,
-			[=](const json& aData, const ActionHookResultGetter<BundleFileAddHookResult>& aResultGetter) {
+			[](const json& aData, const ActionHookResultGetter<BundleFileAddHookResult>& aResultGetter) {
 				if (aData.is_null()) {
 					return BundleFileAddHookResult();
 				}
@@ -180,14 +150,14 @@ namespace webserver {
 
 	ActionHookResult<BundleAddHookResult> QueueApi::bundleAddHook(const string& aTarget, BundleAddData& aData, const HintedUser& aUser, const bool aIsFile, const ActionHookResultGetter<BundleAddHookResult>& aResultGetter) noexcept {
 		return HookCompletionData::toResult<BundleAddHookResult>(
-			fireHook(HOOK_ADD_BUNDLE, WEBCFG(QUEUE_ADD_BUNDLE_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_ADD_BUNDLE, WEBCFG(QUEUE_ADD_BUNDLE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "target_directory", aTarget },
 					{ "bundle_data", {
 						{ "name", aData.name },
 						{ "time", aData.date },
 						{ "priority", Serializer::serializePriorityId(aData.prio) },
-						{ "type", aIsFile ? Serializer::serializeFileType(aData.name) : Serializer::serializeFolderType(DirectoryContentInfo()) },
+						{ "type", aIsFile ? Serializer::serializeFileType(aData.name) : Serializer::serializeFolderType(DirectoryContentInfo::uninitialized()) },
 					} },
 				});
 			}),
@@ -213,7 +183,7 @@ namespace webserver {
 
 	ActionHookResult<> QueueApi::sourceAddHook(const HintedUser& aUser, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_ADD_SOURCE, WEBCFG(QUEUE_ADD_SOURCE_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_ADD_SOURCE, WEBCFG(QUEUE_ADD_SOURCE_HOOK_TIMEOUT).num(), [&]() {
 				return json({
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
@@ -224,7 +194,7 @@ namespace webserver {
 
 	ActionHookResult<> QueueApi::fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_FILE_FINISHED, WEBCFG(QUEUE_FILE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_FILE_FINISHED, WEBCFG(QUEUE_FILE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
 				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
 			}),
 			aResultGetter
@@ -233,7 +203,7 @@ namespace webserver {
 
 	ActionHookResult<> QueueApi::bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept {
 		return HookCompletionData::toResult(
-			fireHook(HOOK_BUNDLE_FINISHED, WEBCFG(QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
+			maybeFireHook(HOOK_BUNDLE_FINISHED, WEBCFG(QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
 				return Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler);
 			}),
 			aResultGetter
@@ -290,7 +260,7 @@ namespace webserver {
 		auto path = JsonUtil::getOptionalField<string>("path", reqJson);
 		if (path) {
 			// Note: non-standard/partial paths are allowed, no strict directory path validation
-			ret = QueueManager::getInstance()->getAdcDirectoryPaths(*path);
+			ret = QueueManager::getInstance()->getAdcDirectoryDupePaths(*path);
 		} else {
 			auto tth = Deserializer::deserializeTTH(reqJson);
 			ret = QueueManager::getInstance()->getTargets(tth);
@@ -345,7 +315,7 @@ namespace webserver {
 		return b;
 	}
 
-	api_return QueueApi::handleSearchBundle(ApiRequest& aRequest) {
+	api_return QueueApi::handleSearchBundleAlternates(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
 		auto searches = QueueManager::getInstance()->searchBundleAlternates(b, false);
 
@@ -503,7 +473,7 @@ namespace webserver {
 					files.push_back(deserializeBundleFileInfo(fileJson));
 				}
 			} catch (const ArgumentException& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, e.getErrorJson());
+				complete(websocketpp::http::status_code::bad_request, nullptr, e.toJSON());
 				return;
 			}
 
@@ -567,6 +537,14 @@ namespace webserver {
 		auto j = Serializer::serializeItem(qi, QueueFileUtils::propertyHandler);
 		aRequest.setResponseBody(j);
 
+		return websocketpp::http::status_code::ok;
+	}
+
+	api_return QueueApi::handleGetFilesByTTH(ApiRequest& aRequest) {
+		auto tth = aRequest.getTTHParam();
+
+		const auto files = QueueManager::getInstance()->findFiles(tth);
+		aRequest.setResponseBody(Serializer::serializeItemList(QueueFileUtils::propertyHandler, files));
 		return websocketpp::http::status_code::ok;
 	}
 
@@ -656,7 +634,7 @@ namespace webserver {
 		return websocketpp::http::status_code::no_content;
 	}
 
-	api_return QueueApi::handleSearchFile(ApiRequest& aRequest) {
+	api_return QueueApi::handleSearchFileAlternates(ApiRequest& aRequest) {
 		auto qi = getFile(aRequest, false);
 		QueueManager::getInstance()->searchFileAlternates(qi);
 		return websocketpp::http::status_code::no_content;
@@ -800,7 +778,7 @@ namespace webserver {
 		}
 	}
 
-	void QueueApi::on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept {
+	void QueueApi::on(QueueManagerListener::BundleDownloadStatus, const BundlePtr& aBundle) noexcept {
 		// "Waiting" isn't really a status (it's just meant to clear the props for running bundles...)
 		onBundleUpdated(aBundle, TICK_PROPS, "queue_bundle_tick");
 	}

@@ -26,7 +26,10 @@
 #include <web-server/WebServerSettings.h>
 #include <web-server/version.h>
 
-#include <airdcpp/File.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/util/SystemUtil.h>
 
 
 namespace webserver {
@@ -41,14 +44,14 @@ namespace webserver {
 	}
 
 	string Extension::getMessageLogPath() const noexcept {
-		return Util::joinDirectory(getRootPath(), EXT_LOG_DIR) + "output.log";
+		return PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR) + "output.log";
 	}
 
 	string Extension::getErrorLogPath() const noexcept {
-		return Util::joinDirectory(getRootPath(), EXT_LOG_DIR) + "error.log";
+		return PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR) + "error.log";
 	}
 
-	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : errorF(std::move(aErrorF)), managed(true) {
+	Extension::Extension(const string& aPackageDirectory, ErrorF&& aErrorF, bool aSkipPathValidation) : managed(true), errorF(std::move(aErrorF)) {
 		initializeThrow(aPackageDirectory, aSkipPathValidation);
 	}
 
@@ -61,7 +64,7 @@ namespace webserver {
 	}
 
 	void Extension::reloadThrow() {
-		initializeThrow(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
+		initializeThrow(PathUtil::joinDirectory(getRootPath(), EXT_PACKAGE_DIR), false);
 
 		fire(ExtensionListener::PackageUpdated(), this);
 	}
@@ -85,7 +88,7 @@ namespace webserver {
 			throw Exception("Could not parse package.json (" + string(e.what()) + ")");
 		}
 
-		if (!aSkipPathValidation && compare(name, Util::getLastDir(Util::getParentDir(aPackageDirectory))) != 0) {
+		if (!aSkipPathValidation && compare(name, PathUtil::getLastDir(PathUtil::getParentDir(aPackageDirectory))) != 0) {
 			throw Exception("Extension path doesn't match with the extension name " + name);
 		}
 	}
@@ -135,7 +138,7 @@ namespace webserver {
 			if (osJson != aJson.end()) {
 				const StringList osList = *osJson;
 				auto currentOs = SystemUtil::getPlatform();
-				if (std::find(osList.begin(), osList.end(), currentOs) == osList.end() && currentOs != "other") {
+				if (ranges::find(osList, currentOs) == osList.end() && currentOs != "other") {
 					throw Exception(STRING(WEB_EXTENSION_OS_UNSUPPORTED));
 				}
 			}
@@ -144,7 +147,7 @@ namespace webserver {
 		parseApiDataThrow(aJson.at("airdcpp"));
 	}
 
-	void Extension::checkCompatibilityThrow() {
+	void Extension::checkCompatibilityThrow() const {
 		if (apiVersion != API_VERSION) {
 			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion) % Util::toString(API_VERSION)));
 		}
@@ -164,7 +167,7 @@ namespace webserver {
 		FilesystemItemList ret;
 
 		if (managed) {
-			File::forEachFile(Util::joinDirectory(getRootPath(), EXT_LOG_DIR), "*.log", [&](const FilesystemItem& aInfo) {
+			File::forEachFile(PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR), "*.log", [&ret](const FilesystemItem& aInfo) {
 				if (aInfo.isDirectory) {
 					return;
 				}
@@ -179,6 +182,24 @@ namespace webserver {
 	ExtensionSettingItem* Extension::getSetting(const string& aKey) noexcept {
 		RLock l(cs);
 		return ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, aKey);
+	}
+
+	bool Extension::isDisabled() const noexcept {
+		return PathUtil::fileExists(getDisabledFlag());
+	}
+
+	void Extension::setDisabled(bool aDisabled) noexcept {
+		if (aDisabled) {
+			File::createFile(getDisabledFlag());
+		} else {
+			File::deleteFile(getDisabledFlag());
+		}
+
+		fire(ExtensionListener::StateUpdated(), this);
+	}
+
+	string Extension::getDisabledFlag() const noexcept {
+		return PathUtil::joinDirectory(getRootPath(), EXT_CONFIG_DIR) + "DISABLED";
 	}
 
 	bool Extension::hasSettings() const noexcept {
@@ -204,32 +225,32 @@ namespace webserver {
 		{
 			WLock l(cs);
 			settings.clear();
-			userReferences.clear();
+			references.clear();
 		}
 
 		fire(ExtensionListener::SettingDefinitionsUpdated(), this);
 	}
 
-	void Extension::setValidatedSettingValues(const SettingValueMap& aValues, const UserList& aUserReferences) noexcept {
+	void Extension::setValidatedSettingValues(const SettingValueMap& aValues, const SettingReferenceList& aReferences) noexcept {
 		{
 			WLock l(cs);
-			for (const auto& vp: aValues) {
-				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, vp.first);
+			for (const auto& [key, value] : aValues) {
+				auto setting = ApiSettingItem::findSettingItem<ExtensionSettingItem>(settings, key);
 				if (!setting) {
 					dcassert(0);
 					continue;
 				}
 
-				setting->setValue(vp.second);
+				setting->setValue(value);
 			}
 
-			userReferences.insert(aUserReferences.begin(), aUserReferences.end());
+			references.insert(aReferences.begin(), aReferences.end());
 		}
 
 		fire(ExtensionListener::SettingValuesUpdated(), this, aValues);
 	}
 
-	Extension::SettingValueMap Extension::getSettingValues() noexcept {
+	Extension::SettingValueMap Extension::getSettingValues() const noexcept {
 		SettingValueMap values;
 
 		{
@@ -260,8 +281,8 @@ namespace webserver {
 			return;
 		}
 
-		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
-		File::ensureDirectory(Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
+		File::ensureDirectory(PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR));
+		File::ensureDirectory(PathUtil::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
 
 		checkCompatibilityThrow();
 
@@ -291,24 +312,24 @@ namespace webserver {
 				return aStr;
 			}
 
-			string ret = "\"" + aStr;
+			string escaped = "\"" + aStr;
 
 			// At least Windows has problems with backslashes before double quotes 
 			// (the slash won't be escaped properly in argv)
-			if (ret.back() == '\\') {
+			if (escaped.back() == '\\') {
 				// Make it double backslash
-				ret += "\\";
+				escaped += "\\";
 			}
 
-			return ret + "\"";
+			return escaped + "\"";
 		};
 
 		// Script to launch
-		ret.push_back(maybeEscape(Util::joinDirectory(getRootPath(), EXT_PACKAGE_DIR) + entry));
+		ret.push_back(maybeEscape(PathUtil::joinDirectory(getRootPath(), EXT_PACKAGE_DIR) + entry));
 
 
 		// Params
-		auto addParamImpl = [&ret, &maybeEscape](const string& aName, const string& aParam = Util::emptyString) {
+		auto addParamImpl = [&ret](const string& aName, const string& aParam = Util::emptyString) {
 			auto arg = "--" + aName;
 			if (!aParam.empty()) {
 				arg += "=" + aParam;
@@ -337,8 +358,8 @@ namespace webserver {
 		addStrParam("authToken", aSession->getAuthToken());
 
 		// Paths
-		addStrParam("logPath", Util::joinDirectory(getRootPath(), EXT_LOG_DIR));
-		addStrParam("settingsPath", Util::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
+		addStrParam("logPath", PathUtil::joinDirectory(getRootPath(), EXT_LOG_DIR));
+		addStrParam("settingsPath", PathUtil::joinDirectory(getRootPath(), EXT_CONFIG_DIR));
 
 		if (WEBCFG(EXTENSIONS_DEBUG_MODE).boolean()) {
 			addFlagParam("debug");
@@ -417,11 +438,11 @@ namespace webserver {
 		auto oldFilePath = aPath + ".old";
 
 		try {
-			if (Util::fileExists(oldFilePath)) {
+			if (PathUtil::fileExists(oldFilePath)) {
 				File::deleteFileThrow(oldFilePath);
 			}
 
-			if (Util::fileExists(aPath)) {
+			if (PathUtil::fileExists(aPath)) {
 				File::copyFile(aPath, oldFilePath);
 				File::deleteFileThrow(aPath);
 			}
@@ -451,7 +472,7 @@ namespace webserver {
 		);
 
 		if (aHandle == INVALID_HANDLE_VALUE) {
-			dcdebug("Failed to create extension output log %s: %s\n", aPath.c_str(), Util::translateError(::GetLastError()).c_str());
+			dcdebug("Failed to create extension output log %s: %s\n", aPath.c_str(), dcpp::SystemUtil::translateError(::GetLastError()).c_str());
 			throw Exception("Failed to create extension output log");
 		}
 	}
@@ -492,7 +513,7 @@ namespace webserver {
 		}
 
 		// Start the process
-		tstring commandT = Text::toT(command);
+		auto commandT = Text::toT(command);
 		dcdebug("Starting extension %s, command %s\n", name.c_str(), command.c_str());
 
 #ifdef _DEBUG
@@ -520,7 +541,7 @@ namespace webserver {
 		);
 
 		if (res == 0) {
-			dcdebug("Failed to start the extension process: %s (code %d)\n", Util::translateError(::GetLastError()).c_str(), res);
+			dcdebug("Failed to start the extension process: %s (code %d)\n", dcpp::SystemUtil::translateError(::GetLastError()).c_str(), res);
 			throw Exception("Failed to create process for the extension");
 		}
 
@@ -538,7 +559,7 @@ namespace webserver {
 				onFailed(exitCode);
 			}
 		} else {
-			dcdebug("Failed to check running state of extension %s (%s)\n", name.c_str(), Util::translateError(::GetLastError()).c_str());
+			dcdebug("Failed to check running state of extension %s (%s)\n", name.c_str(), dcpp::SystemUtil::translateError(::GetLastError()).c_str());
 			dcassert(0);
 		}
 	}
@@ -555,12 +576,12 @@ namespace webserver {
 
 	void Extension::terminateProcessThrow() {
 		if (TerminateProcess(piProcInfo.hProcess, 0) == 0) {
-			throw Exception(Util::translateError(::GetLastError()));
+			throw Exception(dcpp::SystemUtil::translateError(::GetLastError()));
 		}
 
 		auto res = WaitForSingleObject(piProcInfo.hProcess, 5000);
 		if (res != WAIT_OBJECT_0) {
-			auto error = res == WAIT_FAILED ? Util::translateError(res).c_str() : STRING(SETTINGS_ODC_SHUTDOWNTIMEOUT);
+			auto error = res == WAIT_FAILED ? dcpp::SystemUtil::translateError(res).c_str() : STRING(SETTINGS_ODC_SHUTDOWNTIMEOUT);
 			throw Exception(error);
 		}
 	}
@@ -624,7 +645,7 @@ namespace webserver {
 		// Create fork
 		pid = fork();
 		if (pid == -1) {
-			throw Exception("Failed to fork the process process: " + Util::translateError(errno));
+			throw Exception("Failed to fork the process process: " + dcpp::SystemUtil::translateError(errno));
 		}
 
 		if (pid == 0) {
@@ -636,7 +657,7 @@ namespace webserver {
 
 			// Run, checkRunningState will handle errors...
 			if (execvp(aEngine.c_str(), &argv[0]) == -1) {
-				fprintf(stderr, "Failed to start the extension %s: %s\n", name.c_str(), Util::translateError(errno).c_str());
+				fprintf(stderr, "Failed to start the extension %s: %s\n", name.c_str(), dcpp::SystemUtil::translateError(errno).c_str());
 			}
 
 			exit(0);
@@ -646,12 +667,12 @@ namespace webserver {
 	void Extension::terminateProcessThrow() {
 		auto res = kill(pid, SIGTERM);
 		if (res == -1) {
-			throw Exception(Util::translateError(errno));
+			throw Exception(dcpp::SystemUtil::translateError(errno));
 		}
 
 		int exitStatus = 0;
 		if (waitpid(pid, &exitStatus, 0) == -1) {
-			throw Exception(Util::translateError(errno));
+			throw Exception(dcpp::SystemUtil::translateError(errno));
 		}
 	}
 

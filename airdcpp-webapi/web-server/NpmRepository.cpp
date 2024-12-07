@@ -22,11 +22,11 @@
 
 #include <web-server/NpmRepository.h>
 
-#include <airdcpp/HttpDownload.h>
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/Thread.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/connection/http/HttpDownload.h>
+#include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/core/thread/Thread.h>
+#include <airdcpp/util/Util.h>
 
 
 namespace webserver {
@@ -59,7 +59,7 @@ namespace webserver {
 		}));
 
 		WLock l(cs);
-		auto ret = httpDownloads.emplace(aName, make_shared<HttpDownload>(url, [=, this]() {
+		httpDownloads.try_emplace(aName, make_shared<HttpDownload>(url, [this, aName, aCurrentVersion]() {
 			onPackageInfoDownloaded(aName, aCurrentVersion);
 		}, options));
 	}
@@ -102,7 +102,7 @@ namespace webserver {
 	}
 
 	// https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
-	void NpmRepository::checkPackageData(const string& aPackageData, const string& aName, const string& aCurrentVersion) {
+	void NpmRepository::checkPackageData(const string& aPackageData, const string& aName, const string& aCurrentVersion) const {
 		optional<semver::version> curSemver = !aCurrentVersion.empty() ? optional(semver::version(aCurrentVersion)) : nullopt;
 
 		const auto packageJson = json::parse(aPackageData);

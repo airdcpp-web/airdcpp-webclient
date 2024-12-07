@@ -21,8 +21,8 @@
 
 #include <api/common/Property.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/StringMatch.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/util/text/StringMatch.h>
 
 #include <web-server/WebUser.h>
 

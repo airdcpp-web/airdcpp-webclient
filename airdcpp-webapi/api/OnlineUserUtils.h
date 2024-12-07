@@ -23,7 +23,7 @@
 
 #include <api/common/Property.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 
 namespace webserver {
@@ -47,6 +47,7 @@ namespace webserver {
 			PROP_HUB_ID,
 			PROP_HUB_URL,
 			PROP_HUB_NAME,
+			PROP_SUPPORTS,
 			PROP_FLAGS,
 			PROP_CID,
 			PROP_UPLOAD_SLOTS,

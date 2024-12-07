@@ -22,14 +22,10 @@
 #include "forward.h"
 #include <web-server/Access.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/GetSet.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/types/GetSet.h>
 
 namespace webserver {
-	class WebUser;
-	typedef std::shared_ptr<WebUser> WebUserPtr;
-	typedef vector<WebUserPtr> WebUserList;
-
 	class WebUser {
 	public:
 		WebUser(const std::string& aUserName, const std::string& aPasswordHashOrPlain, bool aIsAdmin = false);
@@ -44,7 +40,7 @@ namespace webserver {
 		WebUser(WebUser&) = delete;
 		WebUser& operator=(WebUser&) = delete;
 
-		// Sesszions
+		// Sessions
 		int getActiveSessions() const noexcept {
 			return activeSessions;
 		}
@@ -76,7 +72,7 @@ namespace webserver {
 
 		static bool validateUsername(const string& aUsername) noexcept;
 
-		bool matchPassword(const string& aPasswordPlain) noexcept;
+		bool matchPassword(const string& aPasswordPlain) const noexcept;
 		void setPassword(const std::string& aPasswordHashOrPlain) noexcept;
 		const string& getPasswordHash() const noexcept {
 			return passwordHash;

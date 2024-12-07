@@ -20,7 +20,7 @@
 #ifndef DCPLUSPLUS_DCPP_VALIDATION_H
 #define DCPLUSPLUS_DCPP_VALIDATION_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 namespace webserver {
 	class Validation {

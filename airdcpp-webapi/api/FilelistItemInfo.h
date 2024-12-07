@@ -19,16 +19,16 @@
 #ifndef DCPLUSPLUS_DCPP_FILELIST_ITEMINFO_H
 #define DCPLUSPLUS_DCPP_FILELIST_ITEMINFO_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/DirectoryListing.h>
+#include <airdcpp/filelist/DirectoryListingDirectory.h>
 
 
 namespace webserver {
 	class FilelistItemInfo : public FastAlloc<FilelistItemInfo> {
 	public:
-		typedef shared_ptr<FilelistItemInfo> Ptr;
-		typedef vector<Ptr> List;
+		using Ptr = shared_ptr<FilelistItemInfo>;
+		using List = vector<Ptr>;
 
 		enum ItemType {
 			FILE,
@@ -53,14 +53,14 @@ namespace webserver {
 			return type == DIRECTORY ? dir->getDupe() : file->getDupe(); 
 		}
 		const string& getName() const noexcept { return type == DIRECTORY ? dir->getName() : file->getName(); }
-		string getAdcPath() const noexcept { return type == DIRECTORY ? dir->getAdcPath() : file->getAdcPath(); }
+		string getAdcPath() const noexcept { return type == DIRECTORY ? dir->getAdcPathUnsafe() : file->getAdcPathUnsafe(); } // TODO
 		bool isComplete() const noexcept { return type == DIRECTORY ? dir->isComplete() : true; }
-		void getLocalPaths(StringList& paths_) const { return type == DIRECTORY ? dir->getLocalPaths(paths_, shareProfileToken) : file->getLocalPaths(paths_, shareProfileToken); }
+		void getLocalPathsThrow(StringList& paths_) const;
 
 		time_t getDate() const noexcept { return type == DIRECTORY ? dir->getRemoteDate() : file->getRemoteDate(); }
 		int64_t getSize() const noexcept { return type == DIRECTORY ? dir->getTotalSize(false) : file->getSize(); }
 
-		DirectoryListingToken getToken() const noexcept;
+		DirectoryListingItemToken getToken() const noexcept;
 
 		ItemType getType() const noexcept {
 			return type;
@@ -74,7 +74,7 @@ namespace webserver {
 		const ItemType type;
 	};
 
-	typedef FilelistItemInfo::Ptr FilelistItemInfoPtr;
+	using FilelistItemInfoPtr = FilelistItemInfo::Ptr;
 }
 
 #endif

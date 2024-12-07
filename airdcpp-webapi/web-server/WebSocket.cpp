@@ -18,14 +18,17 @@
 
 #include "stdinc.h"
 
-#include <web-server/HttpUtil.h>
-#include <web-server/JsonUtil.h>
-#include <web-server/WebServerManager.h>
 #include <web-server/WebSocket.h>
 
-#include <airdcpp/format.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/Util.h>
+#include <web-server/ApiRouter.h>
+#include <web-server/HttpUtil.h>
+#include <web-server/JsonUtil.h>
+#include <web-server/Session.h>
+#include <web-server/WebServerManager.h>
+
+#include <airdcpp/core/header/format.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/Util.h>
 
 
 namespace webserver {
@@ -38,7 +41,7 @@ namespace webserver {
 	}
 
 	WebSocket::WebSocket(bool aIsSecure, websocketpp::connection_hdl aHdl, const websocketpp::http::parser::request& aRequest, WebServerManager* aWsm) :
-		secure(aIsSecure), hdl(aHdl), timeCreated(GET_TICK()), wsm(aWsm) 
+		hdl(aHdl), wsm(aWsm), secure(aIsSecure), timeCreated(GET_TICK()) 
 	{
 		debugMessage("Websocket created");
 
@@ -51,7 +54,7 @@ namespace webserver {
 				auto conn = plainServer->get_con_from_hdl(hdl);
 				ip = conn->get_raw_socket().remote_endpoint().address().to_string();
 			}
-		} catch (const std::exception& e) {
+		} catch (const boost::system::system_error& e) {
 			dcdebug("WebSocket::getIp failed: %s\n", e.what());
 		}
 
@@ -89,7 +92,7 @@ namespace webserver {
 
 		try {
 			sendPlain(j);
-		} catch (const std::exception& e) {
+		} catch (const json::exception& e) {
 			sendApiResponse(
 				nullptr, 
 				{
@@ -104,9 +107,9 @@ namespace webserver {
 	void WebSocket::logError(const string& aMessage, websocketpp::log::level aErrorLevel) const noexcept {
 		auto message = (dcpp_fmt("Websocket: " + aMessage + " (%s)") % (session ? session->getAuthToken().c_str() : "no session")).str();
 		if (secure) {
-			wsm->logDebugError(tlsServer, message, aErrorLevel);
+			WebServerManager::logDebugError(tlsServer, message, aErrorLevel);
 		} else {
-			wsm->logDebugError(plainServer, message, aErrorLevel);
+			WebServerManager::logDebugError(plainServer, message, aErrorLevel);
 		}
 	}
 
@@ -118,9 +121,9 @@ namespace webserver {
 		string str;
 		try {
 			str = aJson.dump();
-		} catch (const std::exception& e) {
+		} catch (const json::exception& e) {
 			logError("Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
-			throw e;
+			throw;
 		}
 
 		wsm->onData(str, TransportType::TYPE_SOCKET, Direction::OUTGOING, getIp());
@@ -131,7 +134,7 @@ namespace webserver {
 			} else {
 				plainServer->send(hdl, str, websocketpp::frame::opcode::text);
 			}
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			logError("Failed to send data: " + string(e.what()), websocketpp::log::elevel::fatal);
 		}
 	}
@@ -144,7 +147,7 @@ namespace webserver {
 				plainServer->ping(hdl, Util::emptyString);
 			}
 
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			debugMessage("WebSocket::ping failed: " + string(e.what()));
 		}
 	}
@@ -157,7 +160,7 @@ namespace webserver {
 			} else {
 				plainServer->close(hdl, aCode, aMsg);
 			}
-		} catch (const std::exception& e) {
+		} catch (const websocketpp::exception& e) {
 			debugMessage("WebSocket::close failed: " + string(e.what()));
 		}
 	}
@@ -177,5 +180,57 @@ namespace webserver {
 		path_ = requestJson.at("path");
 		data_ = JsonUtil::getOptionalRawField("data", requestJson);
 		method_ = requestJson.at("method");
+	}
+
+	void WebSocket::onData(const string& aMessage, const SessionCallback& aAuthCallback) {
+		// Logging
+		wsm->onData(aMessage, TransportType::TYPE_SOCKET, Direction::INCOMING, getIp());
+		dcdebug("Received socket request: %s\n", Util::truncate(aMessage, 500).c_str());
+
+		// Parse request
+		int callbackId = -1;
+		string method, path;
+		json data;
+		try {
+			parseRequest(aMessage, callbackId, method, path, data);
+		} catch (const json::exception& e) {
+			sendApiResponse(nullptr, ApiRequest::toResponseErrorStr("Failed to parse JSON: " + string(e.what())), websocketpp::http::status_code::bad_request, callbackId);
+			return;
+		} catch (const std::invalid_argument& e) {
+			sendApiResponse(nullptr, ApiRequest::toResponseErrorStr(e.what()), websocketpp::http::status_code::bad_request, callbackId);
+			return;
+		}
+
+		// Prepare response handlers
+		const auto responseF = [callbackId, this](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+			sendApiResponse(aResponseJsonData, aResponseErrorJson, aStatus, callbackId);
+		};
+
+		bool isDeferred = false;
+		const auto deferredF = [&isDeferred, &responseF]() {
+			isDeferred = true;
+
+			return [responseF](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+				responseF(aStatus, aResponseJsonData, aResponseErrorJson);
+			};
+		};
+
+		// Route request
+
+		websocketpp::http::status_code::value code;
+		json responseJsonData, responseErrorJson;
+		try {
+			ApiRequest apiRequest(url + path, method, std::move(data), getSession(), deferredF, responseJsonData, responseErrorJson);
+			RouterRequest routerRequest{ apiRequest, secure, aAuthCallback, getIp() };
+			code = ApiRouter::handleRequest(routerRequest);
+		} catch (const std::invalid_argument& e) {
+			sendApiResponse(nullptr, ApiRequest::toResponseErrorStr(e.what()), websocketpp::http::status_code::bad_request, callbackId);
+			return;
+		}
+
+		if (!isDeferred) {
+			responseF(code, responseJsonData, responseErrorJson);
+		}
+
 	}
 }

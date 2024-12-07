@@ -19,9 +19,9 @@
 #include "stdinc.h"
 #include <web-server/TarFile.h>
 
-#include <airdcpp/Exception.h>
-#include <airdcpp/File.h>
-#include <airdcpp/Text.h>
+#include <airdcpp/core/classes/Exception.h>
+#include <airdcpp/core/io/File.h>
+#include <airdcpp/util/text/Text.h>
 
 #ifdef _WIN32
 #include <boost/algorithm/string/replace.hpp>

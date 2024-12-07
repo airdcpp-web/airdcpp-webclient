@@ -17,13 +17,13 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [clang, gcc]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-24.04, macos-15]
         exclude:
         # Not testing with GCC on macOS.
-        - os: macos-latest
+        - os: macos-15
           compiler: gcc
         # TODO
-        - os: ubuntu-latest
+        - os: ubuntu-24.04
           compiler: clang
         include:
         - compiler: clang
@@ -38,14 +38,17 @@ jobs:
       OPENSSL_ROOT_DIR: /usr/local/opt/openssl/
       
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
 
     - name: Install dependencies on Linux
       if: ${{ runner.os == 'Linux' }}
       run: |
         sudo apt-get update
         sudo apt-get install cmake nodejs python3 pkg-config libbz2-dev zlib1g-dev libssl-dev libstdc++6 libminiupnpc-dev libnatpmp-dev libtbb-dev \
-            libmaxminddb-dev libleveldb-dev libboost1.74-dev libboost-regex1.74 libboost-thread1.74 libboost-system1.74 nlohmann-json3-dev
+            libmaxminddb-dev libleveldb-dev libboost1.83-dev libboost-regex1.83 libboost-thread1.83 libboost-system1.83 nlohmann-json3-dev
 
     - name: Install dependencies on macOS
       if: ${{ runner.os == 'macOS' }}

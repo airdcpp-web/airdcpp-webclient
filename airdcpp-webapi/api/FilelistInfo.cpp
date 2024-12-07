@@ -24,9 +24,9 @@
 #include <api/common/Validation.h>
 #include <web-server/JsonUtil.h>
 
-#include <airdcpp/AirUtil.h>
-#include <airdcpp/Client.h>
-#include <airdcpp/DirectoryListingManager.h>
+#include <airdcpp/hub/Client.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/util/PathUtil.h>
 
 
 namespace webserver {
@@ -35,10 +35,12 @@ namespace webserver {
 	};
 
 	FilelistInfo::FilelistInfo(ParentType* aParentModule, const DirectoryListingPtr& aFilelist) : 
-		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32(), subscriptionList), 
+		SubApiModule(aParentModule, aFilelist->getUser()->getCID().toBase32()), 
 		dl(aFilelist),
 		directoryView("filelist_view", this, FilelistUtils::propertyHandler, std::bind(&FilelistInfo::getCurrentViewItems, this))
 	{
+		createSubscriptions(subscriptionList);
+
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_PATCH,	(),															FilelistInfo::handleUpdateList);
 
 		METHOD_HANDLER(Access::FILELISTS_VIEW,	METHOD_POST,	(EXACT_PARAM("directory")),									FilelistInfo::handleChangeDirectory);
@@ -54,7 +56,7 @@ namespace webserver {
 		if (dl->isLoaded()) {
 			auto start = GET_TICK();
 			addListTask([this, start] {
-				updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
+				updateItems(dl->getCurrentLocationInfo().directory->getAdcPathUnsafe());
 				dcdebug("Filelist %s was loaded in " I64_FMT " milliseconds\n", dl->getNick(false).c_str(), GET_TICK() - start);
 			});
 		}
@@ -96,7 +98,7 @@ namespace webserver {
 		{
 			auto curDir = ensureCurrentDirectoryLoaded();
 			aRequest.setResponseBody({
-				{ "list_path", curDir->getAdcPath() },
+				{ "list_path", curDir->getAdcPathUnsafe() },
 				{ "items", Serializer::serializeItemList(start, count, FilelistUtils::propertyHandler, currentViewItems) },
 			});
 		}
@@ -104,14 +106,14 @@ namespace webserver {
 		return websocketpp::http::status_code::ok;
 	}
 
-	DirectoryListing::Directory::Ptr FilelistInfo::ensureCurrentDirectoryLoaded() {
+	DirectoryListing::DirectoryPtr FilelistInfo::ensureCurrentDirectoryLoaded() const {
 		auto curDir = dl->getCurrentLocationInfo().directory;
 		if (!curDir) {
 			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");
 		}
 
 		if (!curDir->isComplete()) {
-			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPath() + " is not yet available");
+			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPathUnsafe() + " is not yet available");
 		}
 
 		if (!currentViewItemsInitialized) {
@@ -127,7 +129,7 @@ namespace webserver {
 			}
 
 			if (!currentViewItemsInitialized) {
-				throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPath() + " has not finished loading yet");
+				throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPathUnsafe() + " has not finished loading yet");
 			}
 		}
 
@@ -234,19 +236,19 @@ namespace webserver {
 			currentViewItems.clear();
 		}
 
-		auto currentPath = dl->getCurrentLocationInfo().directory->getAdcPath();
-		auto curDir = dl->findDirectory(aPath);
+		auto currentPath = dl->getCurrentLocationInfo().directory->getAdcPathUnsafe();
+		auto curDir = dl->findDirectoryUnsafe(aPath);
 		if (!curDir) {
 			return;
 		}
 
 		{
 			WLock l(cs);
-			for (auto& d : curDir->directories | views::values) {
+			for (const auto& d : curDir->directories | views::values) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(d, dl->getShareProfile()));
 			}
 
-			for (auto& f : curDir->files) {
+			for (const auto& f : curDir->files) {
 				currentViewItems.emplace_back(std::make_shared<FilelistItemInfo>(f, dl->getShareProfile()));
 			}
 
@@ -273,9 +275,9 @@ namespace webserver {
 		if (static_cast<DirectoryListing::DirectoryLoadType>(aType) != DirectoryListing::DirectoryLoadType::LOAD_CONTENT) {
 			// Insert new items
 			updateItems(aLoadedPath);
-		} else if (AirUtil::isParentOrExactAdc(aLoadedPath, dl->getCurrentLocationInfo().directory->getAdcPath())) {
+		} else if (PathUtil::isParentOrExactAdc(aLoadedPath, dl->getCurrentLocationInfo().directory->getAdcPathUnsafe())) {
 			// Reload directory content
-			updateItems(dl->getCurrentLocationInfo().directory->getAdcPath());
+			updateItems(dl->getCurrentLocationInfo().directory->getAdcPathUnsafe());
 		}
 	}
 

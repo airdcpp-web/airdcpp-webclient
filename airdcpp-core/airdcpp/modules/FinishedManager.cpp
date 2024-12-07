@@ -20,14 +20,15 @@
 
 #include "FinishedManager.h"
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/Download.h>
-#include <airdcpp/Upload.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/UploadManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/transfer/download/Download.h>
+#include <airdcpp/transfer/upload/Upload.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/transfer/upload/UploadManager.h>
 
-#include <airdcpp/LogManager.h>
-#include <airdcpp/ResourceManager.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/core/localization/ResourceManager.h>
 
 namespace dcpp {
 
@@ -35,13 +36,13 @@ namespace dcpp {
 const tstring FinishedItem::getText(uint8_t col) const {
 	dcassert(col >= 0 && col < COLUMN_LAST);
 	switch(col) {
-		case COLUMN_FILE: return Text::toT(Util::getFileName(getTarget()));
+		case COLUMN_FILE: return Text::toT(PathUtil::getFileName(getTarget()));
 		case COLUMN_DONE: return Text::toT(Util::formatTime("%Y-%m-%d %H:%M:%S", getTime()));
-		case COLUMN_PATH: return Text::toT(Util::getFilePath(getTarget()));
-		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormatedNicks(getUser()));
+		case COLUMN_PATH: return Text::toT(PathUtil::getFilePath(getTarget()));
+		case COLUMN_NICK: return Text::toT(ClientManager::getInstance()->getFormattedNicks(getUser()));
 		case COLUMN_HUB: {
 			if (getUser().user->isOnline()) {
-				return Text::toT(ClientManager::getInstance()->getFormatedHubNames(getUser()));
+				return Text::toT(ClientManager::getInstance()->getFormattedHubNames(getUser()));
 			} else {
 				auto ofu = ClientManager::getInstance()->getOfflineUser(getUser().user->getCID());
 				return TSTRING(OFFLINE) + (ofu ? _T(" ( ") + Text::toT(ofu->getUrl()) + _T(" ) ") : _T(""));
@@ -50,7 +51,7 @@ const tstring FinishedItem::getText(uint8_t col) const {
 		case COLUMN_SIZE: return Util::formatBytesW(getSize());
 		case COLUMN_SPEED: return Util::formatBytesW(getAvgSpeed()) + _T("/s");
 		case COLUMN_TYPE: {
-			tstring filetype = Text::toT(Util::getFileExt(Text::fromT(getText(COLUMN_FILE))));
+			tstring filetype = Text::toT(PathUtil::getFileExt(Text::fromT(getText(COLUMN_FILE))));
 			if(!filetype.empty() && filetype[0] == _T('.'))
 				filetype.erase(0, 1);
 			return filetype;
@@ -107,7 +108,7 @@ void FinishedManager::on(UploadManagerListener::Complete, const Upload* u) noexc
 		fire(FinishedManagerListener::AddedUl(), item);
 		if(SETTING(SYSTEM_SHOW_UPLOADS)) {
 			LogManager::getInstance()->message(
-				STRING_F(FINISHED_UPLOAD, u->getPath() % ClientManager::getInstance()->getFormatedNicks(u->getHintedUser())), 
+				STRING_F(FINISHED_UPLOAD, u->getPath() % ClientManager::getInstance()->getFormattedNicks(u->getHintedUser())), 
 				LogMessage::SEV_INFO, 
 				STRING(MENU_TRANSFERS)
 			);		

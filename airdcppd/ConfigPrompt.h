@@ -27,13 +27,17 @@ namespace webserver {
 	class WebServerManager;
 }
 
+namespace dcpp {
+    class StartupParams;
+}
+
 namespace airdcppd {
 
 class ConfigPrompt {
 
 public:
 	typedef std::function<void()> ConfigF;
-	static ConfigF checkArgs();
+	static ConfigF checkArgs(const dcpp::StartupParams& aStartupParams);
 
 	static void setPasswordMode(bool enabled) noexcept;
 private:

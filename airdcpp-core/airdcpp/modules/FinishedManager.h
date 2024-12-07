@@ -21,16 +21,16 @@
 
 #include "FinishedManagerListener.h"
 
-#include <airdcpp/QueueManagerListener.h>
-#include <airdcpp/UploadManagerListener.h>
+#include <airdcpp/queue/QueueManagerListener.h>
+#include <airdcpp/transfer/upload/UploadManagerListener.h>
 
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/HintedUser.h>
-#include <airdcpp/MerkleTree.h>
-#include <airdcpp/Speaker.h>
-#include <airdcpp/Singleton.h>
-#include <airdcpp/Util.h>
-#include <airdcpp/User.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/user/HintedUser.h>
+#include <airdcpp/hash/value/MerkleTree.h>
+#include <airdcpp/core/Speaker.h>
+#include <airdcpp/core/Singleton.h>
+#include <airdcpp/util/Util.h>
+#include <airdcpp/user/User.h>
 
 namespace dcpp {
 

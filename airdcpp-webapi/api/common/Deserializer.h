@@ -19,17 +19,17 @@
 #ifndef DCPLUSPLUS_DCPP_DESERIALIZER_H
 #define DCPLUSPLUS_DCPP_DESERIALIZER_H
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/HintedUser.h>
-#include <airdcpp/MerkleTree.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Priority.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/user/HintedUser.h>
+#include <airdcpp/hash/value/MerkleTree.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/types/Priority.h>
 
 #include <web-server/JsonUtil.h>
 
 
 namespace webserver {
-	typedef std::function<api_return(const string& aTarget, Priority aPriority)> DownloadHandler;
+	using DownloadHandler = std::function<api_return (const string &, Priority)>;
 
 	class Deserializer {
 	public:
@@ -99,12 +99,14 @@ namespace webserver {
 		using ArrayDeserializerFunc = std::function<ItemT(const json& aJson, const string& aFieldName)>;
 
 		template <typename ItemT>
-		static vector<ItemT> deserializeList(const string& aFieldName, const json& aList, const ArrayDeserializerFunc<ItemT>& aF, bool aAllowEmpty) {
-			const auto arrayJson = JsonUtil::getArrayField(aFieldName, aList, aAllowEmpty);
+		static vector<ItemT> deserializeList(const string& aFieldName, const json& aJson, const ArrayDeserializerFunc<ItemT>& aF, bool aAllowEmpty) {
+			const auto& arrayJson = JsonUtil::getArrayField(aFieldName, aJson, aAllowEmpty);
 
 			vector<ItemT> ret;
-			for (const auto& item: arrayJson) {
-				ret.push_back(aF(item, aFieldName));
+			if (!arrayJson.is_null()) {
+				for (const auto& item: arrayJson) {
+					ret.push_back(aF(item, aFieldName));
+				}
 			}
 
 			return ret;
@@ -113,6 +115,7 @@ namespace webserver {
 		static TTHValue tthArrayValueParser(const json& aJson, const string& aFieldName);
 		static CID cidArrayValueParser(const json& aJson, const string& aFieldName);
 		static HintedUser hintedUserArrayValueParser(const json& aJson, const string& aFieldName);
+		static string directoryPathArrayValueParser(const json& aJson, const string& aFieldName);
 
 		template<typename IdT>
 		static IdT defaultArrayValueParser(const json& aJson, const string& aFieldName) {

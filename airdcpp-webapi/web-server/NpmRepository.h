@@ -21,9 +21,9 @@
 
 #include "forward.h"
 
-#include <airdcpp/CriticalSection.h>
-#include <airdcpp/Message.h>
-#include <airdcpp/Singleton.h>
+#include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/message/Message.h>
+#include <airdcpp/core/Singleton.h>
 
 namespace dcpp {
 	struct HttpDownload;
@@ -34,7 +34,7 @@ namespace webserver {
 	public:
 		static const string repository;
 
-		typedef std::function<void(const string& aInstallId, const string& aUrl, const string& aSha1)> InstallF;
+		using InstallF = std::function<void (const string& /*id*/, const string& /*url*/, const string& /*sha*/)>;
 
 		NpmRepository(InstallF&& aInstallF, ModuleLogger&& aLoggerF);
 		~NpmRepository();
@@ -46,9 +46,9 @@ namespace webserver {
 		NpmRepository& operator=(NpmRepository&) = delete;
 	private:
 		void onPackageInfoDownloaded(const string& aName, const string& aCurrentVersion) noexcept;
-		void checkPackageData(const string& aPackageData, const string& aName, const string& aCurrentVersion);
+		void checkPackageData(const string& aPackageData, const string& aName, const string& aCurrentVersion) const;
 
-		typedef map<string, shared_ptr<HttpDownload>> HttpDownloadMap;
+		using HttpDownloadMap = map<string, shared_ptr<HttpDownload>>;
 		HttpDownloadMap httpDownloads;
 
 		mutable SharedMutex cs;

@@ -19,11 +19,11 @@
 #ifndef DCPLUSPLUS_DCPP_FILEVIEW_API_H
 #define DCPLUSPLUS_DCPP_FILEVIEW_API_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/ViewFileManagerListener.h>
+#include <airdcpp/viewed_files/ViewFileManagerListener.h>
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
 namespace webserver {
 	class ViewFileApi : public SubscribableApiModule, private ViewFileManagerListener {

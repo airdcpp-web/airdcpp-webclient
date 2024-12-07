@@ -23,8 +23,8 @@
 #include <api/base/HierarchicalApiModule.h>
 #include <api/PrivateChatInfo.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/PrivateChatManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/private_chat/PrivateChatManagerListener.h>
 
 namespace webserver {
 	class PrivateChatApi : public ParentApiModule<CID, PrivateChatInfo, HookApiModule>, private PrivateChatManagerListener {

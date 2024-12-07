@@ -24,11 +24,7 @@
 #include <web-server/ApiSettingItem.h>
 #include <web-server/WebServerManagerListener.h>
 
-#include <airdcpp/SettingsManager.h>
-
-namespace dcpp {
-	class SimpleXML;
-}
+#include <airdcpp/settings/SettingsManager.h>
 
 namespace webserver {
 	class WebServerSettings : private WebServerManagerListener {
@@ -37,8 +33,8 @@ namespace webserver {
 		static const string localNodeDirectoryName;
 #endif
 
-		WebServerSettings(WebServerManager* aServer);
-		~WebServerSettings();
+		explicit WebServerSettings(WebServerManager* aServer);
+		~WebServerSettings() override;
 
 		enum ServerSettings {
 			PLAIN_PORT,
@@ -75,6 +71,15 @@ namespace webserver {
 			QUEUE_FILE_FINISHED_HOOK_TIMEOUT,
 			QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT,
 
+			FILELIST_LOAD_DIRECTORY_HOOK_TIMEOUT,
+			FILELIST_LOAD_FILE_HOOK_TIMEOUT,
+
+			OUTGOING_HUB_COMMAND_HOOK_TIMEOUT,
+			OUTGOING_UDP_COMMAND_HOOK_TIMEOUT,
+			OUTGOING_TCP_COMMAND_HOOK_TIMEOUT,
+
+			SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT,
+
 			LIST_MENUITEMS_HOOK_TIMEOUT,
 		};
 
@@ -86,9 +91,9 @@ namespace webserver {
 			return ApiSettingItem::findSettingItem<ServerSettingItem>(settings, aKey);
 		}
 
-		typedef std::function<void(const json&, int /*aConfigVersion*/)> JsonParseCallback;
-		static bool loadSettingFile(Util::Paths aPath, const string& aFileName, JsonParseCallback&& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
-		static bool saveSettingFile(const json& aJson, Util::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
+		using JsonParseCallback = std::function<void (const json&, int /*configVersion*/)>;
+		static bool loadSettingFile(AppUtil::Paths aPath, const string& aFileName, const JsonParseCallback& aParseCallback, const MessageCallback& aCustomErrorF, int aMaxConfigVersion) noexcept;
+		static bool saveSettingFile(const json& aJson, AppUtil::Paths aPath, const string& aFileName, const MessageCallback& aCustomErrorF, int aConfigVersion) noexcept;
 
 		json toJson() const noexcept;
 		void fromJsonThrow(const json& aJson, int aVersion);
@@ -107,18 +112,14 @@ namespace webserver {
 		ServerSettingItem::List settings;
 		ServerSettingItem::List extensionEngines;
 
-		json getDefaultExtensionEngines() noexcept;
+		static json getDefaultExtensionEngines() noexcept;
 
 		bool isDirty = false;
 
 		void setDirty() noexcept;
 
-		void on(WebServerManagerListener::LoadLegacySettings, SimpleXML& aXml) noexcept override;
 		void on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept override;
 		void on(WebServerManagerListener::SaveSettings, const MessageCallback& aErrorF) noexcept override;
-
-		bool loadLegacySettings(const MessageCallback& aErrorF) noexcept;
-		void loadLegacyServer(SimpleXML& aXml, const string& aTagName, ServerSettingItem& aPort, ServerSettingItem& aBindAddress, bool aTls) noexcept;
 	};
 
 #define WEBCFG(k) (webserver::WebServerManager::getInstance()->getSettingsManager().getSettingItem(webserver::WebServerSettings::k))

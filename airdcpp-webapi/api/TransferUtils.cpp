@@ -39,6 +39,7 @@ namespace webserver {
 		{ PROP_SECONDS_LEFT, "seconds_left", TYPE_TIME, SERIALIZE_NUMERIC, SORT_NUMERIC },
 		{ PROP_IP, "ip", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_CUSTOM },
+		{ PROP_SUPPORTS, "supports", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
 		{ PROP_ENCRYPTION, "encryption", TYPE_TEXT, SERIALIZE_CUSTOM, SORT_TEXT },
 		{ PROP_QUEUE_ID, "queue_file_id", TYPE_NUMERIC_OTHER, SERIALIZE_CUSTOM, SORT_NUMERIC },
 	};
@@ -55,7 +56,7 @@ namespace webserver {
 		case PROP_TYPE: return Util::formatFileType(aItem->getTarget());
 		case PROP_STATUS: return aItem->getStatusString();
 		case PROP_IP: return aItem->getIp();
-		case PROP_USER: return Format::formatNicks(aItem->getHintedUser());
+		case PROP_USER: return Format::nicksToString(aItem->getHintedUser());
 		case PROP_ENCRYPTION: return aItem->getEncryption();
 		default: dcassert(0); return Util::emptyString;
 		}
@@ -85,7 +86,7 @@ namespace webserver {
 				return a->isDownload() ? -1 : 1;
 			}
 
-			return Util::DefaultSort(Format::formatNicks(a->getHintedUser()), Format::formatNicks(b->getHintedUser()));
+			return Util::DefaultSort(Format::nicksToString(a->getHintedUser()), Format::nicksToString(b->getHintedUser()));
 		}
 		case PROP_STATUS: {
 			if (a->getState() != b->getState()) {
@@ -130,9 +131,10 @@ namespace webserver {
 				return Serializer::serializeFileType(aItem->getTarget());
 			}
 			case PROP_FLAGS: return aItem->getFlags();
+			case PROP_SUPPORTS: return aItem->getSupports();
 			case PROP_ENCRYPTION:
 			{
-				auto trusted = aItem->getFlags().find("S") != aItem->getFlags().end();
+				auto trusted = aItem->getFlags().contains("S");
 				return Serializer::serializeEncryption(aItem->getEncryption(), trusted);
 			}
 			case PROP_QUEUE_ID:

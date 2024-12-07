@@ -21,7 +21,7 @@
 
 #include <web-server/ApiSettingItem.h>
 
-#include <airdcpp/SettingsManager.h>
+#include <airdcpp/settings/SettingsManager.h>
 
 namespace webserver {
 	static vector<CoreSettingItem> coreSettings = {

@@ -22,35 +22,35 @@
 
 #include <api/TransferApi.h>
 
-#include <airdcpp/Download.h>
-#include <airdcpp/Upload.h>
+#include <airdcpp/transfer/download/Download.h>
+#include <airdcpp/transfer/upload/Upload.h>
 
-#include <airdcpp/DownloadManager.h>
-#include <airdcpp/ConnectionManager.h>
-#include <airdcpp/QueueManager.h>
-#include <airdcpp/ThrottleManager.h>
-#include <airdcpp/UploadManager.h>
+#include <airdcpp/transfer/download/DownloadManager.h>
+#include <airdcpp/connection/ConnectionManager.h>
+#include <airdcpp/queue/QueueManager.h>
+#include <airdcpp/connection/ThrottleManager.h>
+#include <airdcpp/transfer/TransferInfoManager.h>
+#include <airdcpp/transfer/upload/UploadManager.h>
 
 
 namespace webserver {
 	TransferApi::TransferApi(Session* aSession) : 
-		SubscribableApiModule(
-			aSession, Access::TRANSFERS, 
-			{ 
-				"transfer_statistics", 
-				"transfer_added", 
-				"transfer_updated", 
-				"transfer_removed",
-
-				// These are included in transfer_updated events as well
-				"transfer_starting",
-				"transfer_completed",
-				"transfer_failed",
-			}
-		),
+		SubscribableApiModule(aSession, Access::TRANSFERS),
 		timer(getTimer([this] { onTimer(); }, 1000)),
 		view("transfer_view", this, TransferUtils::propertyHandler, std::bind(&TransferApi::getTransfers, this))
 	{
+		createSubscriptions({
+			"transfer_statistics",
+			"transfer_added",
+			"transfer_updated",
+			"transfer_removed",
+
+			// These are included in transfer_updated events as well
+			"transfer_starting",
+			"transfer_completed",
+			"transfer_failed",
+		});
+
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(),											TransferApi::handleGetTransfers);
 		METHOD_HANDLER(Access::TRANSFERS,	METHOD_GET,		(TOKEN_PARAM),								TransferApi::handleGetTransfer);
 
@@ -154,7 +154,7 @@ namespace webserver {
 			{ "speed_up", upSpeed },
 			{ "limit_down", ThrottleManager::getDownLimit() },
 			{ "limit_up", ThrottleManager::getUpLimit() },
-			{ "upload_bundles", UploadManager::getInstance()->getRunningBundleCount() },
+			{ "upload_bundles", 0 }, // API doesn't use upload bundles at the moment
 			{ "download_bundles", DownloadManager::getInstance()->getRunningBundleCount() },
 			{ "uploads", uploads },
 			{ "downloads", downloads },
@@ -208,6 +208,8 @@ namespace webserver {
 			updatedProps.insert(TransferUtils::PROP_IP);
 		if (aUpdatedProperties & TransferInfo::UpdateFlags::FLAGS)
 			updatedProps.insert(TransferUtils::PROP_FLAGS);
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SUPPORTS)
+			updatedProps.insert(TransferUtils::PROP_SUPPORTS);
 		if (aUpdatedProperties & TransferInfo::UpdateFlags::ENCRYPTION)
 			updatedProps.insert(TransferUtils::PROP_ENCRYPTION);
 		if (aUpdatedProperties & TransferInfo::UpdateFlags::QUEUE_ID)

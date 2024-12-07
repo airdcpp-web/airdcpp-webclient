@@ -19,10 +19,10 @@
 #include "stdinc.h"
 #include <web-server/WebUser.h>
 
-#include <airdcpp/Encoder.h>
-#include <airdcpp/StringTokenizer.h>
-#include <airdcpp/MerkleTree.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/hash/value/Encoder.h>
+#include <airdcpp/util/text/StringTokenizer.h>
+#include <airdcpp/hash/value/MerkleTree.h>
+#include <airdcpp/util/Util.h>
 
 #include <boost/range/numeric.hpp>
 #include <boost/range/adaptor/map.hpp>
@@ -138,9 +138,9 @@ namespace webserver {
 
 	AccessList WebUser::getPermissions() const noexcept {
 		AccessList ret;
-		for (const auto& v : permissions) {
-			if (v.second) {
-				ret.push_back(v.first);
+		for (const auto& [access, enabled] : permissions) {
+			if (enabled) {
+				ret.push_back(access);
 			}
 		}
 
@@ -157,7 +157,7 @@ namespace webserver {
 		return boost::regex_match(aUsername, reg);
 	}
 
-	bool WebUser::matchPassword(const string& aPasswordPlain) noexcept {
+	bool WebUser::matchPassword(const string& aPasswordPlain) const noexcept {
 		return hashPassword(aPasswordPlain) == passwordHash;
 	}
 
@@ -166,15 +166,16 @@ namespace webserver {
 	}
 
 	bool WebUser::hasPermission(Access aAccess) const noexcept {
-		if (aAccess == Access::ANY) {
+		using enum Access;
+		if (aAccess == ANY) {
 			return true;
 		}
 
-		dcassert(aAccess != Access::NONE);
-		if (aAccess == Access::NONE) {
+		dcassert(aAccess != NONE);
+		if (aAccess == NONE) {
 			return false;
 		}
 
-		return permissions.at(aAccess) || permissions.at(Access::ADMIN);
+		return permissions.at(aAccess) || permissions.at(ADMIN);
 	}
 }

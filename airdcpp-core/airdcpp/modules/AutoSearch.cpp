@@ -20,14 +20,17 @@
 
 #include "AutoSearch.h"
 
-#include <airdcpp/ActionHook.h>
-#include <airdcpp/Bundle.h>
-#include <airdcpp/ResourceManager.h>
-#include <airdcpp/SearchQuery.h>
-#include <airdcpp/SearchManager.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/TimerManager.h>
+#include <airdcpp/core/ActionHook.h>
+#include <airdcpp/queue/Bundle.h>
+#include <airdcpp/util/PathUtil.h>
+#include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/search/SearchQuery.h>
+#include <airdcpp/search/SearchManager.h>
+#include <airdcpp/search/SearchTypes.h>
+#include <airdcpp/settings/SettingsManager.h>
+#include <airdcpp/core/io/xml/SimpleXML.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/ValueGenerator.h>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -38,7 +41,7 @@ namespace dcpp {
 using namespace boost::posix_time;
 using namespace boost::gregorian;
 
-AutoSearch::AutoSearch() noexcept : token(Util::randInt(10)) {
+AutoSearch::AutoSearch() noexcept : token(ValueGenerator::randInt(10)) {
 
 }
 
@@ -53,7 +56,7 @@ AutoSearch::AutoSearch(bool aEnabled, const string& aSearchString, const string&
 		timeAdded = GET_TIME();
 
 	if (token == 0)
-		token = Util::randInt(10);
+		token = ValueGenerator::randInt(10);
 	
 	checkRecent();
 	setPriority(calculatePriority());
@@ -200,7 +203,7 @@ string AutoSearch::getDisplayName() noexcept {
 }
 
 void AutoSearch::setTarget(const string& aTarget) noexcept {
-	target = Util::validatePath(aTarget, true);
+	target = PathUtil::validatePath(aTarget, true);
 }
 
 void AutoSearch::updatePattern() noexcept {
@@ -220,7 +223,8 @@ string AutoSearch::getDisplayType() const noexcept {
 	Search::TypeModes mode;
 	string name;
 	try {
-		SearchManager::getInstance()->getSearchType(fileType, mode, ext, name);
+		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
+		typeManager.getSearchType(fileType, mode, ext, name);
 	} catch (...) {
 		return STRING(ANY);
 	}
@@ -267,7 +271,7 @@ string AutoSearch::getSearchingStatus() const noexcept {
 	} else if (status == STATUS_WAITING) {
 		auto time = GET_TIME();
 		if (nextSearchChange > time) {
-			auto timeStr = Util::formatTime(nextSearchChange - time, true, true);
+			auto timeStr = Util::formatDuration(nextSearchChange - time, true, true);
 			return nextIsDisable ? STRING_F(ACTIVE_FOR, timeStr) : STRING_F(WAITING_LEFT, timeStr);
 		}
 	} else if (remove || usingIncrementation()) {
@@ -291,7 +295,7 @@ string AutoSearch::getExpiration() const noexcept {
 	if (expireTime <= curTime) {
 		return STRING(EXPIRED);
 	} else {
-		return Util::formatTime(expireTime - curTime, true, true);
+		return Util::formatDuration(expireTime - curTime, true, true);
 	}
 }
 

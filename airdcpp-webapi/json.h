@@ -30,7 +30,7 @@ namespace webserver {
 
 	using ArgumentException = webserver::JsonException;
 
-	typedef std::map<std::string, json> SettingValueMap;
+	using SettingValueMap = std::map<std::string, json>;
 }
 
 #endif // !defined(DCPLUSPLUS_WEBSERVER_JSON_H)

@@ -19,33 +19,33 @@
 #include "ConfigPrompt.h"
 
 #include <airdcpp/stdinc.h>
-#include <airdcpp/ScopedFunctor.h>
-#include <airdcpp/Util.h>
+
+#include <airdcpp/core/classes/ScopedFunctor.h>
+#include <airdcpp/core/classes/StartupParams.h>
+#include <airdcpp/util/Util.h>
 
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
+#include <web-server/WebUserManager.h>
 #include <web-server/WebUser.h>
 
 namespace airdcppd {
 
-//using namespace std;
-//using dcpp::ScopedFunctor;
-//using Util = dcpp::Util;
 using namespace dcpp;
 
 std::string ConfigPrompt::toBold(const std::string& aText) {
 	return "\e[1m" + aText + "\e[0m";
 }
 
-ConfigPrompt::ConfigF ConfigPrompt::checkArgs() {
+ConfigPrompt::ConfigF ConfigPrompt::checkArgs(const dcpp::StartupParams& aStartupParams) {
 	std::function<bool(webserver::WebServerManager*)> f = nullptr;
-	if (Util::hasStartupParam("--configure")) {
+	if (aStartupParams.hasParam("--configure")) {
 		f = &runConfigure;
-	} else if (Util::hasStartupParam("--add-user")) {
+	} else if (aStartupParams.hasParam("--add-user")) {
 		f = &addUser;
-	} else if (Util::hasStartupParam("--remove-user")) {
+	} else if (aStartupParams.hasParam("--remove-user")) {
 		f = &removeUser;
-	} else if (Util::hasStartupParam("--list-users")) {
+	} else if (aStartupParams.hasParam("--list-users")) {
 		f = &listUsers;
 	}
 

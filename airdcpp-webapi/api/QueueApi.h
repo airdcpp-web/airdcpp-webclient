@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_QUEUEAPI_H
 #define DCPLUSPLUS_DCPP_QUEUEAPI_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/DownloadManagerListener.h>
-#include <airdcpp/QueueManagerListener.h>
+#include <airdcpp/transfer/download/DownloadManagerListener.h>
+#include <airdcpp/queue/QueueManagerListener.h>
 
 #include <api/common/ListViewController.h>
 #include <api/base/HookApiModule.h>
@@ -40,8 +40,8 @@ namespace dcpp {
 namespace webserver {
 	class QueueApi : public HookApiModule, private QueueManagerListener, private DownloadManagerListener {
 	public:
-		QueueApi(Session* aSession);
-		~QueueApi();
+		explicit QueueApi(Session* aSession);
+		~QueueApi() override;
 	private:
 		ActionHookResult<> bundleCompletionHook(const BundlePtr& aBundle, const ActionHookResultGetter<>& aResultGetter) noexcept;
 		ActionHookResult<> fileCompletionHook(const QueueItemPtr& aFile, const ActionHookResultGetter<>& aResultGetter) noexcept;
@@ -49,7 +49,7 @@ namespace webserver {
 		ActionHookResult<BundleAddHookResult> bundleAddHook(const string& aTarget, BundleAddData& aData, const HintedUser& aUser, const bool aIsFile, const ActionHookResultGetter<BundleAddHookResult>& aResultGetter) noexcept;
 		ActionHookResult<> sourceAddHook(const HintedUser& aUser, const ActionHookResultGetter<>& aResultGetter) noexcept;
 
-		typedef std::function<BundleAddHookResult(const json&, const ActionHookResultGetter<BundleAddHookResult>&)> BundleAddHookResultDeserializer;
+		using BundleAddHookResultDeserializer = std::function<BundleAddHookResult (const json &, const ActionHookResultGetter<BundleAddHookResult> &)>;
 		static BundleAddHookResultDeserializer getBundleAddHookDeserializer(const Session* aSession);
 
 		// COMMON
@@ -80,7 +80,7 @@ namespace webserver {
 		api_return handleRemoveBundleSource(ApiRequest& aRequest);
 
 		api_return handleBundlePriority(ApiRequest& aRequest);
-		api_return handleSearchBundle(ApiRequest& aRequest);
+		api_return handleSearchBundleAlternates(ApiRequest& aRequest);
 		api_return handleShareBundle(ApiRequest& aRequest);
 
 		// FILES
@@ -89,13 +89,14 @@ namespace webserver {
 		static QueueItemPtr getFile(ApiRequest& aRequest, bool aRequireBundle);
 
 		api_return handleGetFile(ApiRequest& aRequest);
+		api_return handleGetFilesByTTH(ApiRequest& aRequest);
 		api_return handleRemoveFile(ApiRequest& aRequest);
 
 		api_return handleGetFileSources(ApiRequest& aRequest);
 		api_return handleRemoveFileSource(ApiRequest& aRequest);
 
 		api_return handleFilePriority(ApiRequest& aRequest);
-		api_return handleSearchFile(ApiRequest& aRequest);
+		api_return handleSearchFileAlternates(ApiRequest& aRequest);
 
 		api_return handleGetFileSegments(ApiRequest& aRequest);
 		api_return handleAddFileSegment(ApiRequest& aRequest);
@@ -113,9 +114,9 @@ namespace webserver {
 		void on(FileRecheckFailed, const QueueItemPtr&, const string&) noexcept override;
 
 		void on(DownloadManagerListener::BundleTick, const BundleList& tickBundles, uint64_t aTick) noexcept override;
-		void on(DownloadManagerListener::BundleWaiting, const BundlePtr& aBundle) noexcept override;
 
 		// QueueItem update listeners
+		void on(QueueManagerListener::BundleDownloadStatus, const BundlePtr& aBundle) noexcept override;
 		void on(QueueManagerListener::ItemRemoved, const QueueItemPtr& aQI, bool /*finished*/) noexcept override;
 		void on(QueueManagerListener::ItemAdded, const QueueItemPtr& aQI) noexcept override;
 		void on(QueueManagerListener::ItemSources, const QueueItemPtr& aQI) noexcept override;
@@ -126,10 +127,10 @@ namespace webserver {
 		void onFileUpdated(const QueueItemPtr& aQI, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 		void onBundleUpdated(const BundlePtr& aBundle, const PropertyIdSet& aUpdatedProperties, const string& aSubscription);
 
-		typedef ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST> BundleListView;
+		using BundleListView = ListViewController<BundlePtr, QueueBundleUtils::PROP_LAST>;
 		BundleListView bundleView;
 
-		typedef ListViewController<QueueItemPtr, QueueFileUtils::PROP_LAST> FileListView;
+		using FileListView = ListViewController<QueueItemPtr, QueueFileUtils::PROP_LAST>;
 		FileListView fileView;
 
 		static BundleList getBundleList() noexcept;

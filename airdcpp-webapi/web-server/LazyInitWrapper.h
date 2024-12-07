@@ -27,26 +27,26 @@ namespace webserver {
 	// NOTE: initialization is not thread safe
 	class LazyInitWrapper {
 	public:
-		typedef std::function < unique_ptr<T>() > InitF;
-		LazyInitWrapper(InitF&& aInitF) : initF(std::move(aInitF)) {}
+		using InitF = std::function<unique_ptr<T> ()>;
+		explicit LazyInitWrapper(InitF&& aInitF) : initF(std::move(aInitF)) {}
 
 		T* operator->() {
 			ensureInit();
-			return module.operator->();
+			return apiModule.operator->();
 		}
 
 		T* get() {
 			ensureInit();
-			return module.get();
+			return apiModule.get();
 		}
 	private:
 		void ensureInit() {
-			if (!module) {
-				module = initF();
+			if (!apiModule) {
+				apiModule = initF();
 			}
 		}
 
-		unique_ptr<T> module;
+		unique_ptr<T> apiModule;
 		InitF initF;
 	};
 }

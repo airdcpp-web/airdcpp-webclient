@@ -23,7 +23,7 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
-#include <airdcpp/ShareManager.h>
+#include <airdcpp/share/ShareManager.h>
 
 
 namespace webserver {
@@ -66,20 +66,20 @@ namespace webserver {
 	}
 
 	string ShareUtils::formatStatusId(const ShareDirectoryInfoPtr& aItem) noexcept {
-		switch (static_cast<ShareManager::RefreshState>(aItem->refreshState)) {
-			case ShareManager::RefreshState::STATE_NORMAL: return "normal";
-			case ShareManager::RefreshState::STATE_PENDING: return "refresh_pending";
-			case ShareManager::RefreshState::STATE_RUNNING: return "refresh_running";
+		switch (static_cast<ShareRootRefreshState>(aItem->refreshState)) {
+			case ShareRootRefreshState::STATE_NORMAL: return "normal";
+			case ShareRootRefreshState::STATE_PENDING: return "refresh_pending";
+			case ShareRootRefreshState::STATE_RUNNING: return "refresh_running";
 		}
 
 		return Util::emptyString;
 	}
 
 	string ShareUtils::formatDisplayStatus(const ShareDirectoryInfoPtr& aItem) noexcept {
-		switch (static_cast<ShareManager::RefreshState>(aItem->refreshState)) {
-			case ShareManager::RefreshState::STATE_NORMAL: return STRING(NORMAL);
-			case ShareManager::RefreshState::STATE_PENDING: return STRING(API_SHARE_REFRESH_PENDING);
-			case ShareManager::RefreshState::STATE_RUNNING: return STRING(API_SHARE_REFRESHING);
+		switch (static_cast<ShareRootRefreshState>(aItem->refreshState)) {
+			case ShareRootRefreshState::STATE_NORMAL: return STRING(NORMAL);
+			case ShareRootRefreshState::STATE_PENDING: return STRING(API_SHARE_REFRESH_PENDING);
+			case ShareRootRefreshState::STATE_RUNNING: return STRING(API_SHARE_REFRESHING);
 		}
 
 		return Util::emptyString;
@@ -89,7 +89,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_PROFILES:
 		{
-			return aItem->profiles.find(static_cast<int>(aNumericMatcher)) != aItem->profiles.end();
+			return aItem->profiles.contains(static_cast<int>(aNumericMatcher));
 		}
 		}
 
@@ -99,7 +99,7 @@ namespace webserver {
 	int ShareUtils::compareItems(const ShareDirectoryInfoPtr& a, const ShareDirectoryInfoPtr& b, int aPropertyName) noexcept {
 		switch (aPropertyName) {
 		case PROP_TYPE: {
-			return Util::directoryContentSort(a->contentInfo, b->contentInfo);
+			return DirectoryContentInfo::Sort(a->contentInfo, b->contentInfo);
 		}
 		case PROP_PROFILES: {
 			return compare(a->profiles.size(), b->profiles.size());

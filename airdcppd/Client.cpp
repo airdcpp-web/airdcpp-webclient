@@ -20,19 +20,22 @@
 #include "Client.h"
 
 #include <airdcpp/DCPlusPlus.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/util/AppUtil.h>
 
-#include <airdcpp/ActivityManager.h>
-#include <airdcpp/ClientManager.h>
-#include <airdcpp/ConnectivityManager.h>
-#include <airdcpp/DirectoryListing.h>
-#include <airdcpp/DirectoryListingManager.h>
-#include <airdcpp/FavoriteManager.h>
-#include <airdcpp/LogManager.h>
-#include <airdcpp/SettingsManager.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/UpdateManager.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/core/update/UpdateManager.h>
 
+#include <airdcpp/connectivity/ConnectivityManager.h>
+#include <airdcpp/events/LogManager.h>
+#include <airdcpp/favorites/FavoriteManager.h>
+#include <airdcpp/filelist/DirectoryListing.h>
+#include <airdcpp/filelist/DirectoryListingManager.h>
+#include <airdcpp/hub/activity/ActivityManager.h>
+#include <airdcpp/hub/ClientManager.h>
+#include <airdcpp/settings/SettingsManager.h>
+
+#include <web-server/FileServer.h>
+#include <web-server/HttpManager.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
@@ -42,8 +45,8 @@ Client::Client(bool aAsDaemon) : asDaemon(aAsDaemon) {
 
 }
 
-void Client::run() {
-	if (!startup()) {
+void Client::run(const dcpp::StartupParams& aStartupParams) {
+	if (!startup(aStartupParams)) {
 		return;
 	}
 
@@ -51,8 +54,8 @@ void Client::run() {
 		auto wsm = webserver::WebServerManager::getInstance();
 		printf(".\n\n%s running, press ctrl-c to exit...\n\n", shortVersionString.c_str());
 		printf("HTTP port: %d, HTTPS port: %d\n", WEBCFG(PLAIN_PORT).num(), WEBCFG(TLS_PORT).num());
-		printf("Config path: %s\n", Util::getPath(Util::PATH_USER_CONFIG).c_str());
-		printf("Web resources path: %s\n", wsm->getResourcePath().c_str());
+		printf("Config path: %s\n", AppUtil::getPath(AppUtil::PATH_USER_CONFIG).c_str());
+		printf("Web resources path: %s\n", wsm->getHttpManager().getFileServer().getResourcePath().c_str());
 	}
 
 	shutdownSemaphore.wait();
@@ -98,7 +101,7 @@ void progressF(float aProgress) {
 	// Not implemented
 }
 
-bool Client::startup() {
+bool Client::startup(const dcpp::StartupParams& aStartupParams) {
 	webserver::WebServerManager::newInstance();
 
 	auto wsm = webserver::WebServerManager::getInstance();
@@ -114,9 +117,17 @@ bool Client::startup() {
 		messageF,
 		nullptr, // wizard
 		progressF,
-		nullptr, // module init
+		[&] {
+			// Add the command listeners here so that we won't miss any messages while loading
+			auto cdmHub = aStartupParams.hasParam("--cdm-hub");
+			auto cdmClient = aStartupParams.hasParam("--cdm-client");
+			auto cdmWeb = aStartupParams.hasParam("--cdm-web");
+			if (cdmHub || cdmClient || cdmWeb) {
+				cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
+			}
+		}, // module init
 		[&](StartupLoader& aLoader) { // module load
-			auto webResources = Util::getStartupParam("--web-resources");
+			auto webResources = aStartupParams.getValue("--web-resources");
 			aLoader.stepF(STRING(WEB_SERVER));
 			serverStarted = wsm->startup(
 				webErrorF,
@@ -125,7 +136,7 @@ bool Client::startup() {
 			);
 
 			wsm->waitExtensionsLoaded();
-		}
+		} // module load
 	);
 
 	if (!serverStarted) {
@@ -145,15 +156,8 @@ bool Client::startup() {
 	TimerManager::getInstance()->start();
 	UpdateManager::getInstance()->init();
 
-	if (!Util::hasStartupParam("--no-autoconnect")) {
+	if (!aStartupParams.hasParam("--no-autoconnect")) {
 		FavoriteManager::getInstance()->autoConnect();
-	}
-
-	auto cdmHub = Util::hasStartupParam("--cdm-hub");
-	auto cdmClient = Util::hasStartupParam("--cdm-client");
-	auto cdmWeb = Util::hasStartupParam("--cdm-web");
-	if (cdmHub || cdmClient || cdmWeb) {
-		cdmDebug.reset(new CDMDebug(cdmClient, cdmHub, cdmWeb));
 	}
 
 	running = true;

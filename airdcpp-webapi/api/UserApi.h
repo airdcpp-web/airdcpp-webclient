@@ -19,12 +19,12 @@
 #ifndef DCPLUSPLUS_DCPP_USER_API_H
 #define DCPLUSPLUS_DCPP_USER_API_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/ClientManagerListener.h>
-#include <airdcpp/IgnoreManagerListener.h>
+#include <airdcpp/hub/ClientManagerListener.h>
+#include <airdcpp/user/ignore/IgnoreManagerListener.h>
 
 namespace webserver {
 	class UserApi : public SubscribableApiModule, private IgnoreManagerListener, private ClientManagerListener {

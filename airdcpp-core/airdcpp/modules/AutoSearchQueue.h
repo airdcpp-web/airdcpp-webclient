@@ -19,11 +19,11 @@
 #ifndef DCPP_AUTOSEARCHQUEUE_H
 #define DCPP_AUTOSEARCHQUEUE_H
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
 #include "AutoSearch.h"
 
-#include <airdcpp/PrioritySearchQueue.h>
+#include <airdcpp/util/classes/PrioritySearchQueue.h>
 
 namespace dcpp {
 

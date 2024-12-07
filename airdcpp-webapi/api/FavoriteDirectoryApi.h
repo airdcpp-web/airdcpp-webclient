@@ -19,10 +19,10 @@
 #ifndef DCPLUSPLUS_DCPP_FAVORITEDIRECTORYAPI_H
 #define DCPLUSPLUS_DCPP_FAVORITEDIRECTORYAPI_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/FavoriteManagerListener.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/favorites/FavoriteManagerListener.h>
 
 namespace webserver {
 	class FavoriteDirectoryApi : public SubscribableApiModule, private FavoriteManagerListener {

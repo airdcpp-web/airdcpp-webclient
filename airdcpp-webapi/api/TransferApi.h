@@ -19,16 +19,14 @@
 #ifndef DCPLUSPLUS_DCPP_TRANSFERAPI_H
 #define DCPLUSPLUS_DCPP_TRANSFERAPI_H
 
-#include <api/base/ApiModule.h>
+#include <api/base/SubscribableApiModule.h>
 #include <api/TransferUtils.h>
 
 #include <api/common/ListViewController.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/TransferInfo.h>
-
-#include <airdcpp/TransferInfoManager.h>
+#include <airdcpp/transfer/TransferInfoManagerListener.h>
 
 
 namespace webserver {

@@ -23,6 +23,8 @@
 #include <api/common/Format.h>
 #include <api/common/Serializer.h>
 
+#include <airdcpp/util/PathUtil.h>
+
 
 namespace webserver {
 	const PropertyList SearchUtils::properties = {
@@ -92,10 +94,10 @@ namespace webserver {
 			}
 
 			if (a->isDirectory() && b->isDirectory()) {
-				return Util::directoryContentSort(a->getContentInfo(), b->getContentInfo());
+				return DirectoryContentInfo::Sort(a->getContentInfo(), b->getContentInfo());
 			}
 
-			return Util::DefaultSort(Util::getFileExt(a->getAdcPath()), Util::getFileExt(b->getAdcPath()));
+			return Util::DefaultSort(PathUtil::getFileExt(a->getAdcPath()), PathUtil::getFileExt(b->getAdcPath()));
 		}
 		case PROP_SLOTS: {
 			auto slotsA = a->getSlots();
@@ -112,7 +114,7 @@ namespace webserver {
 				return compare(a->getHits(), b->getHits());
 			}
 
-			return Util::DefaultSort(Format::formatNicks(a->getBaseUser()), Format::formatNicks(b->getBaseUser()));
+			return Util::DefaultSort(Format::nicksToString(a->getBaseUser()), Format::nicksToString(b->getBaseUser()));
 		}
 		default: dcassert(0); return 0;
 		}
@@ -121,7 +123,7 @@ namespace webserver {
 		switch (aPropertyName) {
 		case PROP_NAME: return aResult->getFileName();
 		case PROP_PATH: return aResult->getAdcPath();
-		case PROP_USERS: return Format::formatNicks(aResult->getBaseUser());
+		case PROP_USERS: return Format::nicksToString(aResult->getBaseUser());
 		case PROP_TYPE: {
 			if (aResult->isDirectory()) {
 				return Util::formatDirectoryContent(aResult->getContentInfo());

@@ -21,21 +21,24 @@
 
 #include "forward.h"
 
-#include <airdcpp/typedefs.h>
-#include <airdcpp/CriticalSection.h>
+#include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/thread/CriticalSection.h>
 
 
 namespace webserver {
+	struct HttpRequest;
 	class FileServer {
 	public:
 		FileServer();
 		~FileServer();
 
 		void setResourcePath(const string& aPath) noexcept;
+
+		// Get location of the file server root directory (Web UI files)
 		const string& getResourcePath() const noexcept;
 
-		websocketpp::http::status_code::value handleRequest(const websocketpp::http::parser::request& aRequest, 
-			std::string& output_, StringPairList& headers_, const SessionPtr& aSession, const FileDeferredHandler& aDeferF);
+		websocketpp::http::status_code::value handleRequest(const HttpRequest& aRequest, 
+			std::string& output_, StringPairList& headers_, const FileDeferredHandler& aDeferF);
 
 		string getTempFilePath(const string& fileId) const noexcept;
 		void stop() noexcept;

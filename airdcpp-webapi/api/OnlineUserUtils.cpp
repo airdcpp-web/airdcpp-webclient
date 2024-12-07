@@ -39,6 +39,7 @@ namespace webserver {
 		{ PROP_HUB_ID, "hub_session_id", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
 		{ PROP_HUB_URL, "hub_url", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_HUB_NAME , "hub_name", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
+		{ PROP_SUPPORTS, "supports", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
 		{ PROP_FLAGS, "flags", TYPE_LIST_TEXT, SERIALIZE_CUSTOM, SORT_NONE },
 		{ PROP_CID, "cid", TYPE_TEXT, SERIALIZE_TEXT, SORT_TEXT },
 		{ PROP_UPLOAD_SLOTS, "upload_slots", TYPE_NUMERIC_OTHER, SERIALIZE_NUMERIC, SORT_NUMERIC },
@@ -54,6 +55,7 @@ namespace webserver {
 			case PROP_IP4: return Serializer::serializeIp(aUser->getIdentity().getIp4());
 			case PROP_IP6: return Serializer::serializeIp(aUser->getIdentity().getIp6());
 			case PROP_FLAGS: return Serializer::getOnlineUserFlags(aUser);
+			case PROP_SUPPORTS: return aUser->getIdentity().getSupports();
 		}
 
 		return nullptr;
@@ -97,7 +99,7 @@ namespace webserver {
 		case PROP_IP4: return Format::formatIp(aUser->getIdentity().getIp4());
 		case PROP_IP6: return Format::formatIp(aUser->getIdentity().getIp6());
 		case PROP_CID: return aUser->getUser()->getCID().toBase32();
-		default: dcassert(0); return 0;
+		default: dcassert(0); return Util::emptyString;
 		}
 	}
 	double OnlineUserUtils::getNumericInfo(const OnlineUserPtr& aUser, int aPropertyName) noexcept {

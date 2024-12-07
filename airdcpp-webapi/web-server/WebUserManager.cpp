@@ -19,15 +19,15 @@
 #include "stdinc.h"
 
 #include <web-server/WebUserManager.h>
+
+#include <web-server/Timer.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 
-#include <airdcpp/typedefs.h>
+#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/ActivityManager.h>
-#include <airdcpp/SimpleXML.h>
-#include <airdcpp/TimerManager.h>
-#include <airdcpp/Util.h>
+#include <airdcpp/core/timer/TimerManager.h>
+#include <airdcpp/util/Util.h>
 
 #ifdef _WIN32
 #include <Wincrypt.h>
@@ -44,11 +44,11 @@
 #define REFRESH_TOKEN_VALIDITY_DAYS 30ULL
 
 #define CONFIG_NAME_JSON "web-users.json"
-#define CONFIG_DIR Util::PATH_USER_CONFIG
+#define CONFIG_DIR AppUtil::PATH_USER_CONFIG
 #define CONFIG_VERSION 1
 
 namespace webserver {
-	WebUserManager::WebUserManager(WebServerManager* aServer) : wsm(aServer), authFloodCounter(AUTH_FLOOD_PERIOD) {
+	WebUserManager::WebUserManager(WebServerManager* aServer) : authFloodCounter(AUTH_FLOOD_PERIOD), wsm(aServer) {
 		aServer->addListener(this);
 	}
 
@@ -59,20 +59,20 @@ namespace webserver {
 	SessionPtr WebUserManager::parseHttpSession(const string& aAuthToken, const string& aIP) {
 		auto token = aAuthToken;
 
-		auto authType = AUTH_UNKNOWN;
-		if (token.length() > 6 && token.substr(0, 6) == "Basic ") {
+		auto authType = AuthType::UNKNOWN;
+		if (token.starts_with("Basic ")) {
 			token = websocketpp::base64_decode(token.substr(6));
-			authType = AUTH_BASIC;
-		} else if (token.length() > 7 && token.substr(0, 7) == "Bearer ") {
+			authType = AuthType::BASIC;
+		} else if (token.starts_with("Bearer ")) {
 			token = token.substr(7);
-			authType = AUTH_BEARER;
+			authType = AuthType::BEARER;
 		} else {
-			authType = AUTH_BEARER;
+			authType = AuthType::BEARER;
 		}
 
 		auto session = getSession(token);
 		if (!session) {
-			if (authType == AUTH_BASIC) {
+			if (authType == AuthType::BASIC) {
 				string username, password;
 
 				auto i = token.rfind(':');
@@ -93,7 +93,7 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::authenticateSession(const string& aUserName, const string& aPassword, Session::SessionType aType, uint64_t aMaxInactivityMinutes, const string& aIP) {
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		auto uuid = generateUUID();
 		return authenticateSession(aUserName, aPassword, aType, aMaxInactivityMinutes, aIP, uuid);
 	}
 
@@ -117,7 +117,7 @@ namespace webserver {
 
 		setDirty();
 
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		auto uuid = generateUUID();
 		return createSession(user, uuid, aType, aMaxInactivityMinutes, aIP);
 	}
 
@@ -129,7 +129,7 @@ namespace webserver {
 
 		auto user = getUser(aUserName);
 		if (!user || !user->matchPassword(aPassword)) {
-			authFloodCounter.addRequst(aIP);
+			authFloodCounter.addRequest(aIP);
 			throw std::domain_error(STRING(WEB_SESSIONS_INVALID_USER_PW));
 		}
 
@@ -157,8 +157,8 @@ namespace webserver {
 				return aSession->getSessionType() == Session::TYPE_BASIC_AUTH && aSession->getUser() == aUser;
 			}).base() == sessionsRemoteId.end());
 
-			sessionsRemoteId.emplace(session->getAuthToken(), session);
-			sessionsLocalId.emplace(session->getId(), session);
+			sessionsRemoteId.try_emplace(session->getAuthToken(), session);
+			sessionsLocalId.try_emplace(session->getId(), session);
 		}
 
 		fire(WebUserManagerListener::SessionCreated(), session);
@@ -166,7 +166,7 @@ namespace webserver {
 	}
 
 	SessionPtr WebUserManager::createExtensionSession(const string& aExtensionName) noexcept {
-		auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		auto uuid = generateUUID();
 
 		// For internal use only (can't be used for logging in)
 		auto user = std::make_shared<WebUser>(aExtensionName, Util::emptyString, true);
@@ -213,24 +213,9 @@ namespace webserver {
 	}
 
 	void WebUserManager::logout(const SessionPtr& aSession) {
-		removeSession(aSession, false);
-
-		auto socket = wsm->getSocket(aSession->getId());
-		if (socket) {
-			resetSocketSession(socket);
-		} else {
-			dcdebug("No socket for session %s\n", aSession->getAuthToken().c_str());
-		}
+		removeSession(aSession, SessionRemovalReason::LOGOUT);
 
 		dcdebug("Session %s logging out, use count: %ld\n", aSession->getAuthToken().c_str(), aSession.use_count());
-	}
-
-	void WebUserManager::resetSocketSession(const WebSocketPtr& aSocket) noexcept {
-		if (aSocket->getSession()) {
-			dcdebug("Resetting socket for session %s\n", aSocket->getSession()->getAuthToken().c_str());
-			aSocket->getSession()->onSocketDisconnected();
-			aSocket->setSession(nullptr);
-		}
 	}
 
 	void WebUserManager::checkExpiredSessions() noexcept {
@@ -239,16 +224,13 @@ namespace webserver {
 
 		{
 			RLock l(cs);
-			ranges::copy_if(sessionsLocalId | views::values, back_inserter(removedSession), [=](const SessionPtr& s) {
-				return s->getMaxInactivity() > 0 && s->getLastActivity() + s->getMaxInactivity() < tick;
+			ranges::copy_if(sessionsLocalId | views::values, back_inserter(removedSession), [tick](const SessionPtr& s) {
+				return s->isTimeout(tick);
 			});
 		}
 
 		for (const auto& s : removedSession) {
-			// Don't remove sessions with active socket
-			if (!wsm->getSocket(s->getId())) {
-				removeSession(s, true);
-			}
+			removeSession(s, SessionRemovalReason::TIMEOUT);
 		}
 	}
 
@@ -271,7 +253,7 @@ namespace webserver {
 		}
 	}
 
-	void WebUserManager::removeSession(const SessionPtr& aSession, bool aTimedOut) noexcept {
+	void WebUserManager::removeSession(const SessionPtr& aSession, SessionRemovalReason aReason) noexcept {
 		aSession->getUser()->removeSession();
 		fire(WebUserManagerListener::UserUpdated(), aSession->getUser());
 
@@ -281,7 +263,7 @@ namespace webserver {
 			sessionsLocalId.erase(aSession->getId());
 		}
 
-		fire(WebUserManagerListener::SessionRemoved(), aSession, aTimedOut);
+		fire(WebUserManagerListener::SessionRemoved(), aSession, static_cast<int>(aReason));
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Started) noexcept {
@@ -294,7 +276,7 @@ namespace webserver {
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Stopping) noexcept {
-
+		// ...
 	}
 
 	void WebUserManager::on(WebServerManagerListener::Stopped) noexcept {
@@ -333,7 +315,7 @@ namespace webserver {
 
 	bool WebUserManager::hasUser(const string& aUserName) const noexcept {
 		RLock l(cs);
-		return users.find(aUserName) != users.end();
+		return users.contains(aUserName);
 	}
 
 	bool WebUserManager::addUser(const WebUserPtr& aUser) noexcept {
@@ -344,7 +326,7 @@ namespace webserver {
 
 		{
 			WLock l(cs);
-			users.emplace(aUser->getUserName(), aUser);
+			users.try_emplace(aUser->getUserName(), aUser);
 		}
 
 		fire(WebUserManagerListener::UserAdded(), aUser);
@@ -362,13 +344,18 @@ namespace webserver {
 		return user->second;
 	}
 
-	string WebUserManager::createRefreshToken(const WebUserPtr& aUser) noexcept {
+	string WebUserManager::generateUUID() noexcept {
 		const auto uuid = boost::uuids::to_string(boost::uuids::random_generator()());
+		return uuid;
+	}
+
+	string WebUserManager::createRefreshToken(const WebUserPtr& aUser) noexcept {
+		const auto uuid = generateUUID();
 		const time_t expiration = GET_TIME() + static_cast<time_t>(REFRESH_TOKEN_VALIDITY_DAYS * 24ULL * 60ULL * 60ULL * 1000ULL);
 
 		{
 			WLock l(cs);
-			refreshTokens.emplace(uuid, TokenInfo({ uuid, aUser, expiration }));
+			refreshTokens.try_emplace(uuid, uuid, aUser, expiration);
 		}
 
 		setDirty();
@@ -396,7 +383,7 @@ namespace webserver {
 	}
 
 
-	void WebUserManager::removeSessions(const WebUserPtr& aUser) noexcept {
+	void WebUserManager::removeUserSessions(const WebUserPtr& aUser) noexcept {
 		SessionList removedSession;
 
 		{
@@ -407,19 +394,14 @@ namespace webserver {
 		}
 
 		for (const auto& s: removedSession) {
-			auto socket = wsm->getSocket(s->getId());
-			if (socket) {
-				socket->close(websocketpp::close::status::normal, "Re-authentication required");
-			}
-
-			removeSession(s, true);
+			removeSession(s, SessionRemovalReason::USER_CHANGED);
 		}
 	}
 
 	bool WebUserManager::updateUser(const WebUserPtr& aUser, bool aRemoveSessions) noexcept {
 		if (aRemoveSessions) {
 			removeRefreshTokens(aUser);
-			removeSessions(aUser);
+			removeUserSessions(aUser);
 		}
 
 		fire(WebUserManagerListener::UserUpdated(), aUser);
@@ -434,7 +416,7 @@ namespace webserver {
 		}
 
 		removeRefreshTokens(user);
-		removeSessions(user);
+		removeUserSessions(user);
 
 		{
 			WLock l(cs);
@@ -467,119 +449,68 @@ namespace webserver {
 			WLock l(cs);
 			refreshTokens.clear();
 			users.clear();
-			for (auto u : newUsers) {
-				users.emplace(u->getUserName(), u);
+			for (const auto& u : newUsers) {
+				users.try_emplace(u->getUserName(), u);
 			}
 		}
 
 		setDirty();
 	}
 
+	void WebUserManager::loadUsers(const json& aJson) {
+		auto usersJson = aJson.find("users");
+		if (usersJson == aJson.end()) {
+			return;
+		}
 
-	void WebUserManager::on(WebServerManagerListener::SocketDisconnected, const WebSocketPtr& aSocket) noexcept {
-		resetSocketSession(aSocket);
+		for (const auto& u : *usersJson) {
+			const string& username = u.at("username");
+			const string& password = u.at("password");
+			if (username.empty() || password.empty()) {
+				continue;
+			}
+
+			const StringList& permissions = u.at("permissions");
+
+			// Set as admin mainly for compatibility with old accounts if no permissions were found
+			auto user = std::make_shared<WebUser>(username, password, permissions.empty());
+
+			user->setLastLogin(u.at("last_login"));
+			if (!permissions.empty()) {
+				user->setPermissions(permissions);
+			}
+
+			users.try_emplace(username, user);
+		}
 	}
-
-	void WebUserManager::on(WebServerManagerListener::LoadLegacySettings, SimpleXML& xml_) noexcept {
-		if (xml_.findChild("WebUsers")) {
-			xml_.stepIn();
-			while (xml_.findChild("WebUser")) {
-				const auto& username = xml_.getChildAttrib("Username");
-				const auto& password = xml_.getChildAttrib("Password");
-
-				if (username.empty() || password.empty()) {
-					continue;
-				}
-
-				const auto& permissions = xml_.getChildAttrib("Permissions");
-
-				// Set as admin mainly for compatibility with old accounts if no permissions were found
-				auto user = std::make_shared<WebUser>(username, password, permissions.empty());
-
-				user->setLastLogin(xml_.getIntChildAttrib("LastLogin"));
-				if (!permissions.empty()) {
-					user->setPermissions(permissions);
-				}
-
-				users.emplace(username, user);
-
-			}
-			xml_.stepOut();
+	void WebUserManager::loadRefreshTokens(const json& aJson) {
+		auto refreshTokensJson = aJson.find("refresh_tokens");
+		if (refreshTokensJson == aJson.end()) {
+			return;
 		}
 
-		if (xml_.findChild("RefreshTokens")) {
-			xml_.stepIn();
-			while (xml_.findChild("TokenInfo")) {
-				const auto& token = xml_.getChildAttrib("Token");
-				const auto& username = xml_.getChildAttrib("Username");
-				const auto& expiresOn = static_cast<time_t>(xml_.getLongLongChildAttrib("ExpiresOn"));
+		for (const auto& t : *refreshTokensJson) {
+			const string& token = t.at("token");
+			const string& username = t.at("username");
+			const time_t& expiresOn = t.at("expires_on");
 
-				if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
-					continue;
-				}
-
-				auto user = getUser(username);
-				if (!user) {
-					continue;
-				}
-
-				refreshTokens.emplace(token, TokenInfo({ token, user, expiresOn }));
+			if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
+				continue;
 			}
-			xml_.stepOut();
-		}
 
-		xml_.resetCurrentChild();
-		setDirty();
+			auto user = getUser(username);
+			if (!user) {
+				continue;
+			}
+
+			refreshTokens.try_emplace(token, token, user, expiresOn);
+		}
 	}
 
 	void WebUserManager::on(WebServerManagerListener::LoadSettings, const MessageCallback& aErrorF) noexcept {
 		WebServerSettings::loadSettingFile(CONFIG_DIR, CONFIG_NAME_JSON, [this](const json& aJson, int) {
-			{
-				auto usersJson = aJson.find("users");
-				if (usersJson != aJson.end()) {
-					for (const auto u: *usersJson) {
-						const string& username = u.at("username");
-						const string& password = u.at("password");
-						if (username.empty() || password.empty()) {
-							continue;
-						}
-
-						const StringList& permissions = u.at("permissions");
-
-						// Set as admin mainly for compatibility with old accounts if no permissions were found
-						auto user = std::make_shared<WebUser>(username, password, permissions.empty());
-
-						user->setLastLogin(u.at("last_login"));
-						if (!permissions.empty()) {
-							user->setPermissions(permissions);
-						}
-
-						users.emplace(username, user);
-					}
-				}
-			}
-
-			{
-				auto refreshTokensJson = aJson.find("refresh_tokens");
-				if (refreshTokensJson != aJson.end()) {
-					for (const auto t: *refreshTokensJson) {
-						const string& token = t.at("token");
-						const string& username = t.at("username");
-						const time_t& expiresOn = t.at("expires_on");
-
-						if (username.empty() || token.empty() || GET_TIME() > expiresOn) {
-							continue;
-						}
-
-						auto user = getUser(username);
-						if (!user) {
-							continue;
-						}
-
-						refreshTokens.emplace(token, TokenInfo({ token, user, expiresOn }));
-					}
-				}
-			}
+			loadUsers(aJson);
+			loadRefreshTokens(aJson);
 		}, aErrorF, CONFIG_VERSION);
 	}
 
