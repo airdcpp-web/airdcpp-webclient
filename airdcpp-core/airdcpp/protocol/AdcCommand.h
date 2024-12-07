@@ -260,7 +260,7 @@ public:
 			C(TCP);
 			C(PMI);
 		default: 
-			dcdebug("Unknown ADC command: %.50s\n", aCmd.toString().c_str());
+			// dcdebug("Unknown ADC command: %.50s\n", aCmd.toString().c_str());
 			break;
 #undef C
 		}
