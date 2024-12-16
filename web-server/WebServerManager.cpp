@@ -46,7 +46,7 @@ namespace webserver {
 	WebServerManager::WebServerManager() : 
 		ios(4),
 		tasks(4),
-		work(tasks)
+		wordGuardTasks(tasks.get_executor())
 	{
 		settingsManager = make_unique<WebServerSettings>(this);
 
@@ -141,10 +141,10 @@ namespace webserver {
 			return false;
 		}
 
-		ios.reset();
-		tasks.reset();
-		if (!has_io_service) {
-			has_io_service = initialize(errorF);
+		ios.restart();
+		tasks.restart();
+		if (!hasIOContext) {
+			hasIOContext = initialize(errorF);
 		}
 
 		if (!listen(errorF)) {
@@ -161,7 +161,7 @@ namespace webserver {
 		SettingsManager::getInstance()->setDefault(SettingsManager::HUB_MESSAGE_CACHE, 100);
 
 		try {
-			// initialize asio with our external io_service rather than an internal one
+			// initialize asio with our external io_context rather than an internal one
 			endpoint_plain.init_asio(&ios);
 			endpoint_tls.init_asio(&ios);
 		} catch (const websocketpp::exception& e) {
@@ -261,13 +261,13 @@ namespace webserver {
 		ios_threads = make_unique<boost::thread_group>();
 		task_threads = make_unique<boost::thread_group>();
 
-		// Start the ASIO io_service run loop running both endpoints
+		// Start the ASIO io_context run loop running both endpoints
 		for (int x = 0; x < WEBCFG(SERVER_THREADS).num(); ++x) {
-			ios_threads->create_thread(boost::bind(&boost::asio::io_service::run, &ios));
+			ios_threads->create_thread(boost::bind(&boost::asio::io_context::run, &ios));
 		}
 
 		for (int x = 0; x < std::max(WEBCFG(SERVER_THREADS).num() / 2, 1); ++x) {
-			task_threads->create_thread(boost::bind(&boost::asio::io_service::run, &tasks));
+			task_threads->create_thread(boost::bind(&boost::asio::io_context::run, &tasks));
 		}
 
 		// Add timers
@@ -357,7 +357,7 @@ namespace webserver {
 	}
 
 	void WebServerManager::addAsyncTask(Callback&& aCallback) noexcept {
-		tasks.post(std::move(aCallback));
+		boost::asio::post(tasks, std::move(aCallback));
 	}
 
 	void WebServerManager::log(const string& aMsg, LogMessage::Severity aSeverity) const noexcept {
@@ -420,23 +420,23 @@ namespace webserver {
 	}
 
 	string WebServerManager::resolveAddress(const string& aHostname, const string& aPort) noexcept {
-		auto ret = aHostname;
-
 		boost::asio::ip::tcp::resolver resolver(ios);
-		boost::asio::ip::tcp::resolver::query query(aHostname, aPort);
 
 		try {
-			boost::asio::ip::tcp::resolver::iterator iter = resolver.resolve(query);
-			ret = iter->endpoint().address().to_string();
+			for (const auto& res: resolver.resolve(aHostname, aPort)) {
+				auto ret = res.endpoint().address().to_string();
 
-			if (iter->endpoint().protocol() == boost::asio::ip::tcp::v6()) {
-				ret = "[" + ret + "]";
+				if (res.endpoint().protocol() == boost::asio::ip::tcp::v6()) {
+					ret = "[" + ret + "]";
+				}
+
+				return ret;
 			}
 		} catch (const std::exception& e) {
 			log(e.what(), LogMessage::SEV_ERROR);
 		}
 
-		return ret;
+		return aHostname;
 	}
 
 	bool WebServerManager::hasValidServerConfig() const noexcept {
