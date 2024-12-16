@@ -165,12 +165,13 @@ namespace webserver {
 
 		mutable SharedMutex cs;
 
-		// set up an external io_service to run both endpoints on. This is not
+		// set up an external io_context to run both endpoints on. This is not
 		// strictly necessary, but simplifies thread management a bit.
-		boost::asio::io_service ios;
-		boost::asio::io_service tasks;
-		boost::asio::io_service::work work;
-		bool has_io_service = false;
+		boost::asio::io_context ios;
+		bool hasIOContext = false;
+
+		boost::asio::io_context tasks;
+		boost::asio::executor_work_guard<decltype(tasks.get_executor())> wordGuardTasks;
 
 		unique_ptr<WebUserManager> userManager;
 		unique_ptr<ExtensionManager> extManager;
