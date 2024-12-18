@@ -120,8 +120,12 @@ DupeType DupeUtil::checkFileDupe(const TTHValue& aTTH) {
 	return QueueManager::getInstance()->isFileQueued(aTTH);
 }
 
-bool DupeUtil::allowOpenDupe(DupeType aType) noexcept {
+bool DupeUtil::allowOpenDirectoryDupe(DupeType aType) noexcept {
 	return aType != DUPE_NONE;
+}
+
+bool DupeUtil::allowOpenFileDupe(DupeType aType) noexcept {
+	return aType != DUPE_NONE && aType != DUPE_QUEUE_FULL;
 }
 
 void DupeUtil::init() {

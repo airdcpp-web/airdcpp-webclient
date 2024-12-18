@@ -1156,14 +1156,7 @@ QueueManager::DownloadResult QueueManager::getDownload(UserConnection& aSource, 
 		Lock slotLock(slotAssignCS);
 
 		{
-			auto downloadType = QueueDownloadType::ANY;
-			if (aSource.isSet(UserConnection::FLAG_SMALL_SLOT)) {
-				downloadType = QueueDownloadType::SMALL;
-			} else if (aSource.isMCN()) {
-				downloadType = QueueDownloadType::MCN_NORMAL;
-			}
-
-			auto startResult = startDownload(aSource.getHintedUser(), downloadType, aRunningBundles, aOnlineHubs, aSource.getSpeed());
+			auto startResult = startDownload(aSource.getHintedUser(), aSource.getDownloadType(), aRunningBundles, aOnlineHubs, aSource.getSpeed());
 			result.merge(startResult);
 
 			if (!startResult.startDownload) {

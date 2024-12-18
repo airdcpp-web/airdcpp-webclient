@@ -1278,22 +1278,39 @@ ConnectionType toConnectionType(const UserConnection* aSource) {
 	return aSource->isSet(UserConnection::FLAG_PM) ? CONNECTION_TYPE_PM : CONNECTION_TYPE_LAST;
 }
 
+void ConnectionManager::putCQI(UserConnection* aSource) noexcept {
+	auto type = toConnectionType(aSource);
+	if (type == CONNECTION_TYPE_LAST) {
+		return;
+	}
+
+	WLock l(cs);
+	auto& container = cqis[type];
+	auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
+		find(container.begin(), container.end(), aSource->getConnectToken());
+	dcassert(i != container.end());
+	putCQIUnsafe(*i);
+}
+
 void ConnectionManager::failed(UserConnection* aSource, const string& aError, bool aProtocolError) noexcept {
 	if(aSource->isSet(UserConnection::FLAG_ASSOCIATED)) {
-		if(aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
-			failDownload(aSource->getConnectToken(), aError, aProtocolError);
+		if (aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
+			if (aSource->getState() == UserConnection::STATE_IDLE) {
+				// Remove finished idle connections instantly instead of putting them in the "Disconnected" state
+				// (unless we are only out of downloading slots)
+				auto startResult = QueueManager::getInstance()->startDownload(aSource->getHintedUser(), aSource->getDownloadType());
+				if (startResult.hasDownload) {
+					failDownload(aSource->getConnectToken(), startResult.lastError, aProtocolError);
+				} else {
+					putCQI(aSource);
+				}
+			} else {
+				failDownload(aSource->getConnectToken(), aError, aProtocolError);
+			}
+
 			dcdebug("ConnectionManager::failed: download %s failed\n", aSource->getConnectToken().c_str());
 		} else {
-
-			auto type = toConnectionType(aSource);
-			if (type != CONNECTION_TYPE_LAST) {
-				WLock l(cs);
-				auto& container = cqis[type];
-				auto i = type == CONNECTION_TYPE_PM ? find(container.begin(), container.end(), aSource->getUser()) :
-					find(container.begin(), container.end(), aSource->getConnectToken());
-				dcassert(i != container.end());
-				putCQIUnsafe(*i);
-			}
+			putCQI(aSource);
 		}
 	}
 	putConnection(aSource);
