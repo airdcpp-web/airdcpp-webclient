@@ -59,6 +59,7 @@ namespace webserver {
 
 		string parseResourcePath(const string& aResource, const websocketpp::http::parser::request& aRequest, StringPairList& headers_) const;
 		string parseViewFilePath(const string& aResource, StringPairList& headers_, const SessionPtr& aSession) const;
+		string getPath(const TTHValue& aTTH) const;
 
 		static string getExtension(const string& aResource) noexcept;
 
