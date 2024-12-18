@@ -28,6 +28,7 @@
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/hash/value/MerkleTree.h>
 #include <airdcpp/transfer/upload/UploadSlot.h>
+#include <airdcpp/queue/QueueDownloadInfo.h>
 #include <airdcpp/user/User.h>
 #include <airdcpp/connection/UserConnectionListener.h>
 
@@ -196,6 +197,8 @@ public:
 	UploadSlot::Type getSlotType() const noexcept {
 		return UploadSlot::toType(slot);
 	}
+
+	QueueDownloadType getDownloadType() const noexcept;
 
 	bool hasSlot(UploadSlot::Type aType, const string_view& aSource) const noexcept {
 		return slot && (*slot).type == aType && (*slot).source == aSource;

@@ -251,6 +251,7 @@ private:
 
 	ConnectionQueueItem* getCQIUnsafe(const HintedUser& aUser, ConnectionType aConnType, const string& aToken = Util::emptyString) noexcept;
 	void putCQIUnsafe(ConnectionQueueItem* cqi) noexcept;
+	void putCQI(UserConnection* aSource) noexcept;
 
 	void accept(const Socket& sock, bool aSecure) noexcept;
 

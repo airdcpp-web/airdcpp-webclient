@@ -157,9 +157,9 @@ void UserConnection::onNmdcLine(const string & aLine) noexcept {
 
 int64_t UserConnection::getChunkSize() const noexcept {
 	int64_t min_seg_size = (SETTING(MIN_SEGMENT_SIZE)*1024);
-	if(chunkSize < min_seg_size) {
+	if (chunkSize < min_seg_size) {
 		return min_seg_size;
-	}else{
+	} else{
 		return chunkSize; 
 	}
 }
@@ -170,6 +170,17 @@ void UserConnection::setThreadPriority(Thread::Priority aPriority) {
 
 bool UserConnection::isMCN() const noexcept {
 	return supports.includes(FEATURE_ADC_MCN1);
+}
+
+
+QueueDownloadType UserConnection::getDownloadType() const noexcept {
+	if (isSet(UserConnection::FLAG_SMALL_SLOT)) {
+		return QueueDownloadType::SMALL;
+	} else if (isMCN()) {
+		return QueueDownloadType::MCN_NORMAL;
+	}
+
+	return QueueDownloadType::ANY;
 }
 
 void UserConnection::setUseLimiter(bool aEnabled) noexcept {
