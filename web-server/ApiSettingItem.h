@@ -44,11 +44,17 @@ using SettingReferenceList = std::vector<SettingReference>;
 		enum Type {
 			TYPE_NUMBER,
 			TYPE_BOOLEAN,
+
 			TYPE_STRING,
+			TYPE_TEXT,
+			TYPE_PASSWORD,
+			TYPE_EMAIL,
+			TYPE_URL,
+
 			TYPE_EXISTING_FILE_PATH,
 			TYPE_FILE_PATH,
 			TYPE_DIRECTORY_PATH,
-			TYPE_TEXT,
+
 			TYPE_LIST,
 			TYPE_STRUCT,
 			TYPE_HINTER_USER,

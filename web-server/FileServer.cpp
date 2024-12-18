@@ -123,9 +123,26 @@ namespace webserver {
 		return resourcePath + request;
 	}
 
+	string FileServer::getPath(const TTHValue& aTTH) const {
+		auto file = ViewFileManager::getInstance()->getFile(aTTH);
+		if (file) {
+			return file->getPath();
+		}
+		
+		auto dupe = DupeUtil::checkFileDupe(aTTH);
+		if (DupeUtil::allowOpenFileDupe(dupe)) {
+			auto paths = DupeUtil::getFileDupePaths(dupe, aTTH);
+			if (!paths.empty()) {
+				return paths.front();
+			}
+		}
+
+		throw RequestException(websocketpp::http::status_code::not_found, "No viewable file matching the TTH " + aTTH.toBase32() + " was found");
+	}
+
 	string FileServer::parseViewFilePath(const string& aResource, StringPairList& headers_, const SessionPtr& aSession) const {
-		string protocol, tthStr, port, path, query, fragment;
-		LinkUtil::decodeUrl(aResource, protocol, tthStr, port, path, query, fragment);
+		string protocolTmp, tthStr, portTmp, pathTmp, query, fragmentTmp;
+		LinkUtil::decodeUrl(aResource, protocolTmp, tthStr, portTmp, pathTmp, query, fragmentTmp);
 
 		auto session = aSession;
 		if (!session) {
@@ -140,19 +157,11 @@ namespace webserver {
 		}
 
 		auto tth = Deserializer::parseTTH(tthStr);
-		auto paths = DupeUtil::getFileDupePaths(DupeUtil::checkFileDupe(tth), tth);
-		if (paths.empty()) {
-			auto file = ViewFileManager::getInstance()->getFile(tth);
-			if (!file) {
-				throw RequestException(websocketpp::http::status_code::not_found, "No viewed file matching the TTH " + tthStr + " was found");
-			}
-
-			paths.push_back(file->getPath());
-		}
+		auto path = getPath(tth);
 
 		HttpUtil::addCacheControlHeader(headers_, 1); // One day (files are identified by their TTH so the content won't change)
 
-		return paths.front();
+		return path;
 	}
 
 	websocketpp::http::status_code::value FileServer::handlePostRequest(const websocketpp::http::parser::request& aRequest,

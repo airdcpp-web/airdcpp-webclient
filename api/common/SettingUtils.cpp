@@ -82,10 +82,13 @@ namespace webserver {
 			case ApiSettingItem::TYPE_BOOLEAN: return "boolean";
 			case ApiSettingItem::TYPE_NUMBER: return "number";
 			case ApiSettingItem::TYPE_STRING: return "string";
+			case ApiSettingItem::TYPE_TEXT: return "text";
+			case ApiSettingItem::TYPE_URL: return "url";
+			case ApiSettingItem::TYPE_PASSWORD: return "password";
+			case ApiSettingItem::TYPE_EMAIL: return "email";
 			case ApiSettingItem::TYPE_FILE_PATH: return "file_path";
 			case ApiSettingItem::TYPE_EXISTING_FILE_PATH: return "existing_file_path";
 			case ApiSettingItem::TYPE_DIRECTORY_PATH: return "directory_path";
-			case ApiSettingItem::TYPE_TEXT: return "text";
 			case ApiSettingItem::TYPE_LIST: return "list";
 			case ApiSettingItem::TYPE_STRUCT: return "struct";
 			case ApiSettingItem::TYPE_HUB_URL: return "hub_url";
@@ -320,6 +323,13 @@ namespace webserver {
 				return ApiSettingItem::TYPE_NUMBER;
 			} else if (*itemTypeStr == "text") {
 				return ApiSettingItem::TYPE_TEXT;
+			}
+			else if (*itemTypeStr == "password") {
+				return ApiSettingItem::TYPE_PASSWORD;
+			} else if (*itemTypeStr == "url") {
+				return ApiSettingItem::TYPE_URL;
+			} else if (*itemTypeStr == "email") {
+				return ApiSettingItem::TYPE_EMAIL;
 			} else if (*itemTypeStr == "file_path") {
 				return ApiSettingItem::TYPE_FILE_PATH;
 			} else if (*itemTypeStr == "existing_file_path") {
