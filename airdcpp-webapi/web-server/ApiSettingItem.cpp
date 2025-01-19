@@ -53,7 +53,11 @@ namespace webserver {
 
 
 	bool ApiSettingItem::isString(Type aType) noexcept {
-		return aType == TYPE_STRING || aType == TYPE_TEXT || aType == TYPE_FILE_PATH || aType == TYPE_EXISTING_FILE_PATH || aType == TYPE_DIRECTORY_PATH || aType == TYPE_HUB_URL;
+		return 
+			aType == TYPE_STRING || aType == TYPE_TEXT || 
+			aType == TYPE_URL || aType == TYPE_EMAIL || aType == TYPE_PASSWORD ||
+			aType == TYPE_FILE_PATH || aType == TYPE_EXISTING_FILE_PATH || aType == TYPE_DIRECTORY_PATH || 
+			aType == TYPE_HUB_URL;
 	}
 
 	bool ApiSettingItem::enumOptionsAllowed(Type aType, Type aItemType) noexcept {

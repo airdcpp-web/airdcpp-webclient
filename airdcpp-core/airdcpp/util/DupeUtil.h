@@ -52,7 +52,8 @@ public:
 	static bool isQueueDupe(DupeType aType, bool aAllowPartial = true) noexcept;
 	static bool isFinishedDupe(DupeType aType, bool aAllowPartial = true) noexcept;
 
-	static bool allowOpenDupe(DupeType aType) noexcept;
+	static bool allowOpenDirectoryDupe(DupeType aType) noexcept;
+	static bool allowOpenFileDupe(DupeType aType) noexcept;
 
 	static void init();
 	

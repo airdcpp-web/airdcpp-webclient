@@ -7,7 +7,7 @@ You should first create a new directory (e.g. `buildroot`) where you will put th
 There's a script that you can use for setting up the buildroot environment:
 
 ```
-/AIRDCPP_SOURCE_PATH/buildroot/install-buildroot.sh 2024.08.1 /BUILDROOT_ROOT_PATH/ ARCH_NAME
+/AIRDCPP_SOURCE_PATH/buildroot/install-buildroot.sh 2024.11.1 /BUILDROOT_ROOT_PATH/ ARCH_NAME
 ```
 
 - `BUILDROOT_ROOT_PATH` is the manually created buildroot directory where all the installed buildroot environments for possible different architectures will be put (e.g. `/home/myusername/buildroot/`)
