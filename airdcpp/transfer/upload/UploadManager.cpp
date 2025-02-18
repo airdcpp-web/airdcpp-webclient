@@ -132,7 +132,7 @@ bool UploadManager::prepareFile(UserConnection& aSource, const UploadRequest& aR
 		// Don't allow multiple connections to be here simultaneously while the slot is being assigned
 		Lock slotLock(slotCS);
 
-		OptionalUploadSlot slot;
+		OptionalTransferSlot slot;
 
 		// Check slots
 		try {
@@ -208,18 +208,18 @@ bool UploadManager::standardSlotsRemaining(const UserPtr& aUser) const noexcept 
 	return false;
 }
 
-OptionalUploadSlot UploadManager::parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const {
+OptionalTransferSlot UploadManager::parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const {
 	auto data = slotTypeHook.runHooksData(this, aSource, aParser);
 	if (data.empty()) {
 		return nullopt;
 	}
 
-	auto normalizedData = ActionHook<OptionalUploadSlot>::normalizeData(data);
+	auto normalizedData = ActionHook<OptionalTransferSlot>::normalizeData(data);
 
 	auto max = ranges::max_element(
 		normalizedData,
 		[](const auto& a, const auto& b) {
-			return compare(UploadSlot::toType(a), UploadSlot::toType(b));
+			return compare(TransferSlot::toType(a), TransferSlot::toType(b));
 		}
 	);
 	return *max;
@@ -234,11 +234,11 @@ bool UploadManager::isUploadingMCN(const UserPtr& aUser) const noexcept {
 #define SLOT_SOURCE_MCN "mcn_small"
 #define SLOT_SOURCE_MINISLOT "minislot"
 
-OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const {
+OptionalTransferSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const {
 	auto currentSlotType = aSource.getSlotType();
 
 	// Existing permanent slot?
-	auto hasPermanentSlot = currentSlotType == UploadSlot::USERSLOT;
+	auto hasPermanentSlot = currentSlotType == TransferSlot::USERSLOT;
 	if (hasPermanentSlot) {
 		return aSource.getSlot();
 	}
@@ -257,20 +257,20 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 		// All small files will get this slot type regardless of the connection count
 		// as the actual small file connection isn't known but it's not really causing problems
 		// Could be solved with https://forum.dcbase.org/viewtopic.php?f=55&t=856 (or adding a type flag for all MCN connections)
-		auto smallFree = aSource.hasSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MCN) || smallFileConnections <= 8;
+		auto smallFree = aSource.hasSlot(TransferSlot::FILESLOT, SLOT_SOURCE_MCN) || smallFileConnections <= 8;
 		if (smallFree) {
 			dcdebug("UploadManager::parseSlotType: assign small slot for %s\n", aSource.getConnectToken().c_str());
-			return UploadSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MCN);
+			return TransferSlot(TransferSlot::FILESLOT, SLOT_SOURCE_MCN);
 		}
 	}
 
 	// Permanent slot?
-	if (UploadSlot::toType(newSlot) == UploadSlot::USERSLOT) {
+	if (TransferSlot::toType(newSlot) == TransferSlot::USERSLOT) {
 		dcdebug("UploadManager::parseSlotType: assign permanent slot for %s (%s)\n", aSource.getConnectToken().c_str(), newSlot->source.c_str());
 		return newSlot;
 	} else if (standardSlotsRemaining(aSource.getUser())) {
 		dcdebug("UploadManager::parseSlotType: assign permanent slot for %s (standard)\n", aSource.getConnectToken().c_str());
-		return UploadSlot(UploadSlot::USERSLOT, SLOT_SOURCE_STANDARD);
+		return TransferSlot(TransferSlot::USERSLOT, SLOT_SOURCE_STANDARD);
 	}
 
 	// Per-file slots
@@ -287,15 +287,15 @@ OptionalUploadSlot UploadManager::parseSlotHookedThrow(const UserConnection& aSo
 			};
 
 			auto supportsFree = aSource.isSet(UserConnection::FLAG_SUPPORTS_MINISLOTS);
-			auto allowedFree = aSource.hasSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT) || isOP() || getFreeExtraSlots() > 0;
+			auto allowedFree = aSource.hasSlot(TransferSlot::FILESLOT, SLOT_SOURCE_MINISLOT) || isOP() || getFreeExtraSlots() > 0;
 			if (supportsFree && allowedFree) {
 				dcdebug("UploadManager::parseSlotType: assign minislot for %s\n", aSource.getConnectToken().c_str());
-				return UploadSlot(UploadSlot::FILESLOT, SLOT_SOURCE_MINISLOT);
+				return TransferSlot(TransferSlot::FILESLOT, SLOT_SOURCE_MINISLOT);
 			}
 		}
 	}
 
-	dcdebug("UploadManager::parseSlotType: assign slot type %d for %s\n", UploadSlot::toType(newSlot), aSource.getConnectToken().c_str());
+	dcdebug("UploadManager::parseSlotType: assign slot type %d for %s\n", TransferSlot::toType(newSlot), aSource.getConnectToken().c_str());
 	return newSlot;
 }
 
@@ -332,7 +332,7 @@ unique_ptr<InputStream> UploadManager::resumeStream(const UserConnection& aSourc
 
 void UploadManager::removeSlot(UserConnection& aSource) noexcept {
 	switch (aSource.getSlotType()) {
-		case UploadSlot::USERSLOT: {
+		case TransferSlot::USERSLOT: {
 			if (aSource.isMCN()) {
 				changeMultiConnSlot(aSource.getUser(), true);
 			} else {
@@ -340,7 +340,7 @@ void UploadManager::removeSlot(UserConnection& aSource) noexcept {
 			}
 			break;
 		}
-		case UploadSlot::FILESLOT: {
+		case TransferSlot::FILESLOT: {
 			if (aSource.hasSlotSource(SLOT_SOURCE_MINISLOT)) {
 				extra--;
 			} else if (aSource.hasSlotSource(SLOT_SOURCE_MCN)) {
@@ -348,12 +348,12 @@ void UploadManager::removeSlot(UserConnection& aSource) noexcept {
 			}
 			break;
 		}
-		case UploadSlot::NOSLOT:
+		case TransferSlot::NOSLOT:
 			break;
 	}
 }
 
-void UploadManager::updateSlotCounts(UserConnection& aSource, const UploadSlot& aNewSlot) noexcept {
+void UploadManager::updateSlotCounts(UserConnection& aSource, const TransferSlot& aNewSlot) noexcept {
 	auto newSlotType = aNewSlot.type;
 	if (aSource.getSlotType() == newSlotType) {
 		return;
@@ -367,7 +367,7 @@ void UploadManager::updateSlotCounts(UserConnection& aSource, const UploadSlot& 
 
 	// set new slot count
 	switch (newSlotType) {
-		case UploadSlot::USERSLOT: {
+		case TransferSlot::USERSLOT: {
 			if (aSource.isMCN()) {
 				changeMultiConnSlot(aSource.getUser(), false);
 			} else {
@@ -376,7 +376,7 @@ void UploadManager::updateSlotCounts(UserConnection& aSource, const UploadSlot& 
 			disconnectExtraMultiConn();
 			break;
 		}
-		case UploadSlot::FILESLOT: {
+		case TransferSlot::FILESLOT: {
 			if (aSource.hasSlotSource(SLOT_SOURCE_MINISLOT)) {
 				extra++;
 			} else if (aSource.hasSlotSource(SLOT_SOURCE_MCN)) {
@@ -385,7 +385,7 @@ void UploadManager::updateSlotCounts(UserConnection& aSource, const UploadSlot& 
 
 			break;
 		}
-		case UploadSlot::NOSLOT:
+		case TransferSlot::NOSLOT:
 			break;
 	}
 
@@ -484,7 +484,7 @@ void UploadManager::disconnectExtraMultiConn() noexcept {
 
 	// Find the correct upload to kill
 	auto toDisconnect = ranges::find_if(uploads, [&](const Upload* up) { 
-		return up->getUser() == highestConnCount.base()->first && up->getUserConnection().getSlotType() == UploadSlot::USERSLOT;
+		return up->getUser() == highestConnCount.base()->first && up->getUserConnection().getSlotType() == TransferSlot::USERSLOT;
 	});
 
 	if (toDisconnect != uploads.end()) {

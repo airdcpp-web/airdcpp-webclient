@@ -439,7 +439,7 @@ bool ConnectionManager::attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringLi
 		// Forcing the connection and it's not connected yet? Retry
 		(cqi->getLastAttempt() == 0 && cqi->getState() == ConnectionQueueItem::State::CONNECTING && find(userConnections.begin(), userConnections.end(), cqi->getToken()) == userConnections.end())
 	) {
-		if (startResult.startDownload) {
+		if (startResult.slotType) {
 			return connectUnsafe(cqi, startResult.allowUrlChange);
 		} else {
 			// Download limits full or similar temporary error

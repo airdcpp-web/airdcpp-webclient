@@ -23,6 +23,7 @@
 
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/core/types/Priority.h>
+#include <airdcpp/transfer/TransferSlot.h>
 
 namespace dcpp {
 
@@ -61,7 +62,7 @@ struct QueueDownloadResult : QueueDownloadResultBase {
 	// Possible bundle
 	optional<QueueToken> bundleToken;
 
-	bool startDownload = false;
+	OptionalTransferSlot slotType = nullopt;
 	QueueDownloadType downloadType = QueueDownloadType::ANY;
 
 	QueueItemPtr qi = nullptr;

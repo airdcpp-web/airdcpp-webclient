@@ -27,7 +27,7 @@
 #include <airdcpp/core/classes/IncrementingIdCounter.h>
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/hash/value/MerkleTree.h>
-#include <airdcpp/transfer/upload/UploadSlot.h>
+#include <airdcpp/transfer/TransferSlot.h>
 #include <airdcpp/queue/QueueDownloadInfo.h>
 #include <airdcpp/user/User.h>
 #include <airdcpp/connection/UserConnectionListener.h>
@@ -192,15 +192,15 @@ public:
 	IGETSET(uint64_t, lastActivity, LastActivity, 0);
 	GETSET(string, encoding, Encoding);
 	IGETPROP(States, state, State, STATE_UNCONNECTED);
-	GETSET(OptionalUploadSlot, slot, Slot);
+	GETSET(OptionalTransferSlot, slot, Slot);
 
-	UploadSlot::Type getSlotType() const noexcept {
-		return UploadSlot::toType(slot);
+	TransferSlot::Type getSlotType() const noexcept {
+		return TransferSlot::toType(slot);
 	}
 
 	QueueDownloadType getDownloadType() const noexcept;
 
-	bool hasSlot(UploadSlot::Type aType, const string_view& aSource) const noexcept {
+	bool hasSlot(TransferSlot::Type aType, const string_view& aSource) const noexcept {
 		return slot && (*slot).type == aType && (*slot).source == aSource;
 	}
 	bool hasSlotSource(const string_view& aSource) const noexcept {

@@ -40,19 +40,19 @@ PartialSharingManager::PartialSharingManager() {
 	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(providerName, "Partial sharing", nullptr), HOOK_CALLBACK(PartialSharingManager::onSlotType));
 }
 
-ActionHookResult<OptionalUploadSlot> PartialSharingManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload& aUpload, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept {
+ActionHookResult<OptionalTransferSlot> PartialSharingManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload& aUpload, const ActionHookResultGetter<OptionalTransferSlot>& aResultGetter) const noexcept {
 	if (aUpload.provider == providerName) {
 		auto partialFree = aUserConnection.hasSlotSource(providerName) || (extraPartial < SETTING(EXTRA_PARTIAL_SLOTS));
 		if (partialFree) {
 			dcdebug("PartialSharingManager::onSlotType: assign partial slot for %s\n", aUserConnection.getConnectToken().c_str());
-			return aResultGetter.getData(UploadSlot(UploadSlot::Type::FILESLOT, providerName));
+			return aResultGetter.getData(TransferSlot(TransferSlot::Type::FILESLOT, providerName));
 		}
 	}
 
 	return aResultGetter.getData(nullopt);
 }
 
-void PartialSharingManager::on(UploadManagerListener::Created, Upload* aUpload, const UploadSlot& aNewSlot) noexcept {
+void PartialSharingManager::on(UploadManagerListener::Created, Upload* aUpload, const TransferSlot& aNewSlot) noexcept {
 	// Previous slot
 	if (aUpload->getUserConnection().hasSlotSource(providerName)) {
 		dcassert(extraPartial > 0);
