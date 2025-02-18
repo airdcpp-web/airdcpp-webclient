@@ -34,6 +34,7 @@
 namespace webserver {
 	ViewFileApi::ViewFileApi(Session* aSession) : SubscribableApiModule(aSession, Access::VIEW_FILES_VIEW) {
 		createSubscriptions({
+			"view_file_created",
 			"view_file_added",
 			"view_file_removed",
 			"view_file_updated",
@@ -169,6 +170,7 @@ namespace webserver {
 
 	void ViewFileApi::on(ViewFileManagerListener::FileAdded, const ViewFilePtr& aFile) noexcept {
 		maybeSend("view_file_added", [&] { return serializeFile(aFile); });
+		maybeSend("view_file_created", [&] { return serializeFile(aFile); });
 	}
 
 	void ViewFileApi::on(ViewFileManagerListener::FileClosed, const ViewFilePtr& aFile) noexcept {
