@@ -114,7 +114,7 @@ time_t File::getLastModified() const noexcept {
 bool File::isDirectory(const string& aPath) noexcept {
 	// FileFindIter doesn't work for drive paths
 	DWORD attr = GetFileAttributes(Text::toT(PathUtil::formatPath(aPath)).c_str());
-	return (attr & FILE_ATTRIBUTE_DIRECTORY) > 0;
+	return attr != 0xFFFFFFFF && (attr & FILE_ATTRIBUTE_DIRECTORY) > 0;
 }
 
 time_t File::convertTime(const FILETIME* f) noexcept {

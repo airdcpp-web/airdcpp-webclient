@@ -28,7 +28,7 @@
 #include <airdcpp/favorites/FavoriteUser.h>
 #include <airdcpp/core/Singleton.h>
 #include <airdcpp/core/Speaker.h>
-#include <airdcpp/transfer/upload/UploadSlot.h>
+#include <airdcpp/transfer/TransferSlot.h>
 
 namespace dcpp {
 
@@ -79,7 +79,7 @@ private:
 	ActionHookResult<MessageHighlightList> onPrivateMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 	ActionHookResult<MessageHighlightList> onHubMessage(const ChatMessagePtr& aMessage, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 
-	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUser, const ParsedUpload& aUploadInfo, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept;
+	ActionHookResult<OptionalTransferSlot> onSlotType(const UserConnection& aUser, const ParsedUpload& aUploadInfo, const ActionHookResultGetter<OptionalTransferSlot>& aResultGetter) const noexcept;
 
 	ActionHookResult<MessageHighlightList> formatFavoriteUsers(const ChatMessagePtr& msg, const ActionHookResultGetter<MessageHighlightList>& aResultGetter) noexcept;
 

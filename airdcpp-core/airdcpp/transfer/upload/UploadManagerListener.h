@@ -24,7 +24,7 @@
 
 namespace dcpp {
 
-struct UploadSlot;
+struct TransferSlot;
 
 class UploadManagerListener {
 	friend class UploadQueueItem;
@@ -45,7 +45,7 @@ public:
 	virtual void on(Complete, const Upload*) noexcept { }
 	virtual void on(Failed, const Upload*, const string&) noexcept { }
 
-	virtual void on(Created, Upload*, const UploadSlot& /*aNewSlot*/) noexcept { }
+	virtual void on(Created, Upload*, const TransferSlot& /*aNewSlot*/) noexcept { }
 	virtual void on(Removed, const Upload*) noexcept { }
 };
 

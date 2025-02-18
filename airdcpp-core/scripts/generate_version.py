@@ -39,7 +39,7 @@ if __name__ == "__main__":
     elif get_git_output(["rev-parse", "--abbrev-ref", "HEAD"]) != 'master' or 'b' in version or 'a' in version:
       version=get_git_output(["describe", "--tags", "--abbrev=4", "--dirty=-d"])
       commitCount=get_git_output(["rev-list", "HEAD", "--count"])
-      versionDate=get_git_output(["show", "--format=%at"]).partition('\n')[0]
+      versionDate=get_git_output(["show", "--format=%at", "--name-status"]).partition('\n')[0]
       commit=get_git_output(["rev-parse", "HEAD"])
 
       print("-- Git version detected ({0})".format(version))

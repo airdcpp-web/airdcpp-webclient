@@ -743,7 +743,7 @@ bool QueueItem::hasSegment(const QueueDownloadQuery& aQuery, string& lastError_,
 	// File segment?
 	auto segment = getNextSegment(getBlockSize(), aQuery.wantedSize, aQuery.lastSpeed, source->getPartsInfo(), aAllowOverlap);
 	if (segment.getSize() == 0) {
-		lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
+		// lastError_ = (segment.getStart() == -1 || getSize() < Util::convertSize(SETTING(MIN_SEGMENT_SIZE), Util::KB)) ? STRING(NO_FILES_AVAILABLE) : STRING(NO_FREE_BLOCK);
 		dcdebug("No segment for %s (%s) in %s, block " I64_FMT "\n", aQuery.user->getCID().toBase32().c_str(), Util::listToString(aQuery.onlineHubs).c_str(), getTarget().c_str(), blockSize);
 		return false;
 	}

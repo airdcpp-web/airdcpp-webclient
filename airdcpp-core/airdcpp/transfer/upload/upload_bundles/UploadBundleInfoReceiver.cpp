@@ -487,7 +487,7 @@ size_t UploadBundleInfoReceiver::getRunningBundleCount() const noexcept {
 	return ret;
 }
 
-void UploadBundleInfoReceiver::on(UploadManagerListener::Created, Upload* aUpload, const UploadSlot&) noexcept {
+void UploadBundleInfoReceiver::on(UploadManagerListener::Created, Upload* aUpload, const TransferSlot&) noexcept {
 	auto ub = findByConnectionToken(aUpload->getConnectionToken());
 	if (!ub) {
 		return;

@@ -154,7 +154,7 @@ bool DownloadManager::checkIdle(const string& aToken) {
 	return false;
 }
 
-bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot) {
+bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot, bool aRevive) {
 
 	RLock l(cs);
 	for (auto uc: idlers) {
@@ -162,7 +162,10 @@ bool DownloadManager::checkIdle(const UserPtr& aUser, bool aSmallSlot) {
 			if (aSmallSlot != uc->isSet(UserConnection::FLAG_SMALL_SLOT) && uc->isMCN())
 				continue;
 
-			uc->callAsync([this, uc] { reviveThreaded(uc); });
+			if (aRevive) {
+				uc->callAsync([this, uc] { reviveThreaded(uc); });
+			}
+
 			return true;
 		}	
 	}
@@ -272,13 +275,17 @@ void DownloadManager::checkDownloads(UserConnection* aConn) {
 		if (result.hasDownload) {
 			dcdebug("DownloadManager::checkDownloads: can't start download from user %s (%s)\n", ClientManager::getInstance()->getFormattedNicks(aConn->getHintedUser()).c_str(), result.lastError.c_str());
 		}
+		
+		if (!checkIdle(aConn->getUser(), aConn->isSet(UserConnection::FLAG_SMALL_SLOT), false)) {
+			aConn->setState(UserConnection::STATE_IDLE);
+			fire(DownloadManagerListener::Idle(), aConn, result.lastError);
 
-		aConn->setState(UserConnection::STATE_IDLE);
-		fire(DownloadManagerListener::Idle(), aConn, result.lastError);
-
-		{
-			WLock l(cs);
-			idlers.push_back(aConn);
+			{
+				WLock l(cs);
+				idlers.push_back(aConn);
+			}
+		} else {
+			aConn->disconnect(true);
 		}
 
 		return;

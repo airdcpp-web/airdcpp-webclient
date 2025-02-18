@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
@@ -915,8 +915,14 @@ void ShareTree::testDualString() {
 	}
 
 	{
-		auto character = _T("\u00D6"); // �
+		auto character = _T("\u00D6"); // Ö
 		DualString d2(Text::wideToUtf8(character));
+		dcassert(d2.getNormal() != d2.getLower());
+	}
+
+	{
+		auto character = Text::wideToUtf8(L"I\u0307"); // Capital i with a dot
+		DualString d2(character);
 		dcassert(d2.getNormal() != d2.getLower());
 	}
 }
