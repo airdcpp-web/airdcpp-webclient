@@ -83,6 +83,7 @@ public:
 
 	bool isSmallSlot() const noexcept;
 	bool isActive() const noexcept;
+	bool isRunning() const noexcept;
 	bool isMcn() const noexcept;
 
 	bool allowConnect(int aAttempts, int aAttemptLimit, uint64_t aTick) const noexcept;
