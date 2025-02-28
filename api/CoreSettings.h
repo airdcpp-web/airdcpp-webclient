@@ -137,7 +137,7 @@ namespace webserver {
 		{ "limit_alt_end_hour", SettingsManager::BANDWIDTH_LIMIT_END, ResourceManager::SET_ALTERNATE_LIMITING },
 		{ "limit_ul_alt_max", SettingsManager::MAX_UPLOAD_SPEED_ALTERNATE, ResourceManager::UPLOAD_LIMIT, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiBS },
 		{ "limit_dl_alt_max", SettingsManager::MAX_DOWNLOAD_SPEED_ALTERNATE, ResourceManager::DOWNLOAD_LIMIT, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::KiBS },
-		{ "limit_use_with_auto_values", SettingsManager::AUTO_DETECTION_USE_LIMITED, ResourceManager::DOWNLOAD_LIMIT },
+		{ "limit_use_with_auto_values", SettingsManager::AUTO_DETECTION_USE_LIMITED, ResourceManager::SETTINGS_AUTO_DETECTION_USE_LIMITED },
 
 		//{ ResourceManager::HASHING_OPTIONS },
 		{ "max_hash_speed", SettingsManager::MAX_HASH_SPEED, ResourceManager::SETTINGS_MAX_HASHER_SPEED, ApiSettingItem::TYPE_LAST, ResourceManager::Strings::MBPS },

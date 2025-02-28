@@ -334,15 +334,15 @@ namespace webserver {
 			case SettingsManager::IP_UPDATE6: 
 			case SettingsManager::NO_IP_OVERRIDE6: return ConnectivityManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(si.key));
 
-			case SettingsManager::DOWNLOAD_SLOTS: return AutoLimitUtil::getSlots(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
-			case SettingsManager::MAX_DOWNLOAD_SPEED: return AutoLimitUtil::getSpeedLimitKbps(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
+			case SettingsManager::DOWNLOAD_SLOTS: return AutoLimitUtil::getSlots(true);
+			case SettingsManager::MAX_DOWNLOAD_SPEED: return AutoLimitUtil::getSpeedLimitKbps(true);
 
-			case SettingsManager::UPLOAD_SLOTS: return AutoLimitUtil::getSlots(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
-			case SettingsManager::MIN_UPLOAD_SPEED: return AutoLimitUtil::getSpeedLimitKbps(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
-			case SettingsManager::AUTO_SLOTS: return AutoLimitUtil::getMaxAutoOpened(Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::UPLOAD_SLOTS: return AutoLimitUtil::getSlots(false);
+			case SettingsManager::MIN_UPLOAD_SPEED: return AutoLimitUtil::getSpeedLimitKbps(false);
+			case SettingsManager::AUTO_SLOTS: return AutoLimitUtil::getMaxAutoOpened();
 
-			case SettingsManager::MAX_MCN_DOWNLOADS: return AutoLimitUtil::getSlotsPerUser(true, Util::toDouble(SETTING(DOWNLOAD_SPEED)));
-			case SettingsManager::MAX_MCN_UPLOADS: return AutoLimitUtil::getSlotsPerUser(false, Util::toDouble(SETTING(UPLOAD_SPEED)));
+			case SettingsManager::MAX_MCN_DOWNLOADS: return AutoLimitUtil::getSlotsPerUser(true);
+			case SettingsManager::MAX_MCN_UPLOADS: return AutoLimitUtil::getSlotsPerUser(false);
 		}
 
 		return ApiSettingItem::getAutoValue();
