@@ -1391,7 +1391,7 @@ void AdcHub::appendClientSupports(StringMap& aLastInfoMap, AdcCommand& c, bool v
 	su += "," + OnlineUser::ASCH_FEATURE;
 
 	for (const auto& support: ClientManager::getInstance()->hubUserSupports.getAll()) {
-		su += ", " + support;
+		su += "," + support;
 	}
 
 	addParam(aLastInfoMap, c, "SU", su);

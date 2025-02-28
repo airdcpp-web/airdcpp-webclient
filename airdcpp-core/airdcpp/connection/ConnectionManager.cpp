@@ -145,6 +145,10 @@ bool ConnectionQueueItem::isActive() const noexcept {
 	return state == State::ACTIVE;
 }
 
+bool ConnectionQueueItem::isRunning() const noexcept {
+	return isSet(FLAG_RUNNING);
+}
+
 bool ConnectionQueueItem::isMcn() const noexcept {
 	return isSet(FLAG_MCN);
 }
@@ -221,7 +225,7 @@ bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot,
 		supportMcn = true;
 
 		if (cqi->getDownloadType() == QueueDownloadType::MCN_NORMAL) {
-			if (!cqi->isActive()) {
+			if (!cqi->isRunning()) {
 				// Already has a waiting item? Small slot doesn't count
 				if (!aSmallSlot) {
 					// Force in case we joined a new hub and there was a protocol error
@@ -238,7 +242,7 @@ bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot,
 			// (regardless of whether it's running or not)
 			if (aSmallSlot) {
 				// Force in case we joined a new hub and there was a protocol error
-				if (!cqi->isActive() && aWaitingCallback) {
+				if (!cqi->isRunning() && aWaitingCallback) {
 					aWaitingCallback(cqi);
 				}
 
@@ -502,6 +506,7 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) noexcept {
 		WLock l (cs);
 		auto cqiNew = getCQIUnsafe(aUser, CONNECTION_TYPE_DOWNLOAD);
 		cqiNew->setDownloadType(QueueDownloadType::MCN_NORMAL);
+		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN);
 
 		dcdebug("ConnectionManager::createNewMCN: creating new connection for user %s\n", ClientManager::getInstance()->getFormattedNicks(aUser).c_str());
 	}
