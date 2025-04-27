@@ -59,7 +59,7 @@ jobs:
 
     - name: Install websocketpp
       run: |
-        git clone -b fix/new-asio https://github.com/Nerixyz/websocketpp.git
+        git clone -b develop https://github.com/amini-allight/websocketpp.git
         cd websocketpp
         cmake .
         sudo make install
