@@ -42,7 +42,9 @@ private:
 	void shutdown();
 
 	void on(DirectoryListingManagerListener::OpenListing, const DirectoryListingPtr& aList, const string& aDir, const string& aXML) noexcept;
+
 	void on(ClientManagerListener::ClientCreated, const ClientPtr&) noexcept;
+	void on(ClientManagerListener::ClientRedirected, const ClientPtr& aOldClient, const ClientPtr& aNewClient) noexcept;
 
 	bool running = false;
 	bool asDaemon = false;

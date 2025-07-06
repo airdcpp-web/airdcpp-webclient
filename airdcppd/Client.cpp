@@ -204,4 +204,8 @@ void Client::on(ClientManagerListener::ClientCreated, const ClientPtr& aClient) 
 	aClient->connect();
 }
 
+void Client::on(ClientManagerListener::ClientRedirected, const ClientPtr& /*aOldClient*/, const ClientPtr& aNewClient) noexcept {
+	aNewClient->connect();
+}
+
 }
