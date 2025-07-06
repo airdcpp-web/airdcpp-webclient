@@ -171,6 +171,9 @@ public:
 	StringList getRootPathList() const noexcept;
 	ShareRootList getShareRoots() const noexcept;
 
+	// Returns true if the path is inside a shared root (doesn't necessarily need to exist in share)
+	string parseRoot(const string& aPath) const noexcept;
+
 	SharedMutex& getCS() const noexcept { return cs; }
 private:
 	mutable SharedMutex cs;
@@ -196,7 +199,12 @@ private:
 	ShareDirectory::File* findFileUnsafe(const string& aPath) const noexcept;
 
 	void getRootsUnsafe(const OptionalProfileToken& aProfile, ShareDirectory::List& dirs_) const noexcept;
-	ShareDirectory::Ptr findRootUnsafe(const string& aPath) const noexcept;
+
+	// Get root directory by exact path
+	ShareDirectory::Ptr findRootUnsafe(const string& aRootPath) const noexcept;
+
+	// Parse root from the given file/directory path
+	ShareDirectory::Ptr parseRootUnsafe(const string& aRealPath) const noexcept;
 	
 	// Get directories matching the virtual path (root path is not accepted here)
 	// Can be used with a single profile token or a set of them

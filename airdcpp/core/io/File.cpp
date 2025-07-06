@@ -75,7 +75,7 @@ File::File(const string& aFileName, int aAccess, int aMode, BufferMode aBufferMo
 	if (aMode & SHARED_DELETE)
 		shared |= FILE_SHARE_DELETE;
 
-	DWORD dwFlags = aBufferMode;
+	DWORD dwFlags = aBufferMode /* | FILE_FLAG_OPEN_REPARSE_POINT*/; // For symlink support (can't be used anywhere yet)
 	string path = aFileName;
 	if (aIsAbsolute) {
 		path = PathUtil::formatPath(aFileName);
@@ -1038,7 +1038,7 @@ bool FileFindIter::DirData::isHidden() const noexcept {
 }
 
 bool FileFindIter::DirData::isLink() const noexcept {
-	return (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) > 0;
+	return (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) > 0 /*|| PathUtil::getFileExt(fd.cFileName) == L".lnk"*/; // Shortcut support (can't be used anywhere yet)
 }
 
 int64_t FileFindIter::DirData::getSize() const noexcept {

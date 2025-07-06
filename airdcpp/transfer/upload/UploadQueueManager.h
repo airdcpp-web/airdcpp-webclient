@@ -22,6 +22,7 @@
 #include <airdcpp/forward.h>
 
 #include <airdcpp/hub/ClientManagerListener.h>
+#include <airdcpp/hub/UserConnectResult.h>
 #include <airdcpp/core/thread/CriticalSection.h>
 #include <airdcpp/core/classes/FastAlloc.h>
 #include <airdcpp/user/HintedUser.h>
@@ -98,7 +99,7 @@ public:
 	IGETSET(uint64_t, lastGrant, LastGrant, 0);
 
 	bool allowUser(const UserPtr& aUser) const noexcept;
-	void connectUser(const HintedUser& aUser) noexcept;
+	optional<UserConnectResult> connectUser(const HintedUser& aUser) noexcept;
 
 	using FreeSlotF = std::function<uint8_t ()>;
 	explicit UploadQueueManager(FreeSlotF&& aFreeSlotF) noexcept;
@@ -116,7 +117,7 @@ private:
 
 	size_t addFailedUpload(const UserConnection& source, const string& file, int64_t pos, int64_t size) noexcept;
 	void notifyQueuedUsers(uint8_t aFreeSlots) noexcept;
-	static void connectUser(const HintedUser& aUser, const string& aToken) noexcept;
+	static UserConnectResult connectUser(const HintedUser& aUser, const string& aToken) noexcept;
 
 	// ClientManagerListener
 	void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool aWentOffline) noexcept override;

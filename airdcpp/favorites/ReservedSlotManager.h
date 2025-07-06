@@ -23,6 +23,7 @@
 
 #include <airdcpp/core/thread/CriticalSection.h>
 #include <airdcpp/core/timer/TimerManagerListener.h>
+#include <airdcpp/hub/UserConnectResult.h>
 #include <airdcpp/user/User.h>
 
 namespace dcpp {
@@ -32,7 +33,7 @@ class ReservedSlotManager : private TimerManagerListener
 public:
 	
 	// @param aUser Reserve an upload slot for this user and connect.
-	void reserveSlot(const HintedUser& aUser, uint64_t aTime) noexcept;
+	optional<UserConnectResult> reserveSlot(const HintedUser& aUser, uint64_t aTime) noexcept;
 	void unreserveSlot(const UserPtr& aUser) noexcept;
 	bool hasReservedSlot(const UserPtr& aUser) const noexcept;
 

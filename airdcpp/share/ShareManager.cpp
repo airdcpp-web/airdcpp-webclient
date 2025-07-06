@@ -51,9 +51,9 @@ using ranges::for_each;
 
 ShareManager::ShareManager() : 
 	profiles(make_unique<ShareProfileManager>([this](const ShareProfilePtr& p) { removeRootProfile(p); })), 
-	validator(make_unique<SharePathValidator>()), 
-	tasks(make_unique<ShareTasks>(this)), 
-	tree(make_unique<ShareTree>())
+	tree(make_unique<ShareTree>()),
+	validator(make_unique<SharePathValidator>([this](const string& aRealPath) { return tree->parseRoot(aRealPath); })),
+	tasks(make_unique<ShareTasks>(this))
 { 
 	SettingsManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
@@ -1276,8 +1276,7 @@ StringSet ShareManager::getExcludedPaths() const noexcept {
 }
 
 void ShareManager::addExcludedPath(const string& aPath) {
-	auto rootPaths = tree->getRootPathList();
-	validator->addExcludedPath(aPath, rootPaths);
+	validator->addExcludedPath(aPath);
 	fire(ShareManagerListener::ExcludeAdded(), aPath);
 }
 

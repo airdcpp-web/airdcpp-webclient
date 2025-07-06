@@ -17,7 +17,8 @@
  */
 
 #include "stdinc.h"
-#include <airdcpp/transfer/upload/UploadQueueManager.h>
+
+#include "UploadQueueManager.h"
 
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/events/LogManager.h>
@@ -55,14 +56,19 @@ UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, i
 	inc();
 }
 
-void UploadQueueManager::connectUser(const HintedUser& aUser, const string& aToken) noexcept {
-	// TODO: report errors?
-	ClientManager::getInstance()->connect(aUser, aToken, true);
+UserConnectResult UploadQueueManager::connectUser(const HintedUser& aUser, const string& aToken) noexcept {
+	return ClientManager::getInstance()->connect(aUser, aToken, true);
 }
 
-void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
+optional<UserConnectResult> UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
+	if (!aUser.user->isOnline()) {
+		return nullopt;
+	}
+
 	bool connect = false;
 	string token;
+
+	optional<UserConnectResult> result;
 
 	// find user in upload queue to connect with correct token
 	{
@@ -75,8 +81,10 @@ void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
 	}
 
 	if (connect) {
-		connectUser(aUser, token);
+		result = connectUser(aUser, token);
 	}
+
+	return result;
 }
 
 size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const string& aFile, int64_t aPos, int64_t aSize) noexcept {
