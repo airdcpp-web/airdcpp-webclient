@@ -154,7 +154,7 @@ namespace webserver {
 					con->set_status(aStatus);
 					con->set_body(aOutput);
 				} else {
-					con->set_status(aStatus, aOutput);
+					con->set_status(aStatus /*, aOutput*/); //  warning C4717: 'websocketpp::connection<websocketpp::config::asio>::set_status': recursive on all control paths, function will cause runtime stack overflow
 					con->set_body(aOutput);
 				}
 			};

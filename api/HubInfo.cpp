@@ -254,7 +254,11 @@ namespace webserver {
 		chatHandler.setChat(client.get());
 		aNewClient->addListener(this);
 
-		sendConnectState();
+		onHubUpdated({
+			{ "identity", serializeIdentity(client) },
+			{ "encryption", Serializer::serializeEncryption(client->getEncryptionInfo(), client->isTrusted()) },
+			{ "connect_state", serializeConnectState(client) },
+		});
 	}
 
 	void HubInfo::on(ClientListener::Disconnected, const string&, const string&) noexcept {
