@@ -179,9 +179,24 @@ void ShareTree::getRootsUnsafe(const OptionalProfileToken& aProfile, ShareDirect
 	ranges::copy(rootPaths | views::values | views::filter(ShareDirectory::HasRootProfile(aProfile)), back_inserter(dirs_));
 }
 
-ShareDirectory::Ptr ShareTree::findRootUnsafe(const string& aPath) const noexcept {
-	auto i = rootPaths.find(aPath);
+ShareDirectory::Ptr ShareTree::findRootUnsafe(const string& aRootPath) const noexcept {
+	auto i = rootPaths.find(aRootPath);
 	return i != rootPaths.end() ? i->second : nullptr;
+}
+
+string ShareTree::parseRoot(const string& aRealPath) const noexcept {
+	RLock l(cs);
+	auto root = parseRootUnsafe(aRealPath);
+	if (!root) {
+		return Util::emptyString;
+	}
+
+	return root->getRealPathUnsafe();
+}
+
+ShareDirectory::Ptr ShareTree::parseRootUnsafe(const string& aRealPath) const noexcept {
+	auto mi = find_if(rootPaths | views::values, ShareDirectory::RootIsParentOrExact(aRealPath)).base();
+	return mi == rootPaths.end() ? nullptr : mi->second;
 }
 
 ShareDirectory::List ShareTree::getRoots(const OptionalProfileToken& aProfile) const noexcept {
@@ -791,14 +806,12 @@ ShareSearchStats ShareSearchCounters::toStats() const noexcept {
 }
 
 ShareDirectory::Ptr ShareTree::findDirectoryUnsafe(const string& aRealPath, StringList& remainingTokens_) const noexcept {
-	auto mi = find_if(rootPaths | views::values, ShareDirectory::RootIsParentOrExact(aRealPath)).base();
-	if (mi == rootPaths.end()) {
+	auto curDir = parseRootUnsafe(aRealPath);
+	if (!curDir) {
 		return nullptr;
 	}
 
-	auto curDir = mi->second;
-
-	remainingTokens_ = StringTokenizer<string>(aRealPath.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
+	remainingTokens_ = StringTokenizer<string>(aRealPath.substr(curDir->getRealPathUnsafe().length()), PATH_SEPARATOR).getTokens();
 
 	bool hasMissingToken = false;
 	std::erase_if(remainingTokens_, [&](const string& currentName) {

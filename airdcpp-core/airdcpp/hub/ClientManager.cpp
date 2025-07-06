@@ -586,9 +586,9 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 
 
 // CONNECT
-ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType aConnType) const noexcept {
+UserConnectResult ClientManager::connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType aConnType) const noexcept {
 	dcassert(aAllowUrlChange || !aUser.hint.empty());
-	ConnectResult result;
+	UserConnectResult result;
 
 	auto connectUser = [&] (const OnlineUserPtr& ou) {
 		result.resetError();

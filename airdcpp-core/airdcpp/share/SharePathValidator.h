@@ -62,7 +62,8 @@ public:
 	ActionHook<nullptr_t, const string&, bool /* aNewParent */> newDirectoryValidationHook;
 	ActionHook<nullptr_t, const string&, int64_t, bool /* aNewParent */> newFileValidationHook;
 
-	SharePathValidator();
+	using RootPointParser = std::function<string(const string&)>;
+	SharePathValidator(RootPointParser&& aRootPointParser);
 
 	// Get a list of excluded real paths
 	StringSet getExcludedPaths() const noexcept;
@@ -70,7 +71,7 @@ public:
 
 	// Add an excluded path
 	// Throws ShareException if validation fails
-	void addExcludedPath(const string& aPath, const StringList& aRootPaths);
+	void addExcludedPath(const string& aPath);
 	bool removeExcludedPath(const string& aPath) noexcept;
 
 	// Prepares the skiplist regex after the pattern has been changed
@@ -113,6 +114,8 @@ private:
 	// Excluded paths with exact casing
 	// Use refreshMatcherCS for locking
 	StringSet excludedPaths;
+
+	RootPointParser rootPointParser;
 
 	mutable SharedMutex cs;
 };

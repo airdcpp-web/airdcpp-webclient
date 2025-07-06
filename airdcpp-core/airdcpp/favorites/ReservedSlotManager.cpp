@@ -17,14 +17,15 @@
  */
 
 #include "stdinc.h"
-#include <airdcpp/favorites/ReservedSlotManager.h>
 
-#include <airdcpp/hub/ClientManager.h>
-#include <airdcpp/events/LogManager.h>
+#include "ReservedSlotManager.h"
+
+#include <airdcpp/core/timer/TimerManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
+#include <airdcpp/events/LogManager.h>
 #include <airdcpp/transfer/upload/UploadManager.h>
 #include <airdcpp/transfer/upload/UploadQueueManager.h>
-#include <airdcpp/connection/UserConnection.h>
+#include <airdcpp/user/HintedUser.h>
 
 
 namespace dcpp {
@@ -39,17 +40,15 @@ ReservedSlotManager::~ReservedSlotManager() {
 	TimerManager::getInstance()->removeListener(this);
 }
 
-void ReservedSlotManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) noexcept {
+optional<UserConnectResult> ReservedSlotManager::reserveSlot(const HintedUser& aUser, uint64_t aTime) noexcept {
 	{
 		WLock l(cs);
 		reservedSlots[aUser] = aTime > 0 ? (GET_TICK() + aTime * 1000) : 0;
 	}
 
-	if (aUser.user->isOnline()) {
-		UploadManager::getInstance()->getQueue().connectUser(aUser);
-	}
-
 	onSlotsUpdated(aUser);
+
+	return UploadManager::getInstance()->getQueue().connectUser(aUser);
 }
 
 bool ReservedSlotManager::hasReservedSlot(const UserPtr& aUser) const noexcept {
