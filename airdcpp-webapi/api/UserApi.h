@@ -24,6 +24,8 @@
 #include <airdcpp/core/header/typedefs.h>
 
 #include <airdcpp/hub/ClientManagerListener.h>
+#include <airdcpp/hub/UserConnectResult.h>
+
 #include <airdcpp/user/ignore/IgnoreManagerListener.h>
 
 namespace webserver {
@@ -42,12 +44,16 @@ namespace webserver {
 		api_return handleSearchNicks(ApiRequest& aRequest);
 		api_return handleSearchHintedUser(ApiRequest& aRequest);
 
+		api_return handleGrantSlot(ApiRequest& aRequest);
+
 		void on(IgnoreManagerListener::IgnoreAdded, const UserPtr& aUser) noexcept override;
 		void on(IgnoreManagerListener::IgnoreRemoved, const UserPtr& aUser) noexcept override;
 
 		void on(ClientManagerListener::UserConnected, const OnlineUser& aUser, bool) noexcept override;
 		void on(ClientManagerListener::UserUpdated, const OnlineUser& aUser) noexcept override;
 		void on(ClientManagerListener::UserDisconnected, const UserPtr& aUser, bool) noexcept override;
+
+		static json serializeConnectResult(const optional<UserConnectResult> aResult) noexcept;
 	};
 }
 

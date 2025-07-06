@@ -27,6 +27,8 @@
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/user/ignore/IgnoreManager.h>
 
+#include <airdcpp/favorites/FavoriteUserManager.h>
+#include <airdcpp/favorites/ReservedSlotManager.h>
 
 namespace webserver {
 	UserApi::UserApi(Session* aSession) : SubscribableApiModule(aSession, Access::ANY) {
@@ -47,6 +49,8 @@ namespace webserver {
 		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("ignores")),				UserApi::handleGetIgnores);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleIgnore);
 		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("ignores"), CID_PARAM),	UserApi::handleUnignore);
+
+		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("slots"), CID_PARAM),		UserApi::handleGrantSlot);
 
 		ClientManager::getInstance()->addListener(this);
 		IgnoreManager::getInstance()->addListener(this);
@@ -83,6 +87,33 @@ namespace webserver {
 	api_return UserApi::handleSearchHintedUser(ApiRequest& aRequest) {
 		const auto user = Deserializer::deserializeHintedUser(aRequest.getRequestBody(), true);
 		aRequest.setResponseBody(Serializer::serializeHintedUser(user));
+		return websocketpp::http::status_code::ok;
+	}
+
+	json UserApi::serializeConnectResult(const optional<UserConnectResult> aResult) noexcept {
+		if (!aResult) {
+			return nullptr;
+		}
+
+		return {
+			{ "success", aResult->getIsSuccess() },
+			{ "error", aResult->getError() },
+		};
+	}
+
+	api_return UserApi::handleGrantSlot(ApiRequest& aRequest) {
+		const auto& reqJson = aRequest.getRequestBody();
+		auto user = getUser(aRequest);
+
+		auto hubUrl = JsonUtil::getOptionalFieldDefault<string>("hub_url", reqJson, Util::emptyString);
+		auto duration = JsonUtil::getOptionalFieldDefault<time_t>("duration", reqJson, 0);
+
+		auto result = FavoriteUserManager::getInstance()->getReservedSlots().reserveSlot(HintedUser(user, hubUrl), duration);
+
+		aRequest.setResponseBody({
+			{ "connect_result", serializeConnectResult(result) }
+		});
+
 		return websocketpp::http::status_code::ok;
 	}
 
