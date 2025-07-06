@@ -43,8 +43,8 @@ atomic<ClientToken> idCounter { 0 };
 #define FLOOD_PERIOD 60
 
 Client::Client(const string& aHubUrl, char aSeparator, const ClientPtr& aOldClient) :
-	myIdentity(ClientManager::getInstance()->getMe(), 0), lastActivity(GET_TICK()), 
-	cache(SettingsManager::HUB_MESSAGE_CACHE),
+	myIdentity(ClientManager::getInstance()->getMe(), 0), lastActivity(GET_TICK()),
+	cache(aOldClient ? MessageCache(aOldClient->getCache()) : MessageCache(SettingsManager::HUB_MESSAGE_CACHE)),
 	ctmFloodCounter(FLOOD_PERIOD),
 	searchFloodCounter(FLOOD_PERIOD),
 	clientId(aOldClient ? aOldClient->getToken() : ++idCounter),

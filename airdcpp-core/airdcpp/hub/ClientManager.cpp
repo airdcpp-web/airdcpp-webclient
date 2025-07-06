@@ -167,7 +167,6 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 	oldClient->removeListener(this);
 
 	auto newClient = ClientManager::makeClient(aNewUrl, oldClient);
-	oldClient->clearCache();
 
 	{
 		WLock l(cs);
