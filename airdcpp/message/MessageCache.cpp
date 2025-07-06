@@ -20,13 +20,20 @@
 #include <airdcpp/message/MessageCache.h>
 
 namespace dcpp {
-	MessageCache::MessageCache(const MessageCache& aCache) noexcept : setting(aCache.setting), messages(aCache.getMessages()) {
+	MessageCache::MessageCache(SettingsManager::IntSetting aSetting) noexcept : setting(aSetting) {}
+
+	MessageCache::MessageCache(const MessageCache& aCache) noexcept : setting(aCache.setting), messages(aCache.getMessages()), highlights(aCache.getHighlights()) {
 
 	}
 
 	MessageList MessageCache::getMessages() const noexcept {
 		RLock l(cs);
 		return messages;
+	}
+
+	MessageCache::HighlightList MessageCache::getHighlights() const noexcept {
+		RLock l(cs);
+		return highlights;
 	}
 
 	LogMessageList MessageCache::getLogMessages() const noexcept {
@@ -135,12 +142,12 @@ namespace dcpp {
 	void MessageCache::add(Message&& aMessage) noexcept {
 		WLock l(cs);
 		messages.push_back(std::move(aMessage));
-		for (const auto& hl : aMessage.getHighlights()) {
+		for (const auto& hl: aMessage.getHighlights()) {
 			highlights.try_emplace(hl->getToken(), hl);
 		}
 
 		if (static_cast<int>(messages.size()) > SettingsManager::getInstance()->get(setting)) {
-			auto toRemove = messages.front();
+			decltype(auto) toRemove = messages.front();
 			for (const auto& hl : toRemove.getHighlights()) {
 				highlights.erase(hl->getToken());
 			}
