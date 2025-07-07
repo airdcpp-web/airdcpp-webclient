@@ -263,7 +263,7 @@ static void runDaemon(const dcpp::StartupParams& aStartupParams) {
 }
 
 static void runConsole(const dcpp::StartupParams& aStartupParams) {
-	printf("Starting.\n"); fflush(stdout);
+	printf("Initializing."); fflush(stdout);
 
 	savePid(static_cast<int>(getpid()));
 
@@ -272,6 +272,8 @@ static void runConsole(const dcpp::StartupParams& aStartupParams) {
 		printf("."); fflush(stdout);
 
 		init();
+
+		printf(".\n"); fflush(stdout);
 
 		client->run(aStartupParams);
 
