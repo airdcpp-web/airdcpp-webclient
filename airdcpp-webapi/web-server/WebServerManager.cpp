@@ -126,6 +126,8 @@ namespace webserver {
 	void setEndpointOptions(T& aEndpoint) {
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
 		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
+
+		aEndpoint.set_max_http_body_size(HttpManager::MAX_HTTP_BODY_SIZE);
 	}
 
 	bool WebServerManager::startup(const MessageCallback& errorF, const string& aWebResourcePath, const Callback& aShutdownF) {
