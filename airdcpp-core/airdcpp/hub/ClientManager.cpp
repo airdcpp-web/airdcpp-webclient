@@ -255,10 +255,12 @@ OrderedStringSet ClientManager::getHubSet(const CID& aCID) const noexcept {
 StringList ClientManager::getHubNames(const CID& aCID) const noexcept {
 	StringList lst;
 
-	RLock l(cs);
-	auto op = onlineUsers.equal_range(const_cast<CID*>(&aCID));
-	for (const auto& ou : op | pair_to_range | views::values) {
-		lst.push_back(ou->getClient()->getHubName());
+	{
+		RLock l(cs);
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&aCID));
+		for (const auto& ou : op | pair_to_range | views::values) {
+			lst.push_back(ou->getClient()->getHubName());
+		}
 	}
 
 	sort(lst.begin(), lst.end());
