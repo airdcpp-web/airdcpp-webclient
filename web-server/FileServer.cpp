@@ -343,6 +343,8 @@ namespace webserver {
 		return websocketpp::http::status_code::accepted;
 	}
 
+	static StringSet forwardedProxyHeaders = { "content-type", "content-encoding", "etag", "expires", "last-modified", "date", "vary" };
+
 	void FileServer::onProxyDownloadCompleted(int64_t aDownloadId, const HTTPFileCompletionF& aCompletionF) noexcept {
 		ScopedFunctor([&] {
 			WLock l(cs);
@@ -371,6 +373,12 @@ namespace webserver {
 				}
 			} else {
 				StringPairList headers;
+				for (const auto& [name, value] : d->headers) {
+					if (forwardedProxyHeaders.contains(Text::toLower(name))) {
+						headers.push_back({ name, value });
+					}
+				}
+
 				HttpUtil::addCacheControlHeader(headers, 0);
 				aCompletionF(websocketpp::http::status_code::ok, d->buf, headers);
 			}
