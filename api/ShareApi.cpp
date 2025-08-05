@@ -52,7 +52,7 @@
 #define HOOK_NEW_DIRECTORY_VALIDATION "new_share_directory_validation_hook"
 
 namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SETTINGS_VIEW, Access::SETTINGS_EDIT) {
+	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SHARE_VIEW, Access::SHARE_EDIT) {
 		createSubscriptions({
 			"share_refresh_queued",
 			"share_refresh_started",
@@ -66,34 +66,34 @@ namespace webserver {
 		});
 
 		// Methods
-		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("validate_path")),						ShareApi::handleValidatePath);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("check_path_shared")),					ShareApi::handleIsPathShared);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("validate_path")),						ShareApi::handleValidatePath);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("check_path_shared")),					ShareApi::handleIsPathShared);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real"), EXACT_PARAM("content"), RANGE_START_PARAM, RANGE_MAX_PARAM),	ShareApi::handleGetDirectoryContentByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real")),		ShareApi::handleGetDirectoryByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("files"), EXACT_PARAM("by_real")),				ShareApi::handleGetFileByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),							ShareApi::handleGetFilesByTTH);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real"), EXACT_PARAM("content"), RANGE_START_PARAM, RANGE_MAX_PARAM),	ShareApi::handleGetDirectoryContentByReal);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real")),		ShareApi::handleGetDirectoryByReal);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("files"), EXACT_PARAM("by_real")),				ShareApi::handleGetFileByReal);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),							ShareApi::handleGetFilesByTTH);
 
 
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh")),							ShareApi::handleAbortRefreshShare);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtualPath);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh")),							ShareApi::handleAbortRefreshShare);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtualPath);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("refresh"), EXACT_PARAM("tasks")),					ShareApi::handleGetRefreshTasks);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh"), EXACT_PARAM("tasks"), TOKEN_PARAM),	ShareApi::handleAbortRefreshTask);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("refresh"), EXACT_PARAM("tasks")),					ShareApi::handleGetRefreshTasks);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh"), EXACT_PARAM("tasks"), TOKEN_PARAM),	ShareApi::handleAbortRefreshTask);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("temp_shares")),						ShareApi::handleGetTempShares);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("temp_shares")),						ShareApi::handleGetTempShares);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
 
 		// Hooks
 		HOOK_HANDLER(HOOK_FILE_VALIDATION,			ShareManager::getInstance()->getValidator().fileValidationHook,			ShareApi::fileValidationHook);

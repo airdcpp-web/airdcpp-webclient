@@ -45,6 +45,9 @@ namespace webserver {
 		SETTINGS_VIEW,
 		SETTINGS_EDIT,
 
+		SHARE_VIEW,
+		SHARE_EDIT,
+
 		FILESYSTEM_VIEW,
 		FILESYSTEM_EDIT,
 

@@ -37,15 +37,15 @@ namespace webserver {
 			"share_profile_removed"
 		});
 
-		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(),										ShareProfileApi::handleGetProfiles);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(),										ShareProfileApi::handleGetProfiles);
 
-		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(TOKEN_PARAM),							ShareProfileApi::handleGetProfile);
-		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("default")),				ShareProfileApi::handleGetDefaultProfile);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(TOKEN_PARAM),							ShareProfileApi::handleGetProfile);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("default")),				ShareProfileApi::handleGetDefaultProfile);
 
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(),										ShareProfileApi::handleAddProfile);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_PATCH,	(TOKEN_PARAM),							ShareProfileApi::handleUpdateProfile);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(TOKEN_PARAM),							ShareProfileApi::handleRemoveProfile);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("default")),	ShareProfileApi::handleSetDefaultProfile);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(),										ShareProfileApi::handleAddProfile);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_PATCH,	(TOKEN_PARAM),							ShareProfileApi::handleUpdateProfile);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(TOKEN_PARAM),							ShareProfileApi::handleRemoveProfile);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(TOKEN_PARAM, EXACT_PARAM("default")),	ShareProfileApi::handleSetDefaultProfile);
 
 		mgr.addListener(this);
 	}

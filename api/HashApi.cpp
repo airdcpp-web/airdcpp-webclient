@@ -31,7 +31,7 @@
 
 namespace webserver {
 	HashApi::HashApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
+		SubscribableApiModule(aSession, Access::SHARE_VIEW),
 		timer(getTimer([this] { onTimer(); }, 1000)) 
 	{
 		createSubscriptions({
@@ -45,16 +45,16 @@ namespace webserver {
 
 		HashManager::getInstance()->addListener(this);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("database_status")),	HashApi::handleGetDbStatus);
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("optimize_database")),	HashApi::handleOptimize);
+		METHOD_HANDLER(Access::SHARE_VIEW, METHOD_GET,	(EXACT_PARAM("database_status")),	HashApi::handleGetDbStatus);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_POST,	(EXACT_PARAM("optimize_database")),	HashApi::handleOptimize);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,	(EXACT_PARAM("stats")),				HashApi::handleGetStats);
+		METHOD_HANDLER(Access::SHARE_VIEW, METHOD_GET,	(EXACT_PARAM("stats")),				HashApi::handleGetStats);
 
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("pause")),				HashApi::handlePause);
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("resume")),			HashApi::handleResume);
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("stop")),				HashApi::handleStop);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_POST,	(EXACT_PARAM("pause")),				HashApi::handlePause);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_POST,	(EXACT_PARAM("resume")),			HashApi::handleResume);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_POST,	(EXACT_PARAM("stop")),				HashApi::handleStop);
 
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,	(EXACT_PARAM("rename_path")),		HashApi::handleRenamePath);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_POST,	(EXACT_PARAM("rename_path")),		HashApi::handleRenamePath);
 
 		timer->start(false);
 	}

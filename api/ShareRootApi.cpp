@@ -30,19 +30,19 @@
 
 namespace webserver {
 	ShareRootApi::ShareRootApi(Session* aSession) : 
-		SubscribableApiModule(aSession, Access::SETTINGS_VIEW),
+		SubscribableApiModule(aSession, Access::SHARE_VIEW),
 		roots(ShareManager::getInstance()->getRootInfos()),
 		rootView("share_root_view", this, ShareUtils::propertyHandler, std::bind(&ShareRootApi::getRoots, this)),
 		timer(getTimer([this] { onTimer(); }, 5000)) 
 	{
 		createSubscriptions({ "share_root_created", "share_root_updated", "share_root_removed" });
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,		(),				ShareRootApi::handleGetRoots);
+		METHOD_HANDLER(Access::SHARE_VIEW, METHOD_GET,		(),				ShareRootApi::handleGetRoots);
 
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_POST,		(),				ShareRootApi::handleAddRoot);
-		METHOD_HANDLER(Access::SETTINGS_VIEW, METHOD_GET,		(TTH_PARAM),	ShareRootApi::handleGetRoot);
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_PATCH,		(TTH_PARAM),	ShareRootApi::handleUpdateRoot);
-		METHOD_HANDLER(Access::SETTINGS_EDIT, METHOD_DELETE,	(TTH_PARAM),	ShareRootApi::handleRemoveRoot);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_POST,		(),				ShareRootApi::handleAddRoot);
+		METHOD_HANDLER(Access::SHARE_VIEW, METHOD_GET,		(TTH_PARAM),	ShareRootApi::handleGetRoot);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_PATCH,	(TTH_PARAM),	ShareRootApi::handleUpdateRoot);
+		METHOD_HANDLER(Access::SHARE_EDIT, METHOD_DELETE,	(TTH_PARAM),	ShareRootApi::handleRemoveRoot);
 
 		ShareManager::getInstance()->addListener(this);
 		HashManager::getInstance()->addListener(this);
