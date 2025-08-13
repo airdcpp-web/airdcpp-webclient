@@ -884,6 +884,7 @@ shared_ptr<ShareTasksManager::RefreshTaskHandler> ShareManager::startRefresh(con
 		lastIncomingUpdate = GET_TICK();
 	}
 
+	fire(ShareManagerListener::RefreshStarted(), aTask);
 	return make_shared<ShareManager::RefreshTaskHandler>(
 		refreshBloom,
 		std::bind_front(&ShareManager::handleRefreshPath, this),
