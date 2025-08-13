@@ -64,6 +64,11 @@ namespace webserver {
 		bool isRunning() const noexcept {
 			return running;
 		}
+
+		void flush() {
+			timer.cancel();
+			scheduleNext(boost::posix_time::milliseconds(0));
+		}
 	private:
 		// Static in case the timer has been destructed
 		static void tick(const boost::system::error_code& error, const CallbackWrapper& cbWrapper, Timer* aTimer) {

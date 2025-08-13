@@ -46,6 +46,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 				return serializeOutgoingHubCommand(aCmd, aClient);
 			}),
 			aResultGetter,
+			this,
 			deserializeHookParams
 		);
 	};
@@ -56,6 +57,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 				return serializeOutgoingUDPCommand(aCmd, aUser);
 			}),
 			aResultGetter,
+			this,
 			deserializeHookParams
 		);
 	}
@@ -66,6 +68,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 				return serializeOutgoingTCPCommand(aCmd, aUserConnection);
 			}),
 			aResultGetter,
+			this,
 			deserializeHookParams
 		);
 	}

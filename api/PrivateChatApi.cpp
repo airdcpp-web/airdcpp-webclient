@@ -46,6 +46,7 @@ namespace webserver {
 				return MessageUtils::serializeChatMessage(aMessage);
 			}),
 			aResultGetter,
+			this,
 			MessageUtils::getMessageHookHighlightDeserializer(aMessage->getText())
 		);
 	}
@@ -60,7 +61,8 @@ namespace webserver {
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 

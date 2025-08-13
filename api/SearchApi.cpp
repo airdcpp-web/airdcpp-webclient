@@ -99,7 +99,8 @@ namespace webserver {
 			maybeFireHook(HOOK_INCOMING_USER_RESULT, WEBCFG(SEARCH_INCOMING_USER_RESULT_HOOK_TIMEOUT).num(), [&]() {
 				return SearchEntity::serializeSearchResult(aResult);
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
