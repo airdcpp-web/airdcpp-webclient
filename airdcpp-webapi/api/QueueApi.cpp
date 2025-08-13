@@ -134,6 +134,7 @@ namespace webserver {
 				});
 			}),
 			aResultGetter,
+			this,
 			[](const json& aData, const ActionHookResultGetter<BundleFileAddHookResult>& aResultGetter) {
 				if (aData.is_null()) {
 					return BundleFileAddHookResult();
@@ -162,6 +163,7 @@ namespace webserver {
 				});
 			}),
 			aResultGetter,
+			this,
 			getBundleAddHookDeserializer(session)
 		);
 	}
@@ -188,7 +190,8 @@ namespace webserver {
 					{ "user", Serializer::serializeHintedUser(aUser) },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -197,7 +200,8 @@ namespace webserver {
 			maybeFireHook(HOOK_FILE_FINISHED, WEBCFG(QUEUE_FILE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
 				return Serializer::serializeItem(aFile, QueueFileUtils::propertyHandler);
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -206,7 +210,8 @@ namespace webserver {
 			maybeFireHook(HOOK_BUNDLE_FINISHED, WEBCFG(QUEUE_BUNDLE_FINISHED_HOOK_TIMEOUT).num(), [&]() {
 				return Serializer::serializeItem(aBundle, QueueBundleUtils::propertyHandler);
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 

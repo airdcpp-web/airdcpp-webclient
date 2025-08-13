@@ -103,10 +103,12 @@ namespace webserver {
 
 		// Listeners
 		ShareManager::getInstance()->addListener(this);
+		TempShareManager::getInstance()->addListener(this);
 	}
 
 	ShareApi::~ShareApi() {
 		ShareManager::getInstance()->removeListener(this);
+		TempShareManager::getInstance()->removeListener(this);
 	}
 
 	ActionHookResult<> ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept {
@@ -117,7 +119,8 @@ namespace webserver {
 					{ "size", aSize },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -128,7 +131,8 @@ namespace webserver {
 					{ "path", aPath },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -141,7 +145,8 @@ namespace webserver {
 					{ "new_parent", aNewParent },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -153,7 +158,8 @@ namespace webserver {
 					{ "new_parent", aNewParent },
 					});
 				}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 

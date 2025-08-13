@@ -92,7 +92,8 @@ namespace webserver {
 					{ "filelist_id", aList.getToken().toBase32() },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 	ActionHookResult<> FilelistApi::fileLoadHook(const DirectoryListing::File::Ptr& aFile, const DirectoryListing& aList, const ActionHookResultGetter<>& aResultGetter) noexcept {
@@ -104,7 +105,8 @@ namespace webserver {
 					{ "filelist_id", aList.getToken().toBase32() },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 

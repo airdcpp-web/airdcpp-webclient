@@ -67,6 +67,7 @@ namespace webserver {
 			return HookCompletionData::toResult<GroupedContextMenuItemPtr>(
 				fireMenuHook(aMenuId, Serializer::serializeList(aSelections, aIdSerializer), aListData, aEntityId),
 				aResultGetter,
+				this,
 				MenuApi::deserializeMenuItems
 			);
 		}
@@ -75,6 +76,7 @@ namespace webserver {
 			return HookCompletionData::toResult<GroupedContextMenuItemPtr>(
 				fireMenuHook(aMenuId, nullptr, aListData, nullptr),
 				aResultGetter,
+				this,
 				MenuApi::deserializeMenuItems
 			);
 		}

@@ -36,6 +36,10 @@ namespace webserver {
 		return handleHookAction(aRequest, true);
 	}
 
+	void HookActionHandler::reportError(const string& aError, SubscribableApiModule* aModule) noexcept {
+		aModule->getSession()->reportError(aError);
+	}
+
 
 	HookCompletionDataPtr HookActionHandler::runHook(const string& aSubscription, int aTimeoutSeconds, const json& aJson, SubscribableApiModule* aModule) {
 #ifdef _DEBUG
@@ -72,7 +76,7 @@ namespace webserver {
 		}
 
 		if (!completionData) {
-			aModule->getSession()->reportError("Action " + aSubscription + " timed out for subscriber " + aModule->getSession()->getUser()->getUserName() + "\n");
+			reportError("Action " + aSubscription + " timed out for subscriber " + aModule->getSession()->getUser()->getUserName(), aModule);
 			dcdebug("Action %s (id %d) timed out\n", aSubscription.c_str(), id);
 #ifdef _DEBUG
 		} else {

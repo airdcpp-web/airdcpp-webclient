@@ -346,7 +346,7 @@ namespace webserver {
 				return ApiSettingItem::TYPE_STRUCT;
 			}
 
-			JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid item type " + *itemTypeStr);
+			JsonUtil::throwError(aFieldName, JsonException::ERROR_INVALID, "Invalid item type \"" + *itemTypeStr + "\"");
 		}
 
 		return ApiSettingItem::TYPE_LAST;
