@@ -274,8 +274,6 @@ namespace webserver {
 				setActive(true);
 				initItems();
 				timer->start(true);
-			} else {
-				timer->flush();
 			}
 
 			return websocketpp::http::status_code::no_content;
