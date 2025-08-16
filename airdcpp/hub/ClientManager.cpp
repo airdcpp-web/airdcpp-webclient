@@ -611,6 +611,8 @@ UserConnectResult ClientManager::connect(const HintedUser& aUser, const string& 
 			result.onProtocolError(STRING(NO_NATT_SUPPORT));
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
 			result.onProtocolError(STRING(UNABLE_CONNECT_USER));
+		} else {
+			result.onMinorError(STRING_F(ERROR_CODE_X, STRING(UNKNOWN_ERROR) % ret));
 		}
 
 		return false;
@@ -632,10 +634,11 @@ UserConnectResult ClientManager::connect(const HintedUser& aUser, const string& 
 	OnlineUserList otherHubUsers;
 
 	{
-		auto ou = getOnlineUsers(aUser, otherHubUsers);
-
 		// Prefer the hinted hub
-		if (ou && connectUser(ou)) {
+		auto ou = getOnlineUsers(aUser, otherHubUsers);
+		if (!ou) {
+			result.onMinorError(STRING(USER_OFFLINE));
+		} else if (connectUser(ou)) {
 			result.onSuccess(aUser.hint);
 			return result;
 		}
@@ -643,7 +646,6 @@ UserConnectResult ClientManager::connect(const HintedUser& aUser, const string& 
 
 	// Offline in the hinted hub
 	if (!aAllowUrlChange) {
-		result.onMinorError(STRING(USER_OFFLINE));
 		return result;
 	}
 
