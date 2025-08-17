@@ -213,11 +213,11 @@ void ConnectivityManager::detectConnection() {
 		fire(ConnectivityManagerListener::Started(), true);
 	}
 
-	if(detectV4 && mapperV4.getOpened()) {
+	if (detectV4 && mapperV4.getOpened()) {
 		mapperV4.close();
 	}
 
-	if(detectV4 && mapperV6.getOpened()) {
+	if (detectV6 && mapperV6.getOpened()) {
 		mapperV6.close();
 	}
 
