@@ -216,6 +216,10 @@ socket_t Socket::setSock(socket_t s, int af) {
 	setBlocking2(s, false);
 	setSocketOpt2(s, SOL_SOCKET, SO_REUSEADDR, 1);
 
+#ifdef SO_REUSEPORT
+	// Required on Linux/BSD to allow binding the same port from separate sockets (e.g. v4 and v6)
+	setSocketOpt2(s, SOL_SOCKET, SO_REUSEPORT, 1);
+#endif
 
 	if(af == AF_INET) {
 		dcassert(sock4 == INVALID_SOCKET);
@@ -348,7 +352,9 @@ string Socket::listen(const string& port) {
 			if(type == TYPE_TCP) {
 				check([this] { return ::listen(sock4, 20); });
 			}
-		} catch(const SocketException&) { }
+		} catch (const SocketException& e) { 
+			dcdebug("Socket::listen for port %s caught an error: %s\n", port.c_str(), e.getError().c_str());
+		}
 	}
 
 	if(ret == 0) {
