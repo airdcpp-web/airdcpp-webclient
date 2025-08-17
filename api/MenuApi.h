@@ -51,7 +51,7 @@ namespace webserver {
 
 		static StringMap deserializeIconInfo(const json& aJson);
 
-		static ContextMenuItemPtr toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter);
+		static ContextMenuItemPtr toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter, int aLevel = 0);
 		static GroupedContextMenuItemPtr deserializeMenuItems(const json& aData, const MenuActionHookResultGetter& aResultGetter);
 
 		static ExtensionSettingItem::List deserializeFormFieldDefinitions(const json& aJson);
