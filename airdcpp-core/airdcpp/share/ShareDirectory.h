@@ -24,7 +24,6 @@
 #include <airdcpp/core/types/GetSet.h>
 #include <airdcpp/hash/value/HashBloom.h>
 #include <airdcpp/hash/value/MerkleTree.h>
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/core/classes/SortedVector.h>
 #include <airdcpp/util/Util.h>
 
@@ -90,9 +89,9 @@ private:
 
 class ShareTreeMaps;
 class FilelistDirectory;
-class ShareDirectory : public intrusive_ptr_base<ShareDirectory> {
+class ShareDirectory {
 public:
-	typedef boost::intrusive_ptr<ShareDirectory> Ptr;
+	typedef std::shared_ptr<ShareDirectory> Ptr;
 	typedef unordered_map<string, Ptr, noCaseStringHash, noCaseStringEq> Map;
 	typedef unordered_multimap<string*, ShareDirectory::Ptr, StringPtrHash, StringPtrEq> MultiMap;
 	typedef Map::iterator MapIter;
@@ -170,13 +169,13 @@ public:
 
 	typedef SortedVector<Ptr, std::vector, string, Compare, NameLower> Set;
 
-	static Ptr createNormal(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, ShareTreeMaps& maps_) noexcept;
+	static Ptr createNormal(DualString&& aRealName, ShareDirectory* aParent, time_t aLastWrite, ShareTreeMaps& maps_) noexcept;
 	static Ptr createRoot(const string& aRootPath, const string& aVname, const ProfileTokenSet& aProfiles, bool aIncoming, time_t aLastWrite, ShareTreeMaps& maps_, time_t aLastRefreshTime) noexcept;
 	static Ptr cloneRoot(const Ptr& aOldRoot, time_t aLastWrite, ShareTreeMaps& maps_) noexcept;
 
 	// Set a new parent for the directory
 	// Possible directories with the same name must be removed from the parent first
-	static bool setParent(const ShareDirectory::Ptr& aDirectory, const ShareDirectory::Ptr& aParent) noexcept;
+	static bool setParent(const ShareDirectory::Ptr& aDirectory, ShareDirectory* aParent) noexcept;
 
 	// Remove directory from possible parent and all shared containers
 	static void cleanIndices(ShareDirectory& aDirectory, int64_t& sharedSize_, File::TTHMap& tthIndex_, ShareDirectory::MultiMap& aDirNames_) noexcept;
@@ -291,6 +290,9 @@ public:
 	const DualString& getRealName() const noexcept {
 		return realName;
 	}
+
+	// Shoild not be used directly, use createNormal or createRoot instead
+	ShareDirectory(DualString&& aRealName, ShareDirectory* aParent, time_t aLastWrite, const ShareRoot::Ptr& aRoot = nullptr);
 private:
 	File::Set files;
 	void cleanIndices(int64_t& sharedSize_, File::TTHMap& tthIndex_, ShareDirectory::MultiMap& dirNames_) const noexcept;
@@ -301,9 +303,6 @@ private:
 	// Size for files directly inside this directory
 	int64_t size = 0;
 	ShareRoot::Ptr root;
-
-	ShareDirectory(DualString&& aRealName, const Ptr& aParent, time_t aLastWrite, const ShareRoot::Ptr& aRoot = nullptr);
-	friend void intrusive_ptr_release(intrusive_ptr_base<ShareDirectory>*);
 
 	string getRealPath(const string& path) const noexcept;
 	DualString realName;

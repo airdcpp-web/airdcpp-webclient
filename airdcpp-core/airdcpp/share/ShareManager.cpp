@@ -155,7 +155,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 		curDirPathLower(aOldRoot->getRoot()->getPathLower()),
 		curDirPath(aOldRoot->getRoot()->getPath())
 	{ 
-		cur = newDirectory;
+		cur = newDirectory.get();
 	}
 
 
@@ -167,7 +167,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			if (!name.empty()) {
 				curDirPath += name + PATH_SEPARATOR;
 
-				cur = ShareDirectory::createNormal(name, cur, Util::toTimeT(date), *this);
+				cur = ShareDirectory::createNormal(name, cur, Util::toTimeT(date), *this).get();
 				if (!cur) {
 					throw Exception("Duplicate directory name");
 				}
@@ -217,7 +217,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 private:
 	friend struct SizeSort;
 
-	ShareDirectory::Ptr cur;
+	ShareDirectory* cur;
 
 	string curDirPathLower;
 	string curDirPath;
@@ -703,7 +703,7 @@ void ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const string& aPa
 			}
 
 			// Add it
-			auto curDir = ShareDirectory::createNormal(std::move(dualName), aParent, i->getLastWriteTime(), *this);
+			auto curDir = ShareDirectory::createNormal(std::move(dualName), aParent.get(), i->getLastWriteTime(), *this);
 			if (curDir) {
 				buildTree(curPath, curPathLower, curDir, oldDir, aStopping);
 				if (checkContent(curDir)) {
@@ -974,7 +974,7 @@ bool ShareManager::removeRootDirectory(const string& aPath) noexcept {
 	HashManager::getInstance()->stopHashing(aPath);
 
 	// Safe, the directory isn't in use
-	auto dirtyProfiles = root->getRootProfiles();
+	decltype(auto) dirtyProfiles = root->getRootProfiles();
 
 	log(STRING_F(SHARED_DIR_REMOVED, aPath), LogMessage::SEV_INFO);
 
@@ -1193,7 +1193,6 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 		return;
 	}
 
-	auto path = aBundle->getTarget();
 	tasks->addRefreshTask(ShareRefreshPriority::NORMAL, { aBundle->getTarget() }, ShareRefreshType::BUNDLE, aBundle->getTarget());
 }
 

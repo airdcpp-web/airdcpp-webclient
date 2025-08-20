@@ -216,7 +216,7 @@ void PartialFileSharingManager::on(ProtocolCommandManagerListener::IncomingHubCo
 		return;
 	}
 
-	OnlineUser* ou = aClient.findUser(aCmd.getFrom());
+	auto ou = aClient.findUser(aCmd.getFrom());
 	if (!ou) {
 		dcdebug("Invalid user in AdcHub::onPBD\n");
 		return;

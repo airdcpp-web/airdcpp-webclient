@@ -53,7 +53,7 @@ public:
 	SearchQueueInfo search(const SearchPtr& aSearch) noexcept;
 	SearchQueueInfo search(const StringList& aHubUrls, const SearchPtr& aSearch, void* aOwner = nullptr) noexcept;
 	
-	void respond(const AdcCommand& cmd, Client* aClient, OnlineUser* aUser, bool aIsUdpActive, ProfileToken aProfile) noexcept;
+	void respond(const AdcCommand& cmd, Client* aClient, const OnlineUserPtr& aUser, bool aIsUdpActive, ProfileToken aProfile) noexcept;
 	void respond(Client* aClient, const string& aSeeker, int aSearchType, int64_t aSize, int aFileType, const string& aString, bool aIsPassive) noexcept;
 
 	const string& getPort() const;

@@ -20,7 +20,6 @@
 #define DCPLUSPLUS_DCPP_HUBENTRY_H_
 
 #include <airdcpp/core/types/GetSet.h>
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/core/header/typedefs.h>
 
 #include <airdcpp/settings/HubSettings.h>
@@ -31,7 +30,7 @@ namespace dcpp {
 
 
 	class ShareProfile;
-	class FavoriteHubEntry : public HubSettings, public intrusive_ptr_base<FavoriteHubEntry> {
+	class FavoriteHubEntry : public HubSettings {
 	public:
 		using Ptr = FavoriteHubEntry *;
 		using List = vector<Ptr>;

@@ -1133,13 +1133,8 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	if (aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	} else if (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0)) {
-		// Flag
-		if (!aSource->isSet(UserConnection::FLAG_PM)) {
-			aSource->setFlag(UserConnection::FLAG_PM);
-		}
-
 		// Token
-		if (cmd.hasFlag("PM", 0)) {
+		if (!aSource->isSet(UserConnection::FLAG_PM)) {
 			if (!tokens.addToken(token, CONNECTION_TYPE_PM)) {
 				dcassert(0);
 				fail(AdcCommand::ERROR_GENERIC, "Duplicate token");
@@ -1147,6 +1142,8 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 			}
 		} else {
 			dcassert(tokens.hasToken(token));
+
+			aSource->setFlag(UserConnection::FLAG_PM);
 		}
 
 		addPMConnection(aSource);

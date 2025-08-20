@@ -22,22 +22,23 @@
 #include <airdcpp/forward.h>
 #include <airdcpp/core/header/typedefs.h>
 
+#include <airdcpp/transfer/upload/UploadQueueItem.h>
+
 namespace dcpp {
 
 class UploadQueueManagerListener {
-	friend class UploadQueueItem;
 public:
 	virtual ~UploadQueueManagerListener() { }
 	template<int I>	struct X { enum { TYPE = I }; };
 
 	typedef X<1> QueueAdd;
-	typedef X<2> QueueRemove;
+	typedef X<2> QueueUserRemove;
 	typedef X<3> QueueItemRemove;
 	typedef X<4> QueueUpdate;
 
-	virtual void on(QueueAdd, UploadQueueItem*) noexcept { }
-	virtual void on(QueueRemove, const UserPtr&) noexcept { }
-	virtual void on(QueueItemRemove, UploadQueueItem*) noexcept { }
+	virtual void on(QueueAdd, const UploadQueueItemPtr&) noexcept { }
+	virtual void on(QueueUserRemove, const UserPtr&) noexcept { }
+	virtual void on(QueueItemRemove, const UploadQueueItemPtr&) noexcept { }
 	virtual void on(QueueUpdate) noexcept { }
 };
 

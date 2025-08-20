@@ -19,13 +19,9 @@
 #ifndef DCPLUSPLUS_DCPP_FINISHED_MANAGER_LISTENER_H
 #define DCPLUSPLUS_DCPP_FINISHED_MANAGER_LISTENER_H
 
-#include "FinishedManager.h"
+#include "FinishedItem.h"
 
 namespace dcpp {
-
-class FinishedItem;
-typedef FinishedItem* FinishedItemPtr;
-typedef std::vector<FinishedItemPtr> FinishedItemList;
 
 class FinishedManagerListener {
 public:
@@ -34,7 +30,7 @@ public:
 
 	typedef X<0> AddedUl;
 
-	virtual void on(AddedUl, FinishedItem*) noexcept { }
+	virtual void on(AddedUl, const FinishedItemPtr&) noexcept { }
 
 };
 
