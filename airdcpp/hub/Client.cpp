@@ -454,7 +454,7 @@ void Client::on(BufferedSocketListener::Connecting) noexcept {
 }
 
 FavoriteHubEntryPtr Client::saveFavorite() {
-	FavoriteHubEntryPtr e = new FavoriteHubEntry();
+	auto e = std::make_shared<FavoriteHubEntry>();
 	e->setServer(getHubUrl());
 	e->setName(getHubName());
 	e->setDescription(getHubDescription());
@@ -616,7 +616,7 @@ void Client::on(TimerManagerListener::Second, uint64_t aTick) noexcept{
 	}
 }
 
-FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUser* aAdcUser) noexcept {
+FloodCounter::FloodLimits Client::getCTMLimits(const OnlineUserPtr& aAdcUser) noexcept {
 	// Is it a valid DC client?
 	// There may be many connection attempts with MCN users so we don't want to ban them
 	if (aAdcUser && ConnectionManager::getInstance()->isMCNUser(aAdcUser->getUser())) {
@@ -639,7 +639,7 @@ FloodCounter::FloodLimits Client::getSearchLimits() noexcept {
 	};
 }
 
-bool Client::checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser) noexcept {
+bool Client::checkIncomingCTM(const string& aTarget, const OnlineUserPtr& aAdcUser) noexcept {
 	auto result = ctmFloodCounter.handleRequest(aTarget, getCTMLimits(aAdcUser));
 	if (result.type == FloodCounter::FloodType::OK) {
 		return true;
@@ -652,7 +652,7 @@ bool Client::checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser)
 	return false;
 }
 
-bool Client::checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser) noexcept {
+bool Client::checkIncomingSearch(const string& aTarget, const OnlineUserPtr& aAdcUser) noexcept {
 	auto result = searchFloodCounter.handleRequest(aTarget, getSearchLimits());
 	if (result.type == FloodCounter::FloodType::OK) {
 		return true;

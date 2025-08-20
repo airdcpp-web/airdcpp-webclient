@@ -28,6 +28,13 @@
 
 namespace dcpp {
 
+IncrementingIdCounter<UploadQueueItemToken> UploadQueueItem::idCounter;
+
+UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
+	pos(_pos), token(idCounter.next()), user(_user), file(_file), size(_size), time(GET_TIME()) {
+}
+
+
 using ranges::find_if;
 
 UploadQueueManager::UploadQueueManager(FreeSlotF&& aFreeSlotF) noexcept : freeSlotF(std::move(aFreeSlotF)) {
@@ -40,20 +47,8 @@ UploadQueueManager::~UploadQueueManager() {
 	ClientManager::getInstance()->removeListener(this);
 	{
 		WLock l(cs);
-		for (const auto& ii: uploadQueue) {
-			for (const auto& f: ii.files) {
-				f->dec();
-			}
-		}
-
 		uploadQueue.clear();
 	}
-}
-
-UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
-	pos(_pos), user(_user), file(_file), size(_size), time(GET_TIME()) {
-
-	inc();
 }
 
 UserConnectResult UploadQueueManager::connectUser(const HintedUser& aUser, const string& aToken) noexcept {
@@ -101,7 +96,7 @@ size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const 
 		}
 	}
 
-	auto uqi = new UploadQueueItem(aSource.getHintedUser(), aFile, aPos, aSize);
+	auto uqi = std::make_shared<UploadQueueItem>(aSource.getHintedUser(), aFile, aPos, aSize);
 	if (it == uploadQueue.end()) {
 		++queue_position;
 
@@ -119,12 +114,11 @@ size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const 
 void UploadQueueManager::clearUserFilesUnsafe(const UserPtr& aUser) noexcept {
 	auto it = ranges::find_if(uploadQueue, [&](const UserPtr& u) { return u == aUser; });
 	if (it != uploadQueue.end()) {
-		for (const auto f: it->files) {
+		for (const auto& f: it->files) {
 			fire(UploadQueueManagerListener::QueueItemRemove(), f);
-			f->dec();
 		}
 		uploadQueue.erase(it);
-		fire(UploadQueueManagerListener::QueueRemove(), aUser);
+		fire(UploadQueueManagerListener::QueueUserRemove(), aUser);
 	}
 }
 

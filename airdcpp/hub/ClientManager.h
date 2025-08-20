@@ -281,7 +281,7 @@ private:
 
 	using OfflineUserMap = unordered_map<CID *, OfflineUser>;
 
-	using OnlineMap = unordered_multimap<CID *, OnlineUser *>;
+	using OnlineMap = unordered_multimap<CID*, OnlineUserPtr>;
 	using OnlineIter = OnlineMap::iterator;
 	using OnlineIterC = OnlineMap::const_iterator;
 	using OnlinePair = pair<OnlineIter, OnlineIter>;
@@ -310,7 +310,7 @@ private:
 	~ClientManager() override;
 
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
-	OnlineUser* findOnlineUserHintUnsafe(const CID& aCID, const string& aHubUrl) const noexcept {
+	OnlineUserPtr findOnlineUserHintUnsafe(const CID& aCID, const string& aHubUrl) const noexcept {
 		OnlinePairC p;
 		return findOnlineUserHintUnsafe(aCID, aHubUrl, p);
 	}
@@ -318,7 +318,7 @@ private:
 	* @param p OnlinePair of all the users found by CID, even those who don't match the hint.
 	* @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	*/
-	OnlineUser* findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHubUrl, OnlinePairC& p) const noexcept;
+	OnlineUserPtr findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHubUrl, OnlinePairC& p) const noexcept;
 
 	// ClientListener
 	void on(ClientListener::Connected, const Client* c) noexcept override;

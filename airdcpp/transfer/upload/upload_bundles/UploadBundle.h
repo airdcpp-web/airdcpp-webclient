@@ -22,7 +22,6 @@
 #include <string>
 #include <set>
 
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/forward.h>
 #include <airdcpp/core/types/GetSet.h>
 #include <airdcpp/transfer/upload/Upload.h>
@@ -32,12 +31,12 @@ namespace dcpp {
 
 using std::string;
 
-class UploadBundle : public intrusive_ptr_base<UploadBundle> {
+class UploadBundle {
 public:
 	using BundleUploadList = set<TransferToken>;
 
 	UploadBundle(const string& aTarget, const string& aToken, int64_t aSize, bool aSingleUser, int64_t aUploaded);
-	~UploadBundle() override;
+	~UploadBundle();
 
 	GETSET(int64_t, size, Size);
 
@@ -86,7 +85,7 @@ private:
 	const string token;
 };
 
-using UploadBundlePtr = boost::intrusive_ptr<UploadBundle>;
+using UploadBundlePtr = std::shared_ptr<UploadBundle>;
 using UploadBundleList = std::vector<UploadBundlePtr>;
 
 using TickUploadBundleList = std::vector<pair<UploadBundlePtr, OrderedStringSet>>;

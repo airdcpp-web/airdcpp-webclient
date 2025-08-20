@@ -24,9 +24,6 @@
 #include <airdcpp/hub/ClientManagerListener.h>
 #include <airdcpp/hub/UserConnectResult.h>
 #include <airdcpp/core/thread/CriticalSection.h>
-#include <airdcpp/core/classes/FastAlloc.h>
-#include <airdcpp/user/HintedUser.h>
-#include <airdcpp/message/Message.h>
 #include <airdcpp/core/Speaker.h>
 #include <airdcpp/core/timer/TimerManagerListener.h>
 #include <airdcpp/transfer/upload/UploadQueueManagerListener.h>
@@ -34,50 +31,11 @@
 
 namespace dcpp {
 
-class UploadQueueItem : public FastAlloc<UploadQueueItem>, public intrusive_ptr_base<UploadQueueItem>, public UserInfoBase {
-public:
-	UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size);
-
-	static int compareItems(const UploadQueueItem* a, const UploadQueueItem* b, uint8_t col);
-
-	enum {
-		COLUMN_FIRST,
-		COLUMN_FILE = COLUMN_FIRST,
-		COLUMN_PATH,
-		COLUMN_NICK,
-		COLUMN_HUB,
-		COLUMN_TRANSFERRED,
-		COLUMN_SIZE,
-		COLUMN_ADDED,
-		COLUMN_WAITING,
-		COLUMN_LAST
-	};
-		
-	const tstring getText(uint8_t col) const noexcept;
-	int getImageIndex() const noexcept;
-
-	int64_t getSize() const noexcept { return size; }
-	uint64_t getTime() const noexcept { return time; }
-	const string& getFile() const noexcept { return file; }
-	const UserPtr& getUser() const noexcept override { return user.user; }
-	const HintedUser& getHintedUser() const noexcept { return user; }
-	const string& getHubUrl() const noexcept override { return user.hint; }
-
-	GETSET(int64_t, pos, Pos);
-	
-private:
-	HintedUser	user;
-	string		file;
-	int64_t		size;
-	uint64_t	time;
-};
-
 struct WaitingUser {
-
 	WaitingUser(const HintedUser& _user, const std::string& _token) : user(_user), token(_token) { }
 	operator const UserPtr&() const { return user.user; }
 
-	set<UploadQueueItem*>	files;
+	set<UploadQueueItemPtr>	files;
 	HintedUser				user;
 	string					token;
 };

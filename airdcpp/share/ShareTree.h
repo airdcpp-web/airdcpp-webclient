@@ -25,7 +25,6 @@
 #include <airdcpp/hash/value/HashBloom.h>
 #include <airdcpp/hash/HashedFile.h>
 #include <airdcpp/hash/value/MerkleTree.h>
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/share/ShareDirectory.h>
 #include <airdcpp/share/ShareDirectoryInfo.h>
 #include <airdcpp/share/ShareStats.h>

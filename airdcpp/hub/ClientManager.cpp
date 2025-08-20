@@ -270,7 +270,7 @@ StringList ClientManager::getHubNames(const CID& aCID) const noexcept {
 void ClientManager::putOnline(const OnlineUserPtr& ou) noexcept {
 	{
 		WLock l(cs);
-		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou.get());
+		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou);
 	}
 	
 	if (!ou->getUser()->isOnline()) {
@@ -478,7 +478,7 @@ OnlineUserPtr ClientManager::getOnlineUsers(const HintedUser& aUser, OnlineUserL
 	return nullptr;
 }
 
-OnlineUser* ClientManager::findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHintUrl, OnlinePairC& p) const noexcept {
+OnlineUserPtr ClientManager::findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHintUrl, OnlinePairC& p) const noexcept {
 	p = onlineUsers.equal_range(const_cast<CID*>(&aCID));
 	if (p.first == p.second) // no user found with the given CID.
 		return nullptr;
@@ -954,7 +954,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 	map<string, int> clientNames;
 	{
 		RLock l(cs);
-		map<CID, OnlineUser*> uniqueUserMap;
+		map<CID, OnlineUserPtr> uniqueUserMap;
 		for (const auto& ou : onlineUsers | views::values) {
 			uniqueUserMap.try_emplace(ou->getUser()->getCID(), ou);
 		}

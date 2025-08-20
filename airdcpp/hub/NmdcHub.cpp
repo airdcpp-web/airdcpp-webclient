@@ -135,14 +135,14 @@ void NmdcHub::refreshUserList(bool refreshOnly) noexcept {
 	}
 }
 
-OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
-	OnlineUser* u = nullptr;
+OnlineUserPtr NmdcHub::getUser(const string& aNick) noexcept {
+	OnlineUserPtr u = nullptr;
 	{
 		RLock l(cs);
 		
-		NickIter i = users.find(aNick);
+		auto i = users.find(aNick);
 		if(i != users.end())
-			return *i->second;
+			return i->second;
 	}
 
 	UserPtr p;
@@ -156,16 +156,15 @@ OnlineUser& NmdcHub::getUser(const string& aNick) noexcept {
 
 	{
 		WLock l(cs);
-		u = users.emplace(aNick, new OnlineUser(p, client, ValueGenerator::rand())).first->second;
-		u->inc();
+		u = users.emplace(aNick, std::make_shared<OnlineUser>(p, client, ValueGenerator::rand())).first->second;
 		u->getIdentity().setNick(aNick);
-		if(u->getUser() == getMyIdentity().getUser()) {
+		if (u->getUser() == getMyIdentity().getUser()) {
 			setMyIdentity(u->getIdentity());
 		}
 	}
 	
 	onUserConnected(u);
-	return *u;
+	return u;
 }
 
 void NmdcHub::supports(const StringList& feat) { 
@@ -183,8 +182,8 @@ OnlineUserPtr NmdcHub::findUser(const string& aNick) const noexcept {
 }
 
 
-OnlineUser* NmdcHub::findUser(dcpp::SID aSID) const noexcept {
-	auto i = ranges::find_if(users | views::values, [=](const OnlineUser* u) {
+OnlineUserPtr NmdcHub::findUser(dcpp::SID aSID) const noexcept {
+	auto i = ranges::find_if(users | views::values, [=](const OnlineUserPtr& u) {
 		return u->getIdentity().getSID() == aSID;
 	});
 
@@ -192,7 +191,7 @@ OnlineUser* NmdcHub::findUser(dcpp::SID aSID) const noexcept {
 }
 
 void NmdcHub::putUser(const string& aNick) noexcept {
-	OnlineUser* ou = nullptr;
+	OnlineUserPtr ou = nullptr;
 	{
 		WLock l(cs);
 		NickIter i = users.find(aNick);
@@ -205,7 +204,6 @@ void NmdcHub::putUser(const string& aNick) noexcept {
 	}
 
 	onUserDisconnected(ou, false);
-	ou->dec();
 }
 
 void NmdcHub::clearUsers() noexcept {
@@ -219,7 +217,6 @@ void NmdcHub::clearUsers() noexcept {
 
 	for(auto ou: u2 | views::values) {
 		ClientManager::getInstance()->putOffline(ou);
-		ou->dec();
 	}
 }
 
@@ -317,7 +314,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		chatMessage->setThirdPerson(thirdPerson);
 
 		if(!chatMessage->getFrom()) {
-			OnlineUserPtr o = &getUser(nick);
+			auto o = getUser(nick);
 			// Assume that messages from unknown users come from the hub
 			o->getIdentity().setHub(true);
 			o->getIdentity().setHidden(true);
@@ -430,12 +427,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		i = j + 1;
 
-		OnlineUser& u = getUser(nick);
+		auto u = getUser(nick);
 
 		// If he is already considered to be the hub (thus hidden), probably should appear in the UserList
-		if(u.getIdentity().isHidden()) {
-			u.getIdentity().setHidden(false);
-			u.getIdentity().setHub(false);
+		if(u->getIdentity().isHidden()) {
+			u->getIdentity().setHidden(false);
+			u->getIdentity().setHub(false);
 		}
 
 		j = param.find('$', i);
@@ -448,11 +445,11 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			x = tmpDesc.rfind('<');
 			if(x != string::npos) {
 				// Hm, we have something...disassemble it...
-				updateFromTag(u.getIdentity(), tmpDesc.substr(x + 1, tmpDesc.length() - x - 2));
+				updateFromTag(u->getIdentity(), tmpDesc.substr(x + 1, tmpDesc.length() - x - 2));
 				tmpDesc.erase(x);
 			}
 		}
-		u.getIdentity().setDescription(tmpDesc);
+		u->getIdentity().setDescription(tmpDesc);
 
 		i = j + 3;
 		j = param.find('$', i);
@@ -464,34 +461,34 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if (connection.empty()) { 	 
 			// No connection = bot... 	 VERY unreliable but... 
 			//Users cant understand why it sends away messages to bots/opchats so...
-			u.getUser()->setFlag(User::BOT); 	 
-			u.getIdentity().setBot(true); 	 
+			u->getUser()->setFlag(User::BOT);
+			u->getIdentity().setBot(true);
 		} else { 	 
-			u.getUser()->unsetFlag(User::BOT); 	 
-			u.getIdentity().setBot(false); 	 
+			u->getUser()->unsetFlag(User::BOT);
+			u->getIdentity().setBot(false);
 		}
 
-		u.getIdentity().setHub(false);
-		u.getIdentity().setHidden(false);
+		u->getIdentity().setHub(false);
+		u->getIdentity().setHidden(false);
 
-		u.getIdentity().setNmdcConnection(connection);
-		u.getIdentity().setStatus(Util::toString(param[j-1]));
+		u->getIdentity().setNmdcConnection(connection);
+		u->getIdentity().setStatus(Util::toString(param[j-1]));
 		
 		
-		if(u.getIdentity().getStatus() & Identity::TLS) {
-			u.getUser()->setFlag(User::TLS);
+		if(u->getIdentity().getStatus() & Identity::TLS) {
+			u->getUser()->setFlag(User::TLS);
 		} else {
-			u.getUser()->unsetFlag(User::TLS);
+			u->getUser()->unsetFlag(User::TLS);
 		}
 
 		//if((u.getIdentity().getStatus() & Identity::AIRDC) && !u.getUser()->isSet(User::AIRDCPLUSPLUS))
 		//	u.getUser()->setFlag(User::AIRDCPLUSPLUS); //if we have a tag its already set.
 
 
-		if(u.getIdentity().getStatus() & Identity::NAT) {
-			u.getUser()->setFlag(User::NAT_TRAVERSAL);
+		if(u->getIdentity().getStatus() & Identity::NAT) {
+			u->getUser()->setFlag(User::NAT_TRAVERSAL);
 		} else {
-			u.getUser()->unsetFlag(User::NAT_TRAVERSAL);
+			u->getUser()->unsetFlag(User::NAT_TRAVERSAL);
 		}
 
 		i = j + 1;
@@ -500,22 +497,22 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 		if(j == string::npos)
 			return;
 
-		u.getIdentity().setEmail(unescape(param.substr(i, j-i)));
+		u->getIdentity().setEmail(unescape(param.substr(i, j-i)));
 
 		i = j + 1;
 		j = param.find('$', i);
 		if(j == string::npos)
 			return;
 
-		availableBytes -= u.getIdentity().getBytesShared();
-		u.getIdentity().setBytesShared(param.substr(i, j-i));
-		availableBytes += u.getIdentity().getBytesShared();
+		availableBytes -= u->getIdentity().getBytesShared();
+		u->getIdentity().setBytesShared(param.substr(i, j-i));
+		availableBytes += u->getIdentity().getBytesShared();
 
-		if(u.getUser() == getMyIdentity().getUser()) {
-			setMyIdentity(u.getIdentity());
+		if(u->getUser() == getMyIdentity().getUser()) {
+			setMyIdentity(u->getIdentity());
 		}
 		
-		fire(ClientListener::UserUpdated(), this, &u);
+		fire(ClientListener::UserUpdated(), this, u);
 	} else if(cmd == "Quit") {
 		if(!param.empty()) {
 			const string& nick = param;
@@ -740,22 +737,22 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			}
 
 			key(CryptoManager::getInstance()->makeKey(lock));
-			OnlineUser& ou = getUser(get(Nick));
+			auto& ou = *getUser(get(Nick));
 			validateNick(ou.getIdentity().getNick());
 		}
 	} else if(cmd == "Hello") {
 		if(!param.empty()) {
-			OnlineUser& u = getUser(param);
+			auto u = getUser(param);
 
-			if(u.getUser() == getMyIdentity().getUser()) {
+			if(u->getUser() == getMyIdentity().getUser()) {
 				// u.getUser()->setFlag(User::AIRDCPLUSPLUS);
 				if(isActive())
-					u.getUser()->unsetFlag(User::PASSIVE);
+					u->getUser()->unsetFlag(User::PASSIVE);
 				else
-					u.getUser()->setFlag(User::PASSIVE);
+					u->getUser()->setFlag(User::PASSIVE);
 			}
 
-			if((getConnectState() == STATE_IDENTIFY || getConnectState() == STATE_VERIFY) && u.getUser() == getMyIdentity().getUser()) {
+			if((getConnectState() == STATE_IDENTIFY || getConnectState() == STATE_VERIFY) && u->getUser() == getMyIdentity().getUser()) {
 				setConnectState(STATE_NORMAL);
 				updateCounts(false);
 				fire(ClientListener::HubUpdated(), this);
@@ -765,7 +762,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				myInfo(true);
 			}
 
-			fire(ClientListener::UserUpdated(), this, &u);
+			fire(ClientListener::UserUpdated(), this, u);
 		}
 	} else if(cmd == "ForceMove") {
 		disconnect(false);
@@ -808,7 +805,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			StringList& sl = t.getTokens();
 
 			for(const auto& it: sl) {
-				v.push_back(&getUser(it));
+				v.push_back(getUser(it));
 			}
 
 			if(!(supportFlags & SUPPORTS_NOGETINFO)) {
@@ -816,9 +813,9 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 				// Let's assume 10 characters per nick...
 				tmp.reserve(v.size() * (11 + 10 + getMyNick().length())); 
 				string n = ' ' + fromUtf8(getMyNick()) + '|';
-				for(OnlineUserList::const_iterator i = v.begin(); i != v.end(); ++i) {
+				for(const auto& i: v) {
 					tmp += "$GetINFO ";
-					tmp += fromUtf8((*i)->getIdentity().getNick());
+					tmp += fromUtf8(i->getIdentity().getNick());
 					tmp += n;
 				}
 				if(!tmp.empty()) {
@@ -834,12 +831,12 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			StringTokenizer<string> t(param, "$$");
 			StringList& sl = t.getTokens();
 			for(const auto& it: sl) {
-				OnlineUser& ou = getUser(it);
-				ou.getIdentity().setOp(true);
-				if(ou.getUser() == getMyIdentity().getUser()) {
-					setMyIdentity(ou.getIdentity());
+				auto ou = getUser(it);
+				ou->getIdentity().setOp(true);
+				if(ou->getUser() == getMyIdentity().getUser()) {
+					setMyIdentity(ou->getIdentity());
 				}
-				v.push_back(&ou);
+				v.push_back(ou);
 			}
 
 			updateCounts(false);
@@ -882,20 +879,20 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 			text = text.substr(4);
 		}
 
-		auto message = std::make_shared<ChatMessage>(text, findUser(fromNick), &getUser(getMyNick()), findUser(rtNick));
+		auto message = std::make_shared<ChatMessage>(text, findUser(fromNick), getUser(getMyNick()), findUser(rtNick));
 		message->setThirdPerson(thirdPerson);
 
 		if(!message->getReplyTo() || !message->getFrom()) {
 			if(!message->getReplyTo()) {
 				// Assume it's from the hub
-				OnlineUser* replyTo = &getUser(rtNick);
+				auto replyTo = getUser(rtNick);
 				replyTo->getIdentity().setHub(true);
 				replyTo->getIdentity().setHidden(true);
 				fire(ClientListener::UserUpdated(), this, replyTo);
 			}
 			if(!message->getFrom()) {
 				// Assume it's from the hub
-				OnlineUser* from = &getUser(fromNick);
+				auto from = getUser(fromNick);
 				from->getIdentity().setHub(true);
 				from->getIdentity().setHidden(true);
 				fire(ClientListener::UserUpdated(), this, from);
@@ -908,7 +905,7 @@ void NmdcHub::onLine(const string& aLine) noexcept {
 
 		onPrivateMessage(message);
 	} else if(cmd == "GetPass") {
-		OnlineUser& ou = getUser(getMyNick());
+		auto& ou = *getUser(getMyNick());
 		ou.getIdentity().set("RG", "1");
 		setMyIdentity(ou.getIdentity());
 		onPassword();

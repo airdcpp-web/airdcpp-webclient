@@ -30,7 +30,6 @@
 #include <airdcpp/core/thread/CriticalSection.h>
 #include <airdcpp/core/Singleton.h>
 #include <airdcpp/core/Speaker.h>
-#include <airdcpp/core/classes/Pointer.h>
 
 #include <airdcpp/core/queue/DispatcherQueue.h>
 #include <airdcpp/connection/http/HttpDownload.h>

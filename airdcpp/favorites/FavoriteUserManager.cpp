@@ -224,9 +224,7 @@ bool FavoriteUserManager::hasSlot(const UserPtr& aUser) const noexcept {
 	{
 		RLock l(cs);
 		auto i = users.find(aUser->getCID());
-		if (i == users.end())
-			return false;
-		if (i->second.isSet(FavoriteUser::FLAG_GRANTSLOT)) {
+		if (i != users.end() && i->second.isSet(FavoriteUser::FLAG_GRANTSLOT)) {
 			return true;
 		}
 	}

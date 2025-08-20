@@ -366,7 +366,7 @@ void SearchManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 	}
 }
 
-void SearchManager::respond(const AdcCommand& adc, Client* aClient, OnlineUser* aUser, bool aIsUdpActive, ProfileToken aProfile) noexcept {
+void SearchManager::respond(const AdcCommand& adc, Client* aClient, const OnlineUserPtr& aUser, bool aIsUdpActive, ProfileToken aProfile) noexcept {
 	auto isDirect = adc.getType() == 'D';
 
 	string path = ADC_ROOT_STR;

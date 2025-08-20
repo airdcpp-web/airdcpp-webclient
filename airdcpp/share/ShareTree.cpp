@@ -464,7 +464,7 @@ ShareRoot::Ptr ShareTree::updateShareRoot(const ShareDirectoryInfoPtr& aDirector
 }
 
 bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirtyProfiles) {
-	ShareDirectory::Ptr parent = nullptr;
+	ShareDirectory* parent = nullptr;
 
 	WLock l(cs);
 
@@ -491,9 +491,11 @@ bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirt
 
 		if (!parent) {
 			// Create new parent
-			parent = ensureDirectoryUnsafe(PathUtil::getParentDir(ri.path));
+			auto newParent = ensureDirectoryUnsafe(PathUtil::getParentDir(ri.path));
 			if (!parent) {
 				return false;
+			} else {
+				parent = newParent.get();
 			}
 		}
 
@@ -844,7 +846,7 @@ ShareDirectory::Ptr ShareTree::ensureDirectoryUnsafe(const string& aRealPath) no
 	// Tokens should have been validated earlier
 	for (const auto& curName: tokens) {
 		curDir->updateModifyDate();
-		curDir = ShareDirectory::createNormal(DualString(curName), curDir, File::getLastModified(curDir->getRealPathUnsafe()), *this);
+		curDir = ShareDirectory::createNormal(DualString(curName), curDir.get(), File::getLastModified(curDir->getRealPathUnsafe()), *this);
 	}
 
 	return curDir;

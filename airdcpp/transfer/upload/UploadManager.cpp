@@ -219,7 +219,9 @@ OptionalTransferSlot UploadManager::parseAutoGrantHookedThrow(const UserConnecti
 	auto max = ranges::max_element(
 		normalizedData,
 		[](const auto& a, const auto& b) {
-			return compare(TransferSlot::toType(a), TransferSlot::toType(b));
+			auto typeA = TransferSlot::toType(a);
+			auto typeB = TransferSlot::toType(b);
+			return typeA < typeB;
 		}
 	);
 	return *max;

@@ -58,7 +58,7 @@ find_package (OpenSSL REQUIRED)
 find_package (miniupnpc REQUIRED)
 find_package (leveldb REQUIRED)
 find_package (maxminddb REQUIRED)
-find_package (Boost 1.67.0 COMPONENTS regex system thread REQUIRED)
+find_package (Boost 1.67.0 COMPONENTS regex thread REQUIRED)
 
 if (NOT BUILD_SHARED_LIBS)
   # Shared LevelDB libraries are linked against Snappy already
@@ -211,7 +211,6 @@ target_link_libraries (${PROJECT_NAME}
 	maxminddb::maxminddb
 	
 	Boost::thread
-	Boost::system
 	Boost::regex
 
 	${airdcpp_extra_libs} 

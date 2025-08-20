@@ -73,7 +73,7 @@ AutoSearchPtr AutoSearchManager::addAutoSearch(const string& ss, const string& a
 
 	time_t expireTime = aExpriredays > 0 ? GET_TIME() + aExpriredays * 24 * 60 * 60 : 0;
 	
-	AutoSearchPtr as = new AutoSearch(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, 
+	AutoSearchPtr as = std::make_shared<AutoSearch>(true, ss, isDirectory ? SEARCH_TYPE_DIRECTORY : SEARCH_TYPE_FILE, AutoSearch::ACTION_DOWNLOAD, aRemove, aTarget, 
 		StringMatch::PARTIAL, Util::emptyString, Util::emptyString, expireTime, false, false, false, Util::emptyString, asType, false);
 
 	addAutoSearch(as, aSearch);
@@ -402,7 +402,7 @@ bool AutoSearchManager::addFailedBundle(const BundlePtr& aBundle) noexcept {
 
 
 	//7 days expiry
-	auto as = new AutoSearch(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, PathUtil::getParentDir(aBundle->getTarget()), 
+	auto as = std::make_shared<AutoSearch>(true, aBundle->getName(), SEARCH_TYPE_DIRECTORY, AutoSearch::ACTION_DOWNLOAD, true, PathUtil::getParentDir(aBundle->getTarget()), 
 		StringMatch::EXACT, Util::emptyString, Util::emptyString, GET_TIME() + 7*24*60*60, false, false, false, Util::emptyString, AutoSearch::FAILED_BUNDLE, false);
 
 	as->setGroup(SETTING(AS_FAILED_DEFAULT_GROUP));
@@ -999,7 +999,7 @@ void AutoSearchManager::loadAutoSearch(SimpleXML& aXml) {
 }
 
 AutoSearchPtr AutoSearchManager::loadItemFromXml(SimpleXML& aXml) {
-	auto as = new AutoSearch(aXml.getBoolChildAttrib("Enabled"),
+	auto as = std::make_shared<AutoSearch>(aXml.getBoolChildAttrib("Enabled"),
 		aXml.getChildAttrib("SearchString"),
 		aXml.getChildAttrib("FileType"),
 		(AutoSearch::ActionType)aXml.getIntChildAttrib("Action"),

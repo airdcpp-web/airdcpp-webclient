@@ -75,7 +75,7 @@ private:
 		SUPPORTS_USERIP2		= 0x04
 	};
 
-	using NickMap = unordered_map<string, OnlineUser *, noCaseStringHash, noCaseStringEq>;
+	using NickMap = unordered_map<string, OnlineUserPtr, noCaseStringHash, noCaseStringEq>;
 	using NickIter = NickMap::const_iterator;
 
 	NickMap users;
@@ -89,9 +89,9 @@ private:
 	void clearUsers() noexcept override;
 	void onLine(const string& aLine) noexcept;
 
-	OnlineUser& getUser(const string& aNick) noexcept;
+	OnlineUserPtr getUser(const string& aNick) noexcept;
 	OnlineUserPtr findUser(const string& aNick) const noexcept override;
-	OnlineUser* findUser(dcpp::SID aSID) const noexcept override;
+	OnlineUserPtr findUser(dcpp::SID aSID) const noexcept override;
 	void putUser(const string& aNick) noexcept;
 	
 	// don't convert to UTF-8 if string is already in this encoding

@@ -92,10 +92,10 @@ size_t AdcHub::getUserCount() const noexcept {
 	return userCount;
 }
 
-OnlineUser& AdcHub::getUser(dcpp::SID aSID, const CID& aCID) noexcept {
+OnlineUserPtr AdcHub::getUser(dcpp::SID aSID, const CID& aCID) noexcept {
 	auto ou = findUser(aSID);
-	if(ou) {
-		return *ou;
+	if (ou) {
+		return ou;
 	}
 
 	auto user = ClientManager::getInstance()->getUser(aCID);
@@ -103,20 +103,19 @@ OnlineUser& AdcHub::getUser(dcpp::SID aSID, const CID& aCID) noexcept {
 
 	{
 		WLock l(cs);
-		ou = users.emplace(aSID, new OnlineUser(user, client, aSID)).first->second;
-		ou->inc();
+		ou = users.emplace(aSID, std::make_shared<OnlineUser>(user, client, aSID)).first->second;
 	}
 
-	return *ou;
+	return ou;
 }
 
-OnlineUser* AdcHub::findUser(dcpp::SID aSID) const noexcept {
+OnlineUserPtr AdcHub::findUser(dcpp::SID aSID) const noexcept {
 	RLock l(cs);
 	auto i = users.find(aSID);
 	return i == users.end() ? nullptr : i->second;
 }
 
-OnlineUser* AdcHub::findUser(const CID& aCID) const noexcept {
+OnlineUserPtr AdcHub::findUser(const CID& aCID) const noexcept {
 	RLock l(cs);
 	for(const auto& ou: users | views::values) {
 		if(ou->getUser()->getCID() == aCID) {
@@ -138,7 +137,7 @@ void AdcHub::getUserList(OnlineUserList& list, bool aListHidden) const noexcept 
 }
 
 void AdcHub::putUser(dcpp::SID aSID, bool aDisconnectTransfers) noexcept {
-	OnlineUser* ou = nullptr;
+	OnlineUserPtr ou = nullptr;
 	{
 		WLock l(cs);
 		auto i = users.find(aSID);
@@ -152,7 +151,6 @@ void AdcHub::putUser(dcpp::SID aSID, bool aDisconnectTransfers) noexcept {
 	}
 
 	onUserDisconnected(ou, aDisconnectTransfers);
-	ou->dec();
 }
 
 void AdcHub::clearUsers() noexcept {
@@ -166,13 +164,12 @@ void AdcHub::clearUsers() noexcept {
 	for (const auto& [sid, user] : tmp) {
 		if(sid != AdcCommand::HUB_SID)
 			ClientManager::getInstance()->putOffline(user, false);
-		user->dec();
 	}
 }
 
-pair<OnlineUser*, bool> AdcHub::parseInfUser(const AdcCommand& c) noexcept {
+pair<OnlineUserPtr, bool> AdcHub::parseInfUser(const AdcCommand& c) noexcept {
 	string cid;
-	OnlineUser* u = nullptr;
+	OnlineUserPtr u = nullptr;
 	bool newUser = false;
 	if (c.getParam("ID", 0, cid)) {
 		u = findUser(CID(cid));
@@ -190,11 +187,11 @@ pair<OnlineUser*, bool> AdcHub::parseInfUser(const AdcCommand& c) noexcept {
 				return { nullptr, false };
 			}
 		} else {
-			u = &getUser(c.getFrom(), CID(cid));
+			u = getUser(c.getFrom(), CID(cid));
 			newUser = true;
 		}
 	} else if (c.getFrom() == AdcCommand::HUB_SID) {
-		u = &getUser(c.getFrom(), CID());
+		u = getUser(c.getFrom(), CID());
 	} else {
 		u = findUser(c.getFrom());
 	}
@@ -202,7 +199,7 @@ pair<OnlineUser*, bool> AdcHub::parseInfUser(const AdcCommand& c) noexcept {
 	return { u, newUser };
 }
 
-void AdcHub::updateInfUserProperties(OnlineUser* u, const StringList& aParams) noexcept {
+void AdcHub::updateInfUserProperties(const OnlineUserPtr& u, const StringList& aParams) noexcept {
 	for (const auto& p: aParams) {
 		if(p.length() < 2)
 			continue;
@@ -245,7 +242,7 @@ void AdcHub::recalculateConnectModes() noexcept {
 
 	{
 		RLock l(cs);
-		ranges::copy_if(users | views::values, back_inserter(ouList), [this](OnlineUser* ou) {
+		ranges::copy_if(users | views::values, back_inserter(ouList), [this](const OnlineUserPtr& ou) {
 			return ou->getIdentity().getTcpConnectMode() != Identity::MODE_ME && ou->getIdentity().updateAdcConnectModes(getMyIdentity(), this);
 		});
 	}
@@ -391,13 +388,12 @@ void AdcHub::handle(AdcCommand::GPA, AdcCommand& c) noexcept {
 void AdcHub::handle(AdcCommand::QUI, AdcCommand& c) noexcept {
 	auto s = AdcCommand::toSID(c.getParam(0));
 
-	OnlineUser* victim = findUser(s);
-	if(victim) {
-
+	auto victim = findUser(s);
+	if (victim) {
 		string tmp;
 		if(c.getParam("MS", 1, tmp)) {
-			OnlineUser* source = 0;
-			if(string tmp2; c.getParam("ID", 1, tmp2)) {
+			OnlineUserPtr source;
+			if (string tmp2; c.getParam("ID", 1, tmp2)) {
 				source = findUser(AdcCommand::toSID(tmp2));
 			}
 		
@@ -485,12 +481,12 @@ void AdcHub::handle(AdcCommand::ZOF, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::RCM, AdcCommand& c) noexcept {
-	if(c.getParameters().size() < 2) {
+	if (c.getParameters().size() < 2) {
 		return;
 	}
 
-	OnlineUser* u = findUser(c.getFrom());
-	if(!u || u->getUser() == ClientManager::getInstance()->getMe())
+	auto u = findUser(c.getFrom());
+	if (!u || u->getUser() == ClientManager::getInstance()->getMe())
 		return;
 
 	ASSERT_DIRECT_TO_ME(c)
@@ -548,8 +544,8 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 	if(c.getParameters().size() < 2)
 		return;
 
-	OnlineUser* u = c.getFrom() == AdcCommand::HUB_SID ? &getUser(c.getFrom(), CID()) : findUser(c.getFrom());
-	if(!u)
+	auto u = c.getFrom() == AdcCommand::HUB_SID ? getUser(c.getFrom(), CID()) : findUser(c.getFrom());
+	if (!u)
 		return;
 
 	int severity = Util::toInt(c.getParam(0).substr(0, 1));
@@ -580,7 +576,7 @@ void AdcHub::handle(AdcCommand::STA, AdcCommand& c) noexcept {
 	}
 }
 
-void AdcHub::onErrorMessage(const AdcCommand& c, OnlineUser* aSender) noexcept {
+void AdcHub::onErrorMessage(const AdcCommand& c, const OnlineUserPtr& aSender) noexcept {
 	switch(Util::toInt(c.getParam(0).substr(1))) {
 
 	case AdcCommand::ERROR_BAD_PASSWORD:
@@ -673,8 +669,8 @@ void AdcHub::handle(AdcCommand::SCH, AdcCommand& c) noexcept {
 }
 
 void AdcHub::handle(AdcCommand::RES, AdcCommand& c) noexcept {
-	OnlineUser* ou = findUser(c.getFrom());
-	if(!ou) {
+	auto ou = findUser(c.getFrom());
+	if (!ou) {
 		dcdebug("Invalid user in AdcHub::onRES\n");
 		return;
 	}
@@ -861,7 +857,7 @@ int AdcHub::connect(const OnlineUser& user, const string& token, string& lastErr
 }
 
 
-bool AdcHub::validateConnectUser(const OnlineUser* aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken, const string& aRemotePort) noexcept {
+bool AdcHub::validateConnectUser(const OnlineUserPtr& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken, const string& aRemotePort) noexcept {
 	if (!aUser || aUser->getUser() == ClientManager::getInstance()->getMe())
 		return false;
 

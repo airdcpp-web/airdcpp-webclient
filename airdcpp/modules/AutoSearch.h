@@ -25,7 +25,6 @@
 
 #include <airdcpp/core/types/GetSet.h>
 #include <airdcpp/core/types/Priority.h>
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/util/text/StringMatch.h>
 #include <airdcpp/util/Util.h>
 
@@ -35,7 +34,7 @@
 namespace dcpp {
 
 class AutoSearch;
-typedef boost::intrusive_ptr<AutoSearch> AutoSearchPtr;
+typedef std::shared_ptr<AutoSearch> AutoSearchPtr;
 typedef std::vector<AutoSearchPtr> AutoSearchList;
 typedef std::unordered_map<int, AutoSearchPtr> AutoSearchMap;
 
@@ -74,7 +73,7 @@ struct SearchTime {
 	}
 };
 
-class AutoSearch : public intrusive_ptr_base<AutoSearch>, public StringMatch {
+class AutoSearch : public StringMatch {
 
 public:
 	enum ActionType {

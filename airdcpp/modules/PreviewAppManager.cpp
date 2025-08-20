@@ -20,7 +20,6 @@
 
 #include "PreviewAppManager.h"
 
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/core/io/xml/SimpleXML.h>
 
@@ -33,7 +32,7 @@ PreviewAppManager::PreviewAppManager() {
 
 PreviewAppManager::~PreviewAppManager() {
 	SettingsManager::getInstance()->removeListener(this);
-	ranges::for_each(previewApplications, DeleteFunction());
+	ranges::for_each(previewApplications, std::default_delete<PreviewApplication>());
 }
 
 void PreviewAppManager::loadPreview(SimpleXML& aXml) {
