@@ -143,7 +143,7 @@ namespace webserver {
 	api_return FavoriteHubApi::handleAddHub(ApiRequest& aRequest) {
 		const auto& reqJson = aRequest.getRequestBody();
 
-		FavoriteHubEntryPtr e = new FavoriteHubEntry();
+		auto e = std::make_shared<FavoriteHubEntry>();
 		updateProperties(e, reqJson, true);
 
 		FavoriteManager::getInstance()->addFavoriteHub(e);
