@@ -930,6 +930,8 @@ void ConnectionManager::on(UserConnectionListener::Direction, UserConnection* aS
 
 
 void ConnectionManager::addPMConnection(UserConnection* uc) noexcept {
+	dcassert(uc->isSet(UserConnection::FLAG_PM));
+
 	{
 		WLock l(cs);
 		auto& container = cqis[CONNECTION_TYPE_PM];
@@ -1140,10 +1142,10 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 				fail(AdcCommand::ERROR_GENERIC, "Duplicate token");
 				return;
 			}
-		} else {
-			dcassert(tokens.hasToken(token));
 
 			aSource->setFlag(UserConnection::FLAG_PM);
+		} else {
+			dcassert(tokens.hasToken(token));
 		}
 
 		addPMConnection(aSource);
@@ -1277,7 +1279,11 @@ ConnectionType toConnectionType(const UserConnection* aSource) {
 		return CONNECTION_TYPE_DOWNLOAD;
 	}
 
-	return aSource->isSet(UserConnection::FLAG_PM) ? CONNECTION_TYPE_PM : CONNECTION_TYPE_LAST;
+	if (aSource->isSet(UserConnection::FLAG_PM)) {
+		return CONNECTION_TYPE_PM;
+	}
+
+	return CONNECTION_TYPE_LAST;
 }
 
 void ConnectionManager::putCQI(UserConnection* aSource) noexcept {
