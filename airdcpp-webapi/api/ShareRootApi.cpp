@@ -63,13 +63,13 @@ namespace webserver {
 	api_return ShareRootApi::handleGetRoot(ApiRequest& aRequest) {
 		auto info = getRoot(aRequest);
 		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareRootApi::handleGetRoots(ApiRequest& aRequest) {
 		auto j = Serializer::serializeItemList(ShareUtils::propertyHandler, ShareManager::getInstance()->getRootInfos());
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareRootApi::handleAddRoot(ApiRequest& aRequest) {
@@ -91,7 +91,7 @@ namespace webserver {
 		ShareManager::getInstance()->addRootDirectory(info);
 
 		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareRootApi::handleUpdateRoot(ApiRequest& aRequest) {
@@ -101,13 +101,13 @@ namespace webserver {
 		ShareManager::getInstance()->updateRootDirectory(info);
 
 		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareRootApi::handleRemoveRoot(ApiRequest& aRequest) {
 		auto info = getRoot(aRequest);
 		ShareManager::getInstance()->removeRootDirectory(info->path);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void ShareRootApi::on(ShareManagerListener::RootCreated, const string& aPath) noexcept {
@@ -188,7 +188,7 @@ namespace webserver {
 		RLock l(cs);
 		auto i = ranges::find_if(roots, ShareDirectoryInfo::IdCompare(rootId));
 		if (i == roots.end()) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Root " + rootId.toBase32() + " not found");
+			throw RequestException(http_status::not_found, "Root " + rootId.toBase32() + " not found");
 		}
 
 		return *i;

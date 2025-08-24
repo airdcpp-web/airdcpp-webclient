@@ -57,7 +57,7 @@ namespace webserver {
 		api_return handleSubscribeHook(ApiRequest& aRequest) {
 			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 			if (BaseType::hasEntitySubscribers(subscription)) {
-				throw RequestException(websocketpp::http::status_code::conflict, "Global hook subscription can't be added while ID-specific subscriptions are active");
+				throw RequestException(http_status::conflict, "Global hook subscription can't be added while ID-specific subscriptions are active");
 			}
 
 			return HookApiModule::handleSubscribeHook(aRequest);
@@ -74,11 +74,11 @@ namespace webserver {
 			auto entityId = BaseType::parseEntityIdParam(aRequest);
 
 			if (!BaseType::filterableSubscriptionExists(apiHook.getHookId())) {
-				throw RequestException(websocketpp::http::status_code::not_found, "No such filterable hook: " + apiHook.getHookId());
+				throw RequestException(http_status::not_found, "No such filterable hook: " + apiHook.getHookId());
 			}
 
 			if (BaseType::subscriptionActive(apiHook.getHookId())) {
-				throw RequestException(websocketpp::http::status_code::conflict, "ID-specific subscription can't be added while the hook is globally active");
+				throw RequestException(http_status::conflict, "ID-specific subscription can't be added while the hook is globally active");
 			}
 
 			if (!BaseType::hasEntitySubscribers(apiHook.getHookId())) {
@@ -89,7 +89,7 @@ namespace webserver {
 			}
 
 			BaseType::subscribeEntity(apiHook.getHookId(), entityId);
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		api_return handleRemoveHookEntity(ApiRequest& aRequest) {
@@ -105,7 +105,7 @@ namespace webserver {
 				dcdebug("Subscriber %s: hook %s has other subscribers, not disabling\n", subscriberId.c_str(), apiHook.getHookId().c_str());
 			}
 
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		HookCompletionDataPtr maybeFireHook(const string& aSubscription, const IdType& aId, int aTimeoutSeconds, const BaseType::JsonCallback& aJsonCallback) {

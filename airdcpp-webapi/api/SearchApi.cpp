@@ -201,20 +201,20 @@ namespace webserver {
 		);
 
 		aRequest.setResponseBody(serializeSearchInstance(instance));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SearchApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto instance = getSubModule(aRequest);
 		SearchManager::getInstance()->removeSearchInstance(instance->getSearch()->getToken());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return SearchApi::handleGetTypes(ApiRequest& aRequest) const {
 		const auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		auto types = typeManager.getSearchTypes();
 		aRequest.setResponseBody(Serializer::serializeList(types, serializeSearchType));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SearchApi::handleGetType(ApiRequest& aRequest) const {
@@ -223,7 +223,7 @@ namespace webserver {
 		const auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		auto type = typeManager.getSearchType(id);
 		aRequest.setResponseBody(serializeSearchType(type));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SearchApi::handlePostType(ApiRequest& aRequest) const {
@@ -236,7 +236,7 @@ namespace webserver {
 		auto type = typeManager.addSearchType(name, extensions);
 		aRequest.setResponseBody(serializeSearchType(type));
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SearchApi::handleUpdateType(ApiRequest& aRequest) const {
@@ -250,14 +250,14 @@ namespace webserver {
 		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		auto type = typeManager.modSearchType(id, name, extensions);
 		aRequest.setResponseBody(serializeSearchType(type));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SearchApi::handleRemoveType(ApiRequest& aRequest) const {
 		auto id = parseSearchTypeId(aRequest);
 		auto& typeManager = SearchManager::getInstance()->getSearchTypes();
 		typeManager.delSearchType(id);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void SearchApi::on(SearchManagerListener::SearchTypesChanged) noexcept {

@@ -88,7 +88,7 @@ namespace webserver {
 			}
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return FilelistInfo::handleGetItems(ApiRequest& aRequest) {
@@ -103,17 +103,17 @@ namespace webserver {
 			});
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	DirectoryListing::DirectoryPtr FilelistInfo::ensureCurrentDirectoryLoaded() const {
 		auto curDir = dl->getCurrentLocationInfo().directory;
 		if (!curDir) {
-			throw RequestException(websocketpp::http::status_code::service_unavailable, "Filelist has not finished loading yet");
+			throw RequestException(http_status::service_unavailable, "Filelist has not finished loading yet");
 		}
 
 		if (!curDir->isComplete()) {
-			throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPathUnsafe() + " is not yet available");
+			throw RequestException(http_status::service_unavailable, "Content of directory " + curDir->getAdcPathUnsafe() + " is not yet available");
 		}
 
 		if (!currentViewItemsInitialized) {
@@ -129,7 +129,7 @@ namespace webserver {
 			}
 
 			if (!currentViewItemsInitialized) {
-				throw RequestException(websocketpp::http::status_code::service_unavailable, "Content of directory " + curDir->getAdcPathUnsafe() + " has not finished loading yet");
+				throw RequestException(http_status::service_unavailable, "Content of directory " + curDir->getAdcPathUnsafe() + " has not finished loading yet");
 			}
 		}
 
@@ -165,11 +165,11 @@ namespace webserver {
 
 		if (!item) {
 			aRequest.setResponseErrorStr("Item " + Util::toString(itemId) + " was not found");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
 		aRequest.setResponseBody(Serializer::serializeItem(item, FilelistUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FilelistInfo::handleChangeDirectory(ApiRequest& aRequest) {
@@ -179,12 +179,12 @@ namespace webserver {
 		auto reload = JsonUtil::getOptionalFieldDefault<bool>("reload", j, false);
 
 		dl->addDirectoryChangeTask(listPath, reload ? DirectoryListing::DirectoryLoadType::CHANGE_RELOAD : DirectoryListing::DirectoryLoadType::CHANGE_NORMAL);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return FilelistInfo::handleSetRead(ApiRequest&) {
 		dl->setRead();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	FilelistItemInfo::List FilelistInfo::getCurrentViewItems() {

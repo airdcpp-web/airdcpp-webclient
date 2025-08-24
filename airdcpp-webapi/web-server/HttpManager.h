@@ -68,7 +68,7 @@ namespace webserver {
 					session_ = wsm->getUserManager().parseHttpSession(authToken, aIp);
 				} catch (const std::exception& e) {
 					con->set_body(e.what());
-					con->set_status(websocketpp::http::status_code::unauthorized);
+					con->set_status(http_status::unauthorized);
 					return false;
 				}
 			}
@@ -77,11 +77,11 @@ namespace webserver {
 		}
 
 		template <typename ConnType>
-		bool setHttpResponse(const ConnType& con, websocketpp::http::status_code::value aStatus, const string& aOutput) {
+		bool setHttpResponse(const ConnType& con, http_status aStatus, const string& aOutput) {
 			// The maximum HTTP response body is currently capped to 32 MB
 			// https://github.com/zaphoyd/websocketpp/issues/1009
 			if (aOutput.length() > MAX_HTTP_BODY_SIZE) {
-				con->set_status(websocketpp::http::status_code::internal_server_error);
+				con->set_status(http_status::internal_server_error);
 				con->set_body("The response size is larger than " + Util::toString(MAX_HTTP_BODY_SIZE) + " bytes");
 				return false;
 			}
@@ -91,7 +91,7 @@ namespace webserver {
 				con->set_body(aOutput);
 			} catch (const std::exception&) {
 				// Shouldn't really happen
-				con->set_status(websocketpp::http::status_code::internal_server_error);
+				con->set_status(http_status::internal_server_error);
 				con->set_body("Failed to set response body");
 				return false;
 			}
@@ -104,7 +104,7 @@ namespace webserver {
 			wsm->onData(aRequest.path + ": " + aRequest.httpRequest.get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, aRequest.ip);
 
 			// Don't capture aRequest in here (it can't be used for async actions)
-			auto responseF = [this, s, con, ip = aRequest.ip](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+			auto responseF = [this, s, con, ip = aRequest.ip](http_status aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
 				string data;
 				const auto& responseJson = !aResponseErrorJson.is_null() ? aResponseErrorJson : aResponseJsonData;
 				if (!responseJson.is_null()) {
@@ -114,7 +114,7 @@ namespace webserver {
 						WebServerManager::logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
 
 						con->set_body("Failed to convert data to JSON: " + string(e.what()));
-						con->set_status(websocketpp::http::status_code::internal_server_error);
+						con->set_status(http_status::internal_server_error);
 						return;
 					}
 				}
@@ -132,7 +132,7 @@ namespace webserver {
 				con->defer_http_response();
 				isDeferred = true;
 
-				return [con, cb = std::move(responseF)](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+				return [con, cb = std::move(responseF)](http_status aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
 					cb(aStatus, aResponseJsonData, aResponseErrorJson);
 					con->send_http_response();
 				};
@@ -159,7 +159,7 @@ namespace webserver {
 			std::string output;
 
 			// Don't capture aRequest in here (it can't be used for async actions)
-			auto responseF = [this, con, ip = aRequest.ip](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders = StringPairList()) {
+			auto responseF = [this, con, ip = aRequest.ip](http_status aStatus, const string& aOutput, const StringPairList& aHeaders = StringPairList()) {
 				wsm->onData(
 					con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(aStatus) + " (" + Util::formatBytes(aOutput.length()) + ")",
 					TransportType::TYPE_HTTP_FILE,
@@ -182,7 +182,7 @@ namespace webserver {
 				con->defer_http_response();
 				isDeferred = true;
 
-				return [cb = std::move(responseF), con](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders) {
+				return [cb = std::move(responseF), con](http_status aStatus, const string& aOutput, const StringPairList& aHeaders) {
 					cb(aStatus, aOutput, aHeaders);
 					con->send_http_response();
 				};

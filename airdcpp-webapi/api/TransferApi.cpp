@@ -78,14 +78,14 @@ namespace webserver {
 	api_return TransferApi::handleGetTransfers(ApiRequest& aRequest) {
 		auto j = Serializer::serializeItemList(TransferUtils::propertyHandler, getTransfers());
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return TransferApi::handleGetTransfer(ApiRequest& aRequest) {
 		auto item = getTransfer(aRequest);
 
 		aRequest.setResponseBody(Serializer::serializeItem(item, TransferUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return TransferApi::handleGetTransferredBytes(ApiRequest& aRequest) {
@@ -96,7 +96,7 @@ namespace webserver {
 			{ "start_total_uploaded", SETTING(TOTAL_UPLOAD) - Socket::getTotalUp() },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return TransferApi::handleForce(ApiRequest& aRequest) {
@@ -105,14 +105,14 @@ namespace webserver {
 			ConnectionManager::getInstance()->force(item->getStringToken());
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return TransferApi::handleDisconnect(ApiRequest& aRequest) {
 		auto item = getTransfer(aRequest);
 		ConnectionManager::getInstance()->disconnect(item->getStringToken());
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	TransferInfoPtr TransferApi::getTransfer(ApiRequest& aRequest) const {
@@ -120,7 +120,7 @@ namespace webserver {
 
 		auto t = TransferInfoManager::getInstance()->findTransfer(transferId);
 		if (!t) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Transfer " + Util::toString(transferId) + " was not found");
+			throw RequestException(http_status::not_found, "Transfer " + Util::toString(transferId) + " was not found");
 		}
 
 		return t;
@@ -128,7 +128,7 @@ namespace webserver {
 
 	api_return TransferApi::handleGetTransferStats(ApiRequest& aRequest) {
 		aRequest.setResponseBody(serializeTransferStats());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	json TransferApi::serializeTransferStats() const noexcept {

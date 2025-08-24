@@ -70,27 +70,27 @@ namespace webserver {
 			chat->setHubUrl(client->getHubUrl());
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return PrivateChatInfo::handleStartTyping(ApiRequest&) {
 		chat->setTypingState(true);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return PrivateChatInfo::handleEndTyping(ApiRequest&) {
 		chat->setTypingState(false);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return PrivateChatInfo::handleDisconnectCCPM(ApiRequest&) {
 		chat->closeCC(false, true);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return PrivateChatInfo::handleConnectCCPM(ApiRequest&) {
 		chat->startCC();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	string PrivateChatInfo::formatCCPMState(PrivateChat::CCPMState aState) noexcept {

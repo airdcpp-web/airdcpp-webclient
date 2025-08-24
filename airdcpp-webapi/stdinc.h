@@ -33,16 +33,19 @@
 
 
 namespace webserver {
+	using json = nlohmann::json;
+	using http_status = websocketpp::http::status_code::value;
+
 	// define types for two different server endpoints, one for each config we are
 	// using
-	typedef websocketpp::server<websocketpp::config::asio> server_plain;
-	typedef websocketpp::server<websocketpp::config::asio_tls> server_tls;
-	typedef websocketpp::http::status_code::value api_return;
+	using server_plain = websocketpp::server<websocketpp::config::asio>;
+	using server_tls = websocketpp::server<websocketpp::config::asio_tls>;
+	using api_return = http_status;
 
-	typedef std::function<void(api_return aStatus, const std::string& aOutput, const std::vector<std::pair<std::string, std::string>>& aHeaders)> HTTPFileCompletionF;
-	typedef std::function<void(api_return aStatus, const json& aResponseJsonData, const json& aResponseErrorJson)> ApiCompletionF;
-	typedef std::function<HTTPFileCompletionF()> FileDeferredHandler;
-	typedef std::function<ApiCompletionF()> ApiDeferredHandler;
+	using HTTPFileCompletionF = std::function<void(api_return aStatus, const std::string& aOutput, const std::vector<std::pair<std::string, std::string>>& aHeaders)>;
+	using ApiCompletionF = std::function<void(api_return aStatus, const json& aResponseJsonData, const json& aResponseErrorJson)>;
+	using FileDeferredHandler = std::function<HTTPFileCompletionF()> ;
+	using ApiDeferredHandler = std::function<ApiCompletionF()>;
 
 	using namespace dcpp;
 }

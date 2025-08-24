@@ -66,12 +66,12 @@ namespace webserver {
 
 	const string& SubscribableApiModule::parseSubscription(ApiRequest& aRequest) {
 		if (!socket) {
-			throw RequestException(websocketpp::http::status_code::precondition_required, "Socket required");
+			throw RequestException(http_status::precondition_required, "Socket required");
 		}
 
 		const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 		if (!subscriptionExists(subscription)) {
-			throw RequestException(websocketpp::http::status_code::not_found, "No such subscription: " + subscription);
+			throw RequestException(http_status::not_found, "No such subscription: " + subscription);
 		}
 
 		return subscription;
@@ -80,13 +80,13 @@ namespace webserver {
 	api_return SubscribableApiModule::handleSubscribe(ApiRequest& aRequest) {
 		const auto& subscription = parseSubscription(aRequest);
 		setSubscriptionState(subscription, true);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return SubscribableApiModule::handleUnsubscribe(ApiRequest& aRequest) {
 		const auto& subscription = parseSubscription(aRequest);
 		setSubscriptionState(subscription, false);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	bool SubscribableApiModule::send(const json& aJson) {

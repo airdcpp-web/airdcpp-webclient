@@ -58,14 +58,14 @@ namespace webserver {
 	api_return WebUserApi::handleGetUsers(ApiRequest& aRequest) {
 		auto j = Serializer::serializeItemList(WebUserUtils::propertyHandler, getUsers());
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	WebUserPtr WebUserApi::parseUserNameParam(ApiRequest& aRequest) {
 		const auto& userName = aRequest.getStringParam(USERNAME_PARAM);
 		auto user = um.getUser(userName);
 		if (!user) {
-			throw RequestException(websocketpp::http::status_code::not_found, "User " + userName + " was not found");
+			throw RequestException(http_status::not_found, "User " + userName + " was not found");
 		}
 
 		return user;
@@ -75,7 +75,7 @@ namespace webserver {
 		const auto& user = parseUserNameParam(aRequest);
 
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	bool WebUserApi::updateUserProperties(WebUserPtr& aUser, const json& j, bool aIsNew) {
@@ -117,7 +117,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return WebUserApi::handleUpdateUser(ApiRequest& aRequest) {
@@ -130,17 +130,17 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(Serializer::serializeItem(user, WebUserUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return WebUserApi::handleRemoveUser(ApiRequest& aRequest) {
 		const auto& userName = aRequest.getStringParam(USERNAME_PARAM);
 		if (!um.removeUser(userName)) {
 			aRequest.setResponseErrorStr("User " + userName + " was not found");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void WebUserApi::on(WebUserManagerListener::UserAdded, const WebUserPtr& aUser) noexcept {

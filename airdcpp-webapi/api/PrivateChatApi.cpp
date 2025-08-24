@@ -101,18 +101,18 @@ namespace webserver {
 		auto res = PrivateChatManager::getInstance()->addChat(user, false);
 		if (!res.second) {
 			aRequest.setResponseErrorStr("Chat session exists");
-			return websocketpp::http::status_code::conflict;
+			return http_status::conflict;
 		}
 
 		aRequest.setResponseBody(serializeChat(res.first));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return PrivateChatApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto chat = getSubModule(aRequest);
 
 		PrivateChatManager::getInstance()->removeChat(chat->getChat()->getUser());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return PrivateChatApi::handlePostMessage(ApiRequest& aRequest) {
@@ -126,9 +126,9 @@ namespace webserver {
 		] {
 			string error_;
 			if (!ClientManager::getInstance()->privateMessageHooked(user, OutgoingChatMessage(message.message, callerPtr, Util::emptyString, message.thirdPerson), error_, echo)) {
-				complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
+				complete(http_status::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error_));
 			} else {
-				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+				complete(http_status::no_content, nullptr, nullptr);
 			}
 		});
 

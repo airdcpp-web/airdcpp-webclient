@@ -59,23 +59,23 @@ namespace webserver {
 			if (path.empty()) {
 #ifdef _WIN32
 				auto content = Filesystem::getDriveListing(false);
-				complete(websocketpp::http::status_code::ok, content, nullptr);
+				complete(http_status::ok, content, nullptr);
 				return;
 #endif
 			} else {
 				// Validate path
 				if (!File::isDirectory(path)) {
-					complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr("Directory " + path + " doesn't exist"));
+					complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr("Directory " + path + " doesn't exist"));
 					return;
 				}
 
 				// Return listing
 				try {
 					auto content = serializeDirectoryContent(path, dirsOnly);
-					complete(websocketpp::http::status_code::ok, content, nullptr);
+					complete(http_status::ok, content, nullptr);
 					return;
 				} catch (const FileException& e) {
-					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr("Failed to get directory content: " + e.getError()));
+					complete(http_status::internal_server_error, nullptr, ApiRequest::toResponseErrorStr("Failed to get directory content: " + e.getError()));
 					return;
 				}
 			}
@@ -105,14 +105,14 @@ namespace webserver {
 		try {
 			if (!File::createDirectory(path)) {
 				aRequest.setResponseErrorStr("Directory exists");
-				return websocketpp::http::status_code::bad_request;
+				return http_status::bad_request;
 			}
 		} catch (const FileException& e) {
 			aRequest.setResponseErrorStr("Failed to create directory: " + e.getError());
-			return websocketpp::http::status_code::internal_server_error;
+			return http_status::internal_server_error;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return FilesystemApi::handleGetDiskInfo(ApiRequest& aRequest) {
@@ -133,6 +133,6 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(retJson);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 }

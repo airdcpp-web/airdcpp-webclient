@@ -73,11 +73,11 @@ namespace webserver {
 		auto profileId = aRequest.getTokenParam();
 		auto profile = mgr.getShareProfile(profileId);
 		if (!profile) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Share profile " + Util::toString(profileId) + " was not found");
+			throw RequestException(http_status::not_found, "Share profile " + Util::toString(profileId) + " was not found");
 		}
 
 		if (!aAllowHidden && profile->isHidden()) {
-			throw RequestException(websocketpp::http::status_code::bad_request, "Hidden share profile isn't valid for this API method");
+			throw RequestException(http_status::bad_request, "Hidden share profile isn't valid for this API method");
 		}
 
 		return profile;
@@ -86,24 +86,24 @@ namespace webserver {
 	api_return ShareProfileApi::handleGetProfile(ApiRequest& aRequest) {
 		auto profile = parseProfileToken(aRequest, true);
 		aRequest.setResponseBody(serializeShareProfile(profile));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareProfileApi::handleGetDefaultProfile(ApiRequest& aRequest) {
 		auto profile = mgr.getShareProfile(SETTING(DEFAULT_SP));
 		if (!profile) {
-			return websocketpp::http::status_code::internal_server_error;
+			return http_status::internal_server_error;
 		}
 
 		aRequest.setResponseBody(serializeShareProfile(profile));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareProfileApi::handleSetDefaultProfile(ApiRequest& aRequest) {
 		auto profile = parseProfileToken(aRequest, true);
 
 		mgr.setDefaultProfile(profile->getToken());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void ShareProfileApi::on(ShareProfileManagerListener::ProfileAdded, ProfileToken aProfile) noexcept {
@@ -149,7 +149,7 @@ namespace webserver {
 		mgr.addProfile(profile);
 
 		aRequest.setResponseBody(serializeShareProfile(profile));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareProfileApi::handleUpdateProfile(ApiRequest& aRequest) {
@@ -161,18 +161,18 @@ namespace webserver {
 		mgr.updateProfile(profile);
 
 		aRequest.setResponseBody(serializeShareProfile(profile));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareProfileApi::handleRemoveProfile(ApiRequest& aRequest) {
 		auto profile = parseProfileToken(aRequest, false);
 		if (profile->isDefault()) {
 			aRequest.setResponseErrorStr("The default profile can't be deleted (set another profile as default first)");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
 		mgr.removeProfile(profile->getToken());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareProfileApi::handleGetProfiles(ApiRequest& aRequest) {
@@ -181,6 +181,6 @@ namespace webserver {
 		auto j = Serializer::serializeList(profiles, serializeShareProfile);
 		aRequest.setResponseBody(j);
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 }
