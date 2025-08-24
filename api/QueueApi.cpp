@@ -241,7 +241,7 @@ namespace webserver {
 			{ "count", removed }
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleIsPathQueued(ApiRequest& aRequest) {
@@ -254,7 +254,7 @@ namespace webserver {
 			}) }
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleFindDupePaths(ApiRequest& aRequest) {
@@ -272,7 +272,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(ret);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	// BUNDLES
@@ -283,7 +283,7 @@ namespace webserver {
 		auto j = Serializer::serializeItemList(start, count, QueueBundleUtils::propertyHandler, getBundleList());
 
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleRemoveCompletedBundles(ApiRequest& aRequest) {
@@ -292,14 +292,14 @@ namespace webserver {
 		aRequest.setResponseBody({
 			{ "count", removed }
 		});
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleBundlePriorities(ApiRequest& aRequest) {
 		auto priority = Deserializer::deserializePriority(aRequest.getRequestBody(), true);
 		QueueManager::getInstance()->setPriority(priority);
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return QueueApi::handleGetBundle(ApiRequest& aRequest) {
@@ -307,14 +307,14 @@ namespace webserver {
 
 		auto j = Serializer::serializeItem(b, QueueBundleUtils::propertyHandler);
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	BundlePtr QueueApi::getBundle(ApiRequest& aRequest) {
 		auto bundleId = aRequest.getTokenParam();
 		auto b = QueueManager::getInstance()->findBundle(bundleId);
 		if (!b) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Bundle " + Util::toString(bundleId) + " was not found");
+			throw RequestException(http_status::not_found, "Bundle " + Util::toString(bundleId) + " was not found");
 		}
 
 		return b;
@@ -326,14 +326,14 @@ namespace webserver {
 
 		if (searches == 0) {
 			aRequest.setResponseErrorStr("No files to search for");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
 		aRequest.setResponseBody({
 			{ "sent", searches },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleGetBundleFiles(ApiRequest& aRequest) {
@@ -350,7 +350,7 @@ namespace webserver {
 		auto j = Serializer::serializeItemList(start, count, QueueFileUtils::propertyHandler, files);
 
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleGetBundleSources(ApiRequest& aRequest) {
@@ -368,7 +368,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(ret);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleRemoveBundleSource(ApiRequest& aRequest) {
@@ -380,19 +380,19 @@ namespace webserver {
 			{ "count", removed },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleShareBundle(ApiRequest& aRequest) {
 		auto b = getBundle(aRequest);
 		if (b->getStatus() != Bundle::STATUS_VALIDATION_ERROR) {
 			aRequest.setResponseErrorStr("This action can only be performed for bundles that have failed content validation");
-			return websocketpp::http::status_code::precondition_failed;
+			return http_status::precondition_failed;
 		}
 
 		auto skipScan = JsonUtil::getOptionalFieldDefault<bool>("skip_validation", aRequest.getRequestBody(), false);
 		QueueManager::getInstance()->shareBundle(b, skipScan);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return QueueApi::handleAddFileBundle(ApiRequest& aRequest) {
@@ -423,11 +423,11 @@ namespace webserver {
 					0
 				);
 			} catch (const Exception& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 				return;
 			}
 
-			complete(websocketpp::http::status_code::ok, Serializer::serializeBundleAddInfo(bundleAddInfo), nullptr);
+			complete(http_status::ok, Serializer::serializeBundleAddInfo(bundleAddInfo), nullptr);
 			return;
 		});
 
@@ -478,7 +478,7 @@ namespace webserver {
 					files.push_back(deserializeBundleFileInfo(fileJson));
 				}
 			} catch (const ArgumentException& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, e.toJSON());
+				complete(http_status::bad_request, nullptr, e.toJSON());
 				return;
 			}
 
@@ -495,11 +495,11 @@ namespace webserver {
 
 			// Handle results
 			if (!result) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(errorMsg));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(errorMsg));
 				return;
 			}
 
-			complete(websocketpp::http::status_code::ok, Serializer::serializeDirectoryBundleAddResult(*result, errorMsg), nullptr);
+			complete(http_status::ok, Serializer::serializeDirectoryBundleAddResult(*result, errorMsg), nullptr);
 			return;
 		});
 
@@ -511,7 +511,7 @@ namespace webserver {
 
 		auto b = getBundle(aRequest);
 		QueueManager::getInstance()->removeBundle(b, removeFinished);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return QueueApi::handleBundlePriority(ApiRequest& aRequest) {
@@ -519,18 +519,18 @@ namespace webserver {
 		auto priority = Deserializer::deserializePriority(aRequest.getRequestBody(), true);
 
 		QueueManager::getInstance()->setBundlePriority(b, priority);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	// FILES (COMMON)
 	QueueItemPtr QueueApi::getFile(ApiRequest& aRequest, bool aRequireBundle) {
 		auto q = QueueManager::getInstance()->findFile(aRequest.getTokenParam());
 		if (!q) {
-			throw RequestException(websocketpp::http::status_code::not_found, "File not found");
+			throw RequestException(http_status::not_found, "File not found");
 		}
 
 		if (aRequireBundle && !q->getBundle()) {
-			throw RequestException(websocketpp::http::status_code::bad_request, "This method may only be used for bundle files");
+			throw RequestException(http_status::bad_request, "This method may only be used for bundle files");
 		}
 
 		return q;
@@ -542,7 +542,7 @@ namespace webserver {
 		auto j = Serializer::serializeItem(qi, QueueFileUtils::propertyHandler);
 		aRequest.setResponseBody(j);
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleGetFilesByTTH(ApiRequest& aRequest) {
@@ -550,7 +550,7 @@ namespace webserver {
 
 		const auto files = QueueManager::getInstance()->findFiles(tth);
 		aRequest.setResponseBody(Serializer::serializeItemList(QueueFileUtils::propertyHandler, files));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleRemoveFile(ApiRequest& aRequest) {
@@ -558,7 +558,7 @@ namespace webserver {
 
 		auto qi = getFile(aRequest, false);
 		QueueManager::getInstance()->removeFile(qi->getTarget(), removeFinished);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return QueueApi::handleAddFileSegment(ApiRequest& aRequest) {
@@ -567,7 +567,7 @@ namespace webserver {
 
 		QueueManager::getInstance()->addDoneSegment(qi, segment);
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleResetFileSegments(ApiRequest& aRequest) {
@@ -575,12 +575,12 @@ namespace webserver {
 
 		QueueManager::getInstance()->resetDownloadedSegments(qi);
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	Segment QueueApi::parseSegment(const QueueItemPtr& qi, ApiRequest& aRequest) {
 		if (!QueueManager::getInstance()->isWaiting(qi)) {
-			throw RequestException(websocketpp::http::status_code::precondition_failed, "Segments can't be modified for running files");
+			throw RequestException(http_status::precondition_failed, "Segments can't be modified for running files");
 		}
 
 		auto segmentStart = aRequest.getSizeParam(SEGMENT_START);
@@ -592,16 +592,16 @@ namespace webserver {
 			auto blockSize = qi->getBlockSize();
 
 			if (s.getStart() % blockSize != 0) {
-				throw RequestException(websocketpp::http::status_code::bad_request, "Segment start must be aligned by " + Util::toString(blockSize));
+				throw RequestException(http_status::bad_request, "Segment start must be aligned by " + Util::toString(blockSize));
 			}
 
 			if (s.getEnd() != qi->getSize()) {
 				if (s.getEnd() > qi->getSize()) {
-					throw RequestException(websocketpp::http::status_code::bad_request, "Segment end is beyond the end of the file");
+					throw RequestException(http_status::bad_request, "Segment end is beyond the end of the file");
 				}
 
 				if (s.getSize() % blockSize != 0) {
-					throw RequestException(websocketpp::http::status_code::bad_request, "Segment size must be aligned by " + Util::toString(blockSize));
+					throw RequestException(http_status::bad_request, "Segment size must be aligned by " + Util::toString(blockSize));
 				}
 			}
 		}
@@ -621,7 +621,7 @@ namespace webserver {
 			{ "running_progress", Serializer::serializeList(downloaded, serializeSegment) },
 			{ "done", Serializer::serializeList(done, serializeSegment) },
 		});
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	json QueueApi::serializeSegment(const Segment& aSegment) noexcept {
@@ -636,13 +636,13 @@ namespace webserver {
 		auto priority = Deserializer::deserializePriority(aRequest.getRequestBody(), true);
 
 		QueueManager::getInstance()->setQIPriority(qi, priority);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return QueueApi::handleSearchFileAlternates(ApiRequest& aRequest) {
 		auto qi = getFile(aRequest, false);
 		QueueManager::getInstance()->searchFileAlternates(qi);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return QueueApi::handleGetFileSources(ApiRequest& aRequest) {
@@ -658,7 +658,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(ret);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return QueueApi::handleRemoveFileSource(ApiRequest& aRequest) {
@@ -666,7 +666,7 @@ namespace webserver {
 		auto user = Deserializer::getUser(aRequest.getCIDParam(), false);
 
 		QueueManager::getInstance()->removeFileSource(qi, user, QueueItem::Source::FLAG_REMOVED);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 

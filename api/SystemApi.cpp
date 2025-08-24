@@ -85,12 +85,12 @@ namespace webserver {
 
 	api_return SystemApi::handleRestartWeb(ApiRequest&) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, false);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return SystemApi::handleShutdown(ApiRequest&) {
 		systemActionThread = make_shared<SystemActionThread>(systemActionThread, true);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void SystemApi::on(ActivityManagerListener::AwayModeChanged, AwayMode /*aNewMode*/) noexcept {
@@ -118,7 +118,7 @@ namespace webserver {
 
 	api_return SystemApi::handleGetAwayState(ApiRequest& aRequest) {
 		aRequest.setResponseBody(serializeAwayState());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SystemApi::handleSetAway(ApiRequest& aRequest) {
@@ -126,7 +126,7 @@ namespace webserver {
 		ActivityManager::getInstance()->setAway(away ? AWAY_MANUAL : AWAY_OFF);
 
 		aRequest.setResponseBody(serializeAwayState());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return SystemApi::handleGetStats(ApiRequest& aRequest) {
@@ -136,7 +136,7 @@ namespace webserver {
 			{ "server_threads", WEBCFG(SERVER_THREADS).num() },
 			{ "active_sessions", server->getUserManager().getUserSessionCount() },
 		});
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	json SystemApi::getSystemInfo() noexcept {
@@ -156,6 +156,6 @@ namespace webserver {
 
 	api_return SystemApi::handleGetSystemInfo(ApiRequest& aRequest) {
 		aRequest.setResponseBody(getSystemInfo());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 }

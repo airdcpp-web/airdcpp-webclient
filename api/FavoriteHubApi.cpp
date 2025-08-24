@@ -55,7 +55,7 @@ namespace webserver {
 		auto j = Serializer::serializeItemList(aRequest.getRangeParam(START_POS), aRequest.getRangeParam(MAX_COUNT), FavoriteHubUtils::propertyHandler, getEntryList());
 		aRequest.setResponseBody(j);
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	void FavoriteHubApi::updateProperties(FavoriteHubEntryPtr& aEntry, const json& j, bool aNewHub) {
@@ -149,14 +149,14 @@ namespace webserver {
 		FavoriteManager::getInstance()->addFavoriteHub(e);
 
 		aRequest.setResponseBody(Serializer::serializeItem(e, FavoriteHubUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	FavoriteHubEntryPtr FavoriteHubApi::parseFavoriteHubParam(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam();
 		auto entry = FavoriteManager::getInstance()->getFavoriteHubEntry(token);
 		if (!entry) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Favorite hub " + Util::toString(token) + " was not found");
+			throw RequestException(http_status::not_found, "Favorite hub " + Util::toString(token) + " was not found");
 		}
 
 		return entry;
@@ -165,13 +165,13 @@ namespace webserver {
 	api_return FavoriteHubApi::handleRemoveHub(ApiRequest& aRequest) {
 		auto entry = parseFavoriteHubParam(aRequest);
 		FavoriteManager::getInstance()->removeFavoriteHub(entry->getToken());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return FavoriteHubApi::handleGetHub(ApiRequest& aRequest) {
 		auto entry = parseFavoriteHubParam(aRequest);
 		aRequest.setResponseBody(Serializer::serializeItem(entry, FavoriteHubUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FavoriteHubApi::handleUpdateHub(ApiRequest& aRequest) {
@@ -181,7 +181,7 @@ namespace webserver {
 		FavoriteManager::getInstance()->onFavoriteHubUpdated(entry);
 
 		aRequest.setResponseBody(Serializer::serializeItem(entry, FavoriteHubUtils::propertyHandler));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	void FavoriteHubApi::on(FavoriteManagerListener::FavoriteHubAdded, const FavoriteHubEntryPtr& e)  noexcept {

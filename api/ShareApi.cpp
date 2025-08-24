@@ -293,7 +293,7 @@ namespace webserver {
 
 		// Serialize results
 		aRequest.setResponseBody(Serializer::serializeList(results, serializeVirtualItem));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetFilesByTTH(ApiRequest& aRequest) {
@@ -301,7 +301,7 @@ namespace webserver {
 
 		const auto files = ShareManager::getInstance()->findFiles(tth);
 		aRequest.setResponseBody(Serializer::serializeList(files, serializeFile));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetDirectoryContentByReal(ApiRequest& aRequest) {
@@ -323,7 +323,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetFileByReal(ApiRequest& aRequest) {
@@ -334,7 +334,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetDirectoryByReal(ApiRequest& aRequest) {
@@ -345,7 +345,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleAddTempShare(ApiRequest& aRequest) {
@@ -371,7 +371,7 @@ namespace webserver {
 				HashManager::getInstance()->getFileTTH(filePath, size, true, tth, sizeLeft, cancelHashing);
 			} catch (const Exception& e) {
 				aRequest.setResponseErrorStr("Failed to calculate file TTH: " + e.getError());
-				return websocketpp::http::status_code::internal_server_error;
+				return http_status::internal_server_error;
 			}
 		}
 
@@ -383,17 +383,17 @@ namespace webserver {
 			{ "item", !item ? json() : serializeTempShare(*item) }
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleRemoveTempShare(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam();
 		if (!TempShareManager::getInstance()->removeTempShare(token)) {
 			aRequest.setResponseErrorStr("Temp share item " + Util::toString(token) + " was not found");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	json ShareApi::serializeTempShare(const TempShareInfo& aInfo) noexcept {
@@ -413,12 +413,12 @@ namespace webserver {
 		const auto tempShares = TempShareManager::getInstance()->getTempShares();
 
 		aRequest.setResponseBody(Serializer::serializeList(tempShares, serializeTempShare));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetExcludes(ApiRequest& aRequest) {
 		aRequest.setResponseBody(ShareManager::getInstance()->getExcludedPaths());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleAddExclude(ApiRequest& aRequest) {
@@ -428,10 +428,10 @@ namespace webserver {
 			ShareManager::getInstance()->addExcludedPath(path);
 		} catch (const ShareException& e) {
 			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareApi::handleRemoveExclude(ApiRequest& aRequest) {
@@ -440,7 +440,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Excluded path was not found");
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void ShareApi::on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept {
@@ -470,23 +470,23 @@ namespace webserver {
 
 	api_return ShareApi::handleAbortRefreshShare(ApiRequest& aRequest) {
 		ShareManager::getInstance()->abortRefresh();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareApi::handleGetRefreshTasks(ApiRequest& aRequest) {
 		auto tasks = ShareManager::getInstance()->getRefreshTasks();
 		aRequest.setResponseBody(Serializer::serializeList(tasks, serializeRefreshTask));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleAbortRefreshTask(ApiRequest& aRequest) {
 		const auto token = aRequest.getTokenParam();
 		if (!ShareManager::getInstance()->abortRefresh(token)) {
 			aRequest.setResponseErrorStr("Refresh task " + Util::toString(token) + " was not found");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
@@ -496,7 +496,7 @@ namespace webserver {
 		auto refreshInfo = ShareManager::getInstance()->refresh(incoming ? ShareRefreshType::REFRESH_INCOMING : ShareRefreshType::REFRESH_ALL, priority);
 		aRequest.setResponseBody(serializeRefreshQueueInfo(refreshInfo));
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
@@ -513,7 +513,7 @@ namespace webserver {
 			};
 
 			if (runPathValidatorF(refreshF, complete)) {
-				complete(websocketpp::http::status_code::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
+				complete(http_status::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
 			}
 		});
 
@@ -542,9 +542,9 @@ namespace webserver {
 				ShareManager::getInstance()->getRealPaths(virtualPath, refreshPaths);
 
 				auto refreshInfo = ShareManager::getInstance()->refreshPathsHookedThrow(priority, refreshPaths, callerPtr, formatVirtualPath(virtualPath));
-				complete(websocketpp::http::status_code::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
+				complete(http_status::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
 			} catch (const ShareException& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			}
 		});
 
@@ -554,7 +554,7 @@ namespace webserver {
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
 		auto optionalItemStats = ShareManager::getInstance()->getShareItemStats();
 		if (!optionalItemStats) {
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		auto itemStats = *optionalItemStats;
@@ -587,13 +587,13 @@ namespace webserver {
 		};
 
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetGroupedRootPaths(ApiRequest& aRequest) {
 		auto roots = ShareManager::getInstance()->getGroupedDirectories();
 		aRequest.setResponseBody(Serializer::serializeList(roots, Serializer::serializeGroupedPaths));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleIsPathShared(ApiRequest& aRequest) {
@@ -603,7 +603,7 @@ namespace webserver {
 			{ "is_shared", isShared },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	bool ShareApi::runPathValidatorF(const Callback& aValidationF, const ApiCompletionF& aErrorF) noexcept {
@@ -611,19 +611,19 @@ namespace webserver {
 			aValidationF();
 		} catch (const QueueException& e) {
 			// Queued bundle
-			aErrorF(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		} catch (const ShareValidatorException& e) {
 			// Validation error
-			aErrorF(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		} catch (const ShareException& e) {
 			// Path not inside a shared directory
-			aErrorF(websocketpp::http::status_code::expectation_failed, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::expectation_failed, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		} catch (const FileException& e) {
 			// File doesn't exist
-			aErrorF(websocketpp::http::status_code::not_found, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::not_found, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		}
 
@@ -643,7 +643,7 @@ namespace webserver {
 			};
 
 			if (runPathValidatorF(validateF, complete)) {
-				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+				complete(http_status::no_content, nullptr, nullptr);
 			}
 		});
 
@@ -665,7 +665,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(ret);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	string ShareApi::refreshTypeToString(ShareRefreshType aType) noexcept {

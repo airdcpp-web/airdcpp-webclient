@@ -116,13 +116,13 @@ namespace webserver {
 		auto h = pendingHookActions.find(id);
 		if (h == pendingHookActions.end()) {
 			aRequest.setResponseErrorStr("No pending hook with ID " + std::to_string(id) + " (did the hook time out?)");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
 		auto& action = h->second;
 		action.completionData = std::make_shared<HookCompletionData>(aRejected, aRequest.getRequestBody());
 		action.semaphore.signal();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	HookCompletionData::HookCompletionData(bool aRejected, const json& aJson) : rejected(aRejected) {

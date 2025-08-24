@@ -201,11 +201,11 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 			// Send
 			auto success = hub->sendHooked(cmd, caller, error);
 			if (!success) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
 				return;
 			}
 
-			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			complete(http_status::no_content, nullptr, nullptr);
 		});
 
 		return CODE_DEFERRED;
@@ -229,7 +229,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 				uc
 			] {
 				if (uc->getSocket()->getMode() != BufferedSocket::MODE_LINE) {
-					complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr("User connection is not in command mode"));
+					complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr("User connection is not in command mode"));
 					return;
 				}
 
@@ -239,11 +239,11 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 				// Send
 				auto success = uc->sendHooked(cmd, caller, error);
 				if (!success) {
-					complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
+					complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
 					return;
 				}
 
-				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+				complete(http_status::no_content, nullptr, nullptr);
 			});
 		});
 
@@ -275,11 +275,11 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 			ClientManager::OutgoingUDPCommandOptions options(caller, !passiveFallback);
 			auto success = ClientManager::getInstance()->sendUDPHooked(cmd, user, options, error);
 			if (!success) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(error));
 				return;
 			}
 
-			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			complete(http_status::no_content, nullptr, nullptr);
 		});
 
 		return CODE_DEFERRED;
@@ -287,7 +287,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 	api_return AdcCommandApi::SupportHandler::handleAddSupport(ApiRequest& aRequest) {
 		const auto& support = aRequest.getStringParam(SUPPORT_PARAM_ID);
 		auto success = supportStore.add(support);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return AdcCommandApi::SupportHandler::handleRemoveSupport(ApiRequest& aRequest) {
@@ -295,10 +295,10 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 		auto success = supportStore.remove(support);
 		if (!success) {
 			aRequest.setResponseErrorStr("Support " + support + " was not found");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void AdcCommandApi::on(ProtocolCommandManagerListener::IncomingHubCommand, const AdcCommand& aCmd, const Client& aClient) noexcept {

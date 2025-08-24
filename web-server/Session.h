@@ -63,7 +63,7 @@ namespace webserver {
 
 		ApiModule* getModule(const std::string& aApiID);
 
-		websocketpp::http::status_code::value handleRequest(ApiRequest& aRequest);
+		http_status handleRequest(ApiRequest& aRequest);
 
 		Session(Session&) = delete;
 		Session& operator=(Session&) = delete;

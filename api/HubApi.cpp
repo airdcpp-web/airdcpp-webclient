@@ -125,7 +125,7 @@ namespace webserver {
 			}
 
 			complete(
-				websocketpp::http::status_code::ok,
+				http_status::ok,
 				{
 					{ "sent", succeed },
 				},
@@ -162,13 +162,13 @@ namespace webserver {
 			{ "sent", succeed },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return HubApi::handleGetStats(ApiRequest& aRequest) {
 		auto optionalStats = ClientManager::getInstance()->getClientStats();
 		if (!optionalStats) {
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		auto stats = *optionalStats;
@@ -195,7 +195,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	json HubApi::serializeClient(const ClientPtr& aClient) noexcept {
@@ -249,22 +249,22 @@ namespace webserver {
 		auto client = ClientManager::getInstance()->createClient(address);
 		if (!client) {
 			aRequest.setResponseErrorStr("Hub with the same URL exists already");
-			return websocketpp::http::status_code::conflict;
+			return http_status::conflict;
 		}
 
 		aRequest.setResponseBody(serializeClient(client));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return HubApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto hub = getSubModule(aRequest);
 		ClientManager::getInstance()->putClient(hub->getClient());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return HubApi::handleFindByUrl(ApiRequest& aRequest) {
 		auto client = Deserializer::deserializeClient(aRequest.getRequestBody());
 		aRequest.setResponseBody(serializeClient(client));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 }

@@ -145,9 +145,9 @@ namespace webserver {
 			] {
 				string error;
 				if (!chat->sendMessageHooked(OutgoingChatMessage(message.message, callerPtr, getCurrentSessionOwnerId(), message.thirdPerson), error) && !error.empty()) {
-					complete(websocketpp::http::status_code::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
+					complete(http_status::internal_server_error, nullptr, ApiRequest::toResponseErrorStr(error));
 				} else {
-					complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+					complete(http_status::no_content, nullptr, nullptr);
 				}
 			});
 
@@ -160,17 +160,17 @@ namespace webserver {
 			auto message = Deserializer::deserializeChatStatusMessage(reqJson);
 			auto label = MessageUtils::parseStatusMessageLabel(aRequest.getSession());
 			chat->statusMessage(message.message, message.severity, message.type, label, message.ownerId);
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		api_return handleClear(ApiRequest&) {
 			chat->clearCache();
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		api_return handleSetRead(ApiRequest&) {
 			chat->setRead();
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		api_return handleGetMessageHighlight(ApiRequest& aRequest) {
@@ -178,11 +178,11 @@ namespace webserver {
 			auto highlight = chat->getCache().findMessageHighlight(id);
 			if (!highlight) {
 				aRequest.setResponseErrorStr("Message highlight " + Util::toString(id) + " was not found");
-				return websocketpp::http::status_code::not_found;
+				return http_status::not_found;
 			}
 
 			aRequest.setResponseBody(MessageUtils::serializeMessageHighlight(highlight));
-			return websocketpp::http::status_code::ok;
+			return http_status::ok;
 		}
 
 		api_return handleGetMessages(ApiRequest& aRequest) {
@@ -193,7 +193,7 @@ namespace webserver {
 			);
 
 			aRequest.setResponseBody(j);
-			return websocketpp::http::status_code::ok;
+			return http_status::ok;
 		}
 
 		string toListenerName(const string& aSubscription) {

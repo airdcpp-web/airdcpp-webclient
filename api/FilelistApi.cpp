@@ -127,16 +127,16 @@ namespace webserver {
 				auto listData = FilelistAddData(hintedUser, caller, directory);
 				dl = DirectoryListingManager::getInstance()->openRemoteFileListHookedThrow(listData, QueueItem::FLAG_PARTIAL_LIST | QueueItem::FLAG_CLIENT_VIEW);
 			} catch (const Exception& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 				return;
 			}
 
 			if (!dl) {
-				complete(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr("Filelist from this user is open already"));
+				complete(http_status::conflict, nullptr, ApiRequest::toResponseErrorStr("Filelist from this user is open already"));
 				return;
 			}
 
-			complete(websocketpp::http::status_code::ok, serializeList(dl), nullptr);
+			complete(http_status::ok, serializeList(dl), nullptr);
 			return;
 		});
 
@@ -161,11 +161,11 @@ namespace webserver {
 				auto listData = FilelistAddData(hintedUser, caller, directory);
 				QueueManager::getInstance()->addListHooked(listData, flags.getFlags());
 			} catch (const Exception& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 				return;
 			}
 
-			complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+			complete(http_status::no_content, nullptr, nullptr);
 		});
 
 		return CODE_DEFERRED;
@@ -176,18 +176,18 @@ namespace webserver {
 		auto dl = DirectoryListingManager::getInstance()->openOwnList(profile);
 		if (!dl) {
 			aRequest.setResponseErrorStr("Own filelist is open already");
-			return websocketpp::http::status_code::conflict;
+			return http_status::conflict;
 		}
 
 		aRequest.setResponseBody(serializeList(dl));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FilelistApi::handleDeleteSubmodule(ApiRequest& aRequest) {
 		auto list = getSubModule(aRequest);
 
 		DirectoryListingManager::getInstance()->removeList(list->getList()->getUser());
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void FilelistApi::on(DirectoryListingManagerListener::ListingCreated, const DirectoryListingPtr& aList) noexcept {
@@ -278,7 +278,7 @@ namespace webserver {
 	api_return FilelistApi::handleGetDirectoryDownloads(ApiRequest& aRequest) {
 		auto downloads = DirectoryListingManager::getInstance()->getDirectoryDownloads();
 		aRequest.setResponseBody(Serializer::serializeList(downloads, Serializer::serializeDirectoryDownload));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 
@@ -287,11 +287,11 @@ namespace webserver {
 		auto download = DirectoryListingManager::getInstance()->getDirectoryDownload(downloadId);
 		if (!download) {
 			aRequest.setResponseErrorStr("Directory download " + Util::toString(downloadId) + " was not found");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
 		aRequest.setResponseBody(Serializer::serializeDirectoryDownload(download));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FilelistApi::handlePostDirectoryDownload(ApiRequest& aRequest) {
@@ -316,10 +316,10 @@ namespace webserver {
 				auto listData = FilelistAddData(hintedUser, caller, listPath);
 				auto errorMethod = logBundleErrors ? DirectoryDownload::ErrorMethod::LOG : DirectoryDownload::ErrorMethod::NONE;
 				auto directoryDownload = DirectoryListingManager::getInstance()->addDirectoryDownloadHookedThrow(listData, targetBundleName, targetDirectory, prio, errorMethod);
-				complete(websocketpp::http::status_code::ok, Serializer::serializeDirectoryDownload(directoryDownload), nullptr);
+				complete(http_status::ok, Serializer::serializeDirectoryDownload(directoryDownload), nullptr);
 				return;
 			} catch (const Exception& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 				return;
 			}
 		});
@@ -332,9 +332,9 @@ namespace webserver {
 		auto removed = DirectoryListingManager::getInstance()->cancelDirectoryDownload(downloadId);
 		if (!removed) {
 			aRequest.setResponseErrorStr("Directory download " + Util::toString(downloadId) + " was not found");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 }

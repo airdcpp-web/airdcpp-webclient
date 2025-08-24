@@ -45,7 +45,7 @@ namespace webserver {
 		auto type = toHistoryType(aRequest);
 		auto history = SettingsManager::getInstance()->getHistory(type);
 		aRequest.setResponseBody(history);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return HistoryApi::handlePostString(ApiRequest& aRequest) {
@@ -53,13 +53,13 @@ namespace webserver {
 		auto item = JsonUtil::getField<string>("string", aRequest.getRequestBody(), false);
 
 		SettingsManager::getInstance()->addToHistory(item, type);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return HistoryApi::handleDeleteStrings(ApiRequest& aRequest) {
 		auto type = toHistoryType(aRequest);
 		SettingsManager::getInstance()->clearHistory(type);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	RecentEntry::Type HistoryApi::toRecentType(ApiRequest& aRequest) {
@@ -73,7 +73,7 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid entry history type " + name);
+		throw RequestException(http_status::bad_request, "Invalid entry history type " + name);
 	}
 
 	SettingsManager::HistoryType HistoryApi::toHistoryType(ApiRequest& aRequest) {
@@ -87,7 +87,7 @@ namespace webserver {
 		}
 
 		dcassert(0);
-		throw RequestException(websocketpp::http::status_code::bad_request, "Invalid string history type " + name);
+		throw RequestException(http_status::bad_request, "Invalid string history type " + name);
 	}
 
 	json HistoryApi::serializeRecentEntry(const RecentEntryPtr& aEntry) noexcept {
@@ -108,7 +108,7 @@ namespace webserver {
 
 		auto hubs = RecentManager::getInstance()->searchRecents(toRecentType(aRequest), pattern, maxResults);
 		aRequest.setResponseBody(Serializer::serializeList(hubs, serializeRecentEntry));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return HistoryApi::handleGetRecents(ApiRequest& aRequest) {
@@ -118,11 +118,11 @@ namespace webserver {
 		auto retJson = Serializer::serializeFromBegin(aRequest.getRangeParam(MAX_COUNT), entries, serializeRecentEntry);
 		aRequest.setResponseBody(retJson);
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return HistoryApi::handleClearRecents(ApiRequest& aRequest) {
 		RecentManager::getInstance()->clearRecents(toRecentType(aRequest));
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 }

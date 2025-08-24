@@ -214,7 +214,7 @@ namespace webserver {
 			aRequest.setResponseBody({ 
 				{ "id", filter->getId() }
 			});
-			return websocketpp::http::status_code::ok;
+			return http_status::ok;
 		}
 
 		api_return handlePutFilter(ApiRequest& aRequest) {
@@ -226,23 +226,23 @@ namespace webserver {
 				auto i = findFilter(aRequest.getTokenParam());
 				if (i == filters.end()) {
 					aRequest.setResponseErrorStr("Filter not found");
-					return websocketpp::http::status_code::bad_request;
+					return http_status::bad_request;
 				}
 
 				filter = *i;
 			}
 
 			setFilterProperties(reqJson, *filter.get());
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		api_return handleDeleteFilter(ApiRequest& aRequest) {
 			if (!removeFilter(aRequest.getTokenParam())) {
 				aRequest.setResponseErrorStr("Filter " + Util::toString(aRequest.getTokenParam()) + " was not found");
-				return websocketpp::http::status_code::bad_request;
+				return http_status::bad_request;
 			}
 
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		void onFilterUpdated() {
@@ -276,17 +276,17 @@ namespace webserver {
 				timer->start(true);
 			}
 
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		api_return handleReset(ApiRequest& aRequest) {
 			if (!active) {
 				aRequest.setResponseErrorStr("The view isn't active");
-				return websocketpp::http::status_code::bad_request;
+				return http_status::bad_request;
 			}
 
 			stop();
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		void parseProperties(const json& j) {
@@ -445,7 +445,7 @@ namespace webserver {
 			});
 
 			aRequest.setResponseBody(j);
-			return websocketpp::http::status_code::ok;
+			return http_status::ok;
 		}
 
 		typename ItemList::iterator findItem(const T& aItem, ItemList& aItems) noexcept {

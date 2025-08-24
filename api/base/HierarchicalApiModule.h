@@ -121,7 +121,7 @@ namespace webserver {
 
 			auto sub = findSubModule(idConvertF(id));
 			if (!sub) {
-				throw RequestException(websocketpp::http::status_code::not_found, "Entity " + id + " was not found");
+				throw RequestException(http_status::not_found, "Entity " + id + " was not found");
 			}
 
 			return sub;
@@ -162,14 +162,14 @@ namespace webserver {
 			});
 
 			aRequest.setResponseBody(retJson);
-			return websocketpp::http::status_code::ok;
+			return http_status::ok;
 		}
 
 		api_return handleGetSubmodule(ApiRequest& aRequest) {
 			auto info = getSubModule(aRequest);
 
 			aRequest.setResponseBody(childSerializeF(*info.get()));
-			return websocketpp::http::status_code::ok;
+			return http_status::ok;
 		}
 
 		virtual api_return handleDeleteSubmodule(ApiRequest& aRequest) = 0;

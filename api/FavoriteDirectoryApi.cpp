@@ -52,12 +52,12 @@ namespace webserver {
 	api_return FavoriteDirectoryApi::handleGetGroupedDirectories(ApiRequest& aRequest) {
 		auto directories = FavoriteManager::getInstance()->getGroupedFavoriteDirs();
 		aRequest.setResponseBody(Serializer::serializeList(directories, Serializer::serializeGroupedPaths));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FavoriteDirectoryApi::handleGetDirectories(ApiRequest& aRequest) {
 		aRequest.setResponseBody(serializeDirectories());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	json FavoriteDirectoryApi::serializeDirectories() noexcept {
@@ -82,7 +82,7 @@ namespace webserver {
 
 		auto info = updatePath(path, reqJson);
 		aRequest.setResponseBody(serializeDirectory(info));
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return FavoriteDirectoryApi::handleGetDirectory(ApiRequest& aRequest) {
@@ -90,7 +90,7 @@ namespace webserver {
 
 		auto info = FavoriteManager::getInstance()->getFavoriteDirectory(path);
 		aRequest.setResponseBody(serializeDirectory(info));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FavoriteDirectoryApi::handleUpdateDirectory(ApiRequest& aRequest) {
@@ -98,13 +98,13 @@ namespace webserver {
 
 		auto info = updatePath(path, aRequest.getRequestBody());
 		aRequest.setResponseBody(serializeDirectory(info));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return FavoriteDirectoryApi::handleRemoveDirectory(ApiRequest& aRequest) {
 		auto path = getPath(aRequest);
 		FavoriteManager::getInstance()->removeFavoriteDir(path);
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	string FavoriteDirectoryApi::getPath(const ApiRequest& aRequest) {
@@ -115,7 +115,7 @@ namespace webserver {
 		});
 
 		if (p.base() == dirs.end()) {
-			throw RequestException(websocketpp::http::status_code::not_found, "Favorite directory " + tth.toBase32() + " was not found");
+			throw RequestException(http_status::not_found, "Favorite directory " + tth.toBase32() + " was not found");
 		}
 
 		return *p;

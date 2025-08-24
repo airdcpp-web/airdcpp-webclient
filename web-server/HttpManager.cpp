@@ -41,7 +41,7 @@ namespace webserver {
 		fileServer.stop();
 	}
 
-	websocketpp::http::status_code::value HttpManager::handleApiRequest(const HttpRequest& aRequest, json& output_, json& error_, const ApiDeferredHandler& aDeferredHandler) noexcept
+	http_status HttpManager::handleApiRequest(const HttpRequest& aRequest, json& output_, json& error_, const ApiDeferredHandler& aDeferredHandler) noexcept
 	{
 		const auto& httpRequest = aRequest.httpRequest;
 		dcdebug("Received HTTP request: %s\n", httpRequest.get_body().c_str());
@@ -52,7 +52,7 @@ namespace webserver {
 				bodyJson = json::parse(httpRequest.get_body());
 			} catch (const std::exception& e) {
 				error_ = ApiRequest::toResponseErrorStr("Failed to parse JSON: " + string(e.what()));
-				return websocketpp::http::status_code::bad_request;
+				return http_status::bad_request;
 			}
 		}
 
@@ -65,6 +65,6 @@ namespace webserver {
 			error_ = ApiRequest::toResponseErrorStr(string(e.what()));
 		}
 
-		return websocketpp::http::status_code::bad_request;
+		return http_status::bad_request;
 	}
 }

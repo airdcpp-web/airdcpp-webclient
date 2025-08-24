@@ -79,12 +79,12 @@ namespace webserver {
 			{ "udp_port", SearchManager::getInstance()->getPort() },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ConnectivityApi::handleDetect(ApiRequest&) {
 		ConnectivityManager::getInstance()->detectConnection();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void ConnectivityApi::on(ConnectivityManagerListener::Message, const string& aMessage) noexcept {
