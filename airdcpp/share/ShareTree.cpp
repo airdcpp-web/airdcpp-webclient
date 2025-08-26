@@ -492,7 +492,7 @@ bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirt
 		if (!parent) {
 			// Create new parent
 			auto newParent = ensureDirectoryUnsafe(PathUtil::getParentDir(ri.path));
-			if (!parent) {
+			if (!newParent) {
 				return false;
 			} else {
 				parent = newParent.get();

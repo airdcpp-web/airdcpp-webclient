@@ -109,6 +109,10 @@ void ShareRefreshInfo::applyRefreshChanges(ShareDirectory::MultiMap& lowerDirNam
 	newDirectory = nullptr;
 }
 
+bool ShareRefreshStats::isEmpty() const noexcept {
+	return newDirectoryCount == 0 && newFileCount == 0 && existingDirectoryCount == 0 && existingFileCount == 0;
+}
+
 void ShareRefreshStats::merge(const ShareRefreshStats& aOther) noexcept {
 	hashSize += aOther.hashSize;
 	addedSize += aOther.addedSize;
@@ -158,12 +162,8 @@ void ShareTasks::reportPendingRefresh(ShareRefreshType aType, const RefreshPathL
 				msg = STRING_F(DIRECTORY_REFRESH_QUEUED, *aDirectories.begin());
 			}
 			break;
-		case(ShareRefreshType::ADD_DIR) :
-			if (aDirectories.size() == 1) {
-				msg = STRING_F(ADD_DIRECTORY_QUEUED, *aDirectories.begin());
-			} else {
-				msg = STRING_F(ADD_DIRECTORIES_QUEUED, aDirectories.size());
-			}
+		case(ShareRefreshType::ADD_ROOT_DIRECTORY) :
+			msg = STRING_F(ADD_DIRECTORY_QUEUED, *aDirectories.begin());
 			break;
 		case(ShareRefreshType::REFRESH_INCOMING) :
 			msg = STRING(INCOMING_REFRESH_QUEUED);
@@ -251,19 +251,16 @@ void ShareTasks::reportTaskStatus(const ShareRefreshTask& aTask, bool aFinished,
 				}
 			}
 			break;
-		case ShareRefreshType::ADD_DIR:
-			if (aTask.dirs.size() == 1) {
-				msg = aFinished ? STRING_F(DIRECTORY_ADDED, *aTask.dirs.begin()) : STRING_F(ADDING_SHARED_DIR, *aTask.dirs.begin());
-			} else {
-				msg = aFinished ? STRING_F(ADDING_X_SHARED_DIRS, aTask.dirs.size()) : STRING_F(DIRECTORIES_ADDED, aTask.dirs.size());
-			}
+		case ShareRefreshType::ADD_ROOT_DIRECTORY:
+			msg = aFinished ? STRING_F(DIRECTORY_ADDED, *aTask.dirs.begin()) : STRING_F(ADDING_SHARED_DIR, *aTask.dirs.begin());
 			break;
 		case ShareRefreshType::REFRESH_INCOMING:
 			msg = aFinished ? STRING(INCOMING_REFRESHED) : STRING(FILE_LIST_REFRESH_INITIATED_INCOMING);
 			break;
 		case ShareRefreshType::BUNDLE:
-			if (aFinished)
+			if (aFinished && !aStats->isEmpty()) {
 				msg = STRING_F(BUNDLE_X_SHARED, aTask.displayName); //show the whole path so that it can be opened from the system log
+			}
 			break;
 	}
 

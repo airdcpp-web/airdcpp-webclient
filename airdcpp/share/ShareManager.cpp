@@ -824,14 +824,20 @@ bool ShareManager::handleRefreshPath(const string& aRefreshPath, const ShareRefr
 
 	auto ri = RefreshTaskHandler::ShareBuilder(aRefreshPath, optionalOldDirectory, File::getLastModified(aRefreshPath), *bloom_, this);
 	setRefreshState(ri.path, ShareRootRefreshState::STATE_RUNNING, false, aTask.token);
-
+	 
 	// Build the tree
 	auto completed = ri.buildTree(aTask.canceled);
 
 	// Apply the changes
 	if (completed) {
-		tree->applyRefreshChanges(ri, &dirtyProfiles_);
-		totalStats.merge(ri.stats);
+		auto success = tree->applyRefreshChanges(ri, &dirtyProfiles_);
+		if (success) {
+			totalStats.merge(ri.stats);
+		} else {
+			dcdebug("ShareManager::handleRefreshPath: could not apply refresh changes for path %s\n", aRefreshPath.c_str());
+			totalStats.skippedDirectoryCount += ri.stats.skippedDirectoryCount + ri.stats.existingDirectoryCount;
+			totalStats.skippedFileCount += ri.stats.newFileCount + ri.stats.existingFileCount;
+		}
 	}
 
 	// Finish up
@@ -959,7 +965,7 @@ bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo)
 
 	const auto& path = aDirectoryInfo->path;
 	fire(ShareManagerListener::RootCreated(), path);
-	tasks->addRefreshTask(ShareRefreshPriority::MANUAL, { path }, ShareRefreshType::ADD_DIR);
+	tasks->addRefreshTask(ShareRefreshPriority::MANUAL, { path }, ShareRefreshType::ADD_ROOT_DIRECTORY);
 
 	profiles->setProfilesDirty(aDirectoryInfo->profiles, true);
 	return true;
