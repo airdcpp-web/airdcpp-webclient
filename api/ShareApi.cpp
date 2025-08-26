@@ -670,7 +670,7 @@ namespace webserver {
 
 	string ShareApi::refreshTypeToString(ShareRefreshType aType) noexcept {
 		switch (aType) {
-			case ShareRefreshType::ADD_DIR: return "add_directory";
+			case ShareRefreshType::ADD_ROOT_DIRECTORY: return "add_directory";
 			case ShareRefreshType::STARTUP:
 			case ShareRefreshType::REFRESH_ALL: return "refresh_all";
 			case ShareRefreshType::REFRESH_DIRS: return "refresh_directories";
