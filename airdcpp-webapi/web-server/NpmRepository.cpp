@@ -108,30 +108,44 @@ namespace webserver {
 		const auto packageJson = json::parse(aPackageData);
 		auto versions = packageJson.at("versions");
 
+		bool majorVersionAnnounced = false;
+
 		// Versions are listed from oldest to newest, start with the newest ones
 		for (auto elem = versions.rbegin(); elem != versions.rend(); ++elem) {
 			semver::version remoteSemver { elem.key() };
-			if (remoteSemver.prerelease_type != semver::prerelease::none) {
-				// Don't update to pre-release versions
-				continue;
-			}
 
+			auto isRemotePrerelease = remoteSemver.prerelease_type != semver::prerelease::none;
 			if (curSemver) {
-				if (remoteSemver.major != (*curSemver).major) {
-					loggerF(STRING_F(WEB_EXTENSION_MAJOR_UPDATE, elem.key() % aName), LogMessage::SEV_INFO);
-
-					// Don't perform major upgrades
+				if (isRemotePrerelease && (*curSemver).prerelease_type == semver::prerelease::none) {
+					// Don't update to pre-release versions
 					continue;
 				}
 
-				auto comp = (*curSemver).compare(remoteSemver);
-				if (comp >= 0) {
-					// No new version available
-					dcdebug("No updates available for extension %s\n", aName.c_str());
-					return;
+				if (remoteSemver.major > (*curSemver).major) {
+					if (!majorVersionAnnounced) {
+						loggerF(STRING_F(WEB_EXTENSION_MAJOR_UPDATE, elem.key() % aName), LogMessage::SEV_INFO);
+						majorVersionAnnounced = true;
+					}
+
+					// Don't perform major upgrades automatically
+					continue;
+				} else if (remoteSemver.major == (*curSemver).major) {
+					// Same major version, compare normally
+					auto comp = (*curSemver).compare(remoteSemver);
+					if (comp >= 0) {
+						// No new version available
+						dcdebug("No updates available for extension %s\n", aName.c_str());
+						return;
+					} else {
+						dcdebug("New update available for extension %s (current version %s, available version %s)\n", aName.c_str(), aCurrentVersion.c_str(), elem.key().c_str());
+					}
 				} else {
-					dcdebug("New update available for extension %s (current version %s, available version %s)\n", aName.c_str(), aCurrentVersion.c_str(), elem.key().c_str());
+					// Old major version, we shouldn't really be here
+					continue;
 				}
+			} else if (isRemotePrerelease) {
+				// Don't install pre-release version for now
+				continue;
 			}
 
 			// Install
