@@ -28,7 +28,8 @@ namespace dcpp {
 boost::regex LinkUtil::urlReg = boost::regex(LinkUtil::getUrlReg());
 
 const string LinkUtil::getUrlReg() noexcept {
-	return R"(((?:(?:[A-Za-z][A-Za-z0-9+.-]*):/{1,3}|(?:[A-Za-z][A-Za-z0-9+.-]*):|www\d{0,3}[.]|magnet:\?[^\s=]+=|[A-Za-z0-9.\-]+[.][A-Za-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))|(?:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}))";
+	// Keep the protocol section lower case only to avoid false positives (e.g. client tags being formatted as links)
+	return R"(((?:(?:[a-z][a-z0-9+.-]*):/{1,3}|(?:[a-z][a-z0-9+.-]*):|www\d{0,3}[.]|magnet:\?[^\s=]+=|[A-Za-z0-9.\-]+[.][A-Za-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))|(?:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}))";
 }
 
 bool LinkUtil::isAdcHub(const string& aHubUrl) noexcept {
