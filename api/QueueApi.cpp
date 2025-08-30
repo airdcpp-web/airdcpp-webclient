@@ -360,6 +360,7 @@ namespace webserver {
 		auto ret = json::array();
 		for (const auto& s : sources) {
 			ret.push_back({
+				{ "id", s.getUser().user->getCID().toBase32() },
 				{ "user", Serializer::serializeHintedUser(s.getUser()) },
 				{ "last_speed", s.getUser().user->getSpeed() },
 				{ "files", s.files },
@@ -652,6 +653,7 @@ namespace webserver {
 		auto ret = json::array();
 		for (const auto& s : sources) {
 			ret.push_back({
+				{ "id", s.getUser().user->getCID().toBase32() },
 				{ "user", Serializer::serializeHintedUser(s.getUser()) },
 				{ "last_speed", s.getUser().user->getSpeed() },
 			});
