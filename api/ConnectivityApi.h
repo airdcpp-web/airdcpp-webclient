@@ -22,7 +22,7 @@
 #include <api/base/SubscribableApiModule.h>
 
 #include <airdcpp/core/header/typedefs.h>
-#include <airdcpp/connectivity/ConnectivityManager.h>
+#include <airdcpp/connectivity/ConnectivityManagerListener.h>
 
 namespace webserver {
 	class ConnectivityApi : public SubscribableApiModule, private ConnectivityManagerListener {
@@ -35,7 +35,7 @@ namespace webserver {
 		api_return handleDetect(ApiRequest& aRequest);
 		api_return handleGetStatus(ApiRequest& aRequest);
 
-		void on(ConnectivityManagerListener::Message, const string&) noexcept override;
+		void on(ConnectivityManagerListener::Message, const LogMessagePtr& aMessage) noexcept override;
 		void on(ConnectivityManagerListener::Started, bool /*v6*/) noexcept override;
 		void on(ConnectivityManagerListener::Finished, bool /*v6*/, bool /*failed*/) noexcept override;
 		//virtual void on(SettingChanged) noexcept { }
