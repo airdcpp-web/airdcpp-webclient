@@ -182,7 +182,7 @@ namespace webserver {
 		aRequest.authenticationCallback(session);
 
 		apiRequest.setResponseBody(serializeLoginInfo(session, Util::emptyString));
-		return http_status::no_content;
+		return http_status::ok;
 	}
 
 	api_return SessionApi::handleGetSessions(ApiRequest& aRequest) {
