@@ -466,9 +466,9 @@ void ConnectivityManager::mappingFinished(const string& mapper, bool v6) {
 		runningV4 = false;
 }
 
-void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, LogType aType) {
+void ConnectivityManager::log(const string& aMessage, LogMessage::Severity aSeverity, LogType aType) {
 	if (aType == TYPE_NORMAL) {
-		LogManager::getInstance()->message(aMessage, sev, STRING(CONNECTIVITY));
+		LogManager::getInstance()->message(aMessage, aSeverity, STRING(CONNECTIVITY));
 	} else {
 		string proto;
 		if (aType == TYPE_BOTH && runningV4 && runningV6) {
@@ -483,8 +483,10 @@ void ConnectivityManager::log(const string& aMessage, LogMessage::Severity sev, 
 			statusV6 = aMessage;
 		}
 
-		LogManager::getInstance()->message(aMessage, sev, STRING(CONNECTIVITY) + " (" + proto + ")");
-		fire(ConnectivityManagerListener::Message(), proto + ": " + aMessage);
+		LogManager::getInstance()->message(aMessage, aSeverity, STRING(CONNECTIVITY) + " (" + proto + ")");
+
+		auto messageData = std::make_shared<LogMessage>(aMessage, aSeverity, LogMessage::Type::SYSTEM, proto);
+		fire(ConnectivityManagerListener::Message(), messageData);
 	}
 }
 
