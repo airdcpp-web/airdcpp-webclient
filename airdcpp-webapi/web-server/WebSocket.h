@@ -47,7 +47,7 @@ namespace webserver {
 		// NMDC code can't be trusted to parse the incoming messages without incorrectly 
 		// splitting multibyte character sequences in malformed received data...
 		void sendPlain(const json& aJson);
-		void sendApiResponse(const json& aJsonResponse, const json& aErrorJson, websocketpp::http::status_code::value aCode, int aCallbackId) noexcept;
+		void sendApiResponse(const json& aJsonResponse, const json& aErrorJson, http_status aCode, int aCallbackId) noexcept;
 
 		void onData(const string& aPayload, const SessionCallback& aAuthCallback);
 

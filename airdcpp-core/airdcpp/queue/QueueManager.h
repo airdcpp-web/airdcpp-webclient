@@ -440,9 +440,9 @@ private:
 	void connectBundleSources(const BundlePtr& aBundle) noexcept;
 
 	// Check if a download can be started for the specified user
-	QueueDownloadResult startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& runningBundles, const OrderedStringSet& aOnlineHubs, int64_t aLastSpeed) noexcept;
+	QueueDownloadResult startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& runningBundles, const OrderedStringSet& aOnlineHubs, const UserConnection* aExistingConnection) noexcept;
 
-	bool allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_) noexcept;
+	OptionalTransferSlot allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& runningBundles, string& lastError_, const OptionalTransferSlot& aExistingSlot) noexcept;
 
 	bool checkLowestPrioRules(const QueueItemPtr& aQI, const QueueTokenSet& aRunningBundles, string& lastError_) const noexcept;
 	bool checkDownloadLimits(const QueueItemPtr& aQI, string& lastError_) const noexcept;

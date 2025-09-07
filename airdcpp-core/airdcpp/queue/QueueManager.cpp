@@ -1150,21 +1150,23 @@ QueueManager::DownloadResult QueueManager::getDownload(UserConnection& aSource, 
 	DownloadResult result;
 
 	QueueItemPtr q = nullptr;
+	OptionalTransferSlot slotType;
 
 	{
 		// Segments shouldn't be assigned simultaneously for multiple connections
 		Lock slotLock(slotAssignCS);
 
 		{
-			auto startResult = startDownload(aSource.getHintedUser(), aSource.getDownloadType(), aRunningBundles, aOnlineHubs, aSource.getSpeed());
+			auto startResult = startDownload(aSource.getHintedUser(), aSource.getDownloadType(), aRunningBundles, aOnlineHubs, &aSource);
 			result.merge(startResult);
 
-			if (!startResult.startDownload) {
+			if (!startResult.slotType) {
 				// dcdebug("none\n");
 				return result;
 			}
 
 			q = startResult.qi;
+			slotType = startResult.slotType;
 			dcassert(q);
 		}
 
@@ -1194,6 +1196,10 @@ QueueManager::DownloadResult QueueManager::getDownload(UserConnection& aSource, 
 			}
 
 			result.download = new Download(aSource, *q);
+			if (TransferSlot::toType(aSource.getSlot()) != TransferSlot::USERSLOT) {
+				aSource.setSlot(slotType);
+			}
+
 			userQueue.addDownload(q, result.download);
 		}
 	}
@@ -1278,42 +1284,43 @@ bool QueueManager::checkDiskSpace(const QueueItemPtr& aQI, string& lastError_) n
 	return true;
 }
 
-bool QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& aRunningBundles, string& lastError_) noexcept{
+#define SLOT_SOURCE_QUEUE "queue"
+OptionalTransferSlot QueueManager::allowStartQI(const QueueItemPtr& aQI, const QueueTokenSet& aRunningBundles, string& lastError_, const OptionalTransferSlot& aExistingSlot) noexcept{
 	// nothing to download?
 	if (!aQI)
-		return false;
+		return nullopt;
 
 	// override the slot settings for partial lists and small files
 	if (aQI->usesSmallSlot())
-		return true;
+		return TransferSlot(TransferSlot::FILESLOT, SLOT_SOURCE_QUEUE);
 
 
 	// paused?
 	if (aQI->isPausedPrio())
-		return false;
+		return nullopt;
 
 	if (!checkDiskSpace(aQI, lastError_)) {
-		return false;
+		return nullopt;
 	}
 
-	if (!checkDownloadLimits(aQI, lastError_)) {
-		return false;
+	if ((!aExistingSlot || aExistingSlot->type != TransferSlot::USERSLOT) && !checkDownloadLimits(aQI, lastError_)) {
+		return nullopt;
 	}
 
 	if (!checkLowestPrioRules(aQI, aRunningBundles, lastError_)) {
-		return false;
+		return nullopt;
 	}
 
-	return true;
+	return TransferSlot(TransferSlot::USERSLOT, SLOT_SOURCE_QUEUE);
 }
 
 QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDownloadType aType) noexcept{
 	auto hubs = ClientManager::getInstance()->getHubSet(aUser.user->getCID());
 	auto runningBundleTokens = DownloadManager::getInstance()->getRunningBundles();
-	return startDownload(aUser, aType, runningBundleTokens, hubs, 0);
+	return startDownload(aUser, aType, runningBundleTokens, hubs, nullptr);
 }
 
-QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, int64_t aLastSpeed) noexcept {
+QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDownloadType aType, const QueueTokenSet& aRunningBundles, const OrderedStringSet& aOnlineHubs, const UserConnection* aExistingConnection) noexcept {
 	QueueDownloadResult result(aUser.hint);
 	if (aOnlineHubs.empty()) {
 		result.lastError = STRING(USER_OFFLINE);
@@ -1321,7 +1328,7 @@ QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDo
 	}
 
 	QueueDownloadQuery query(aUser, aOnlineHubs, aRunningBundles);
-	query.lastSpeed = aLastSpeed;
+	query.lastSpeed = aExistingConnection ? aExistingConnection->getSpeed() : 0;
 	query.downloadType = aType;
 
 	{
@@ -1346,7 +1353,7 @@ QueueDownloadResult QueueManager::startDownload(const HintedUser& aUser, QueueDo
 	}
 
 	if (result.qi) {
-		result.startDownload = allowStartQI(result.qi, aRunningBundles, result.lastError);
+		result.slotType = allowStartQI(result.qi, aRunningBundles, result.lastError, aExistingConnection ? aExistingConnection->getSlot() : nullopt);
 		result.downloadType = result.qi->usesSmallSlot() ? QueueDownloadType::SMALL : QueueDownloadType::ANY;
 	}
 

@@ -21,14 +21,16 @@
 
 #include <airdcpp/forward.h>
 
-#include <airdcpp/hub/ClientManagerListener.h>
+#include "ClientManagerListener.h"
+#include "Client.h"
+#include "UserConnectResult.h"
+
 #include <airdcpp/core/timer/TimerManagerListener.h>
 
 #include <airdcpp/core/ActionHook.h>
 #include <airdcpp/protocol/AdcCommand.h>
 #include <airdcpp/protocol/AdcSupports.h>
 #include <airdcpp/connection/ConnectionType.h>
-#include <airdcpp/hub/Client.h>
 #include <airdcpp/core/thread/CriticalSection.h>
 #include <airdcpp/user/OfflineUser.h>
 #include <airdcpp/core/Singleton.h>
@@ -238,36 +240,7 @@ public:
 
 	bool sendUDPHooked(AdcCommand& c, const HintedUser& to, const OutgoingUDPCommandOptions& aOptions, string& error_) noexcept;
 
-	struct ConnectResult {
-		void onSuccess(const string_view& aHubHint) noexcept {
-			success = true;
-			hubHint = aHubHint;
-		}
-
-		void onMinorError(const string_view& aError) noexcept {
-			lastError = aError;
-			protocolError = false;
-		}
-
-		void onProtocolError(const string_view& aError) noexcept {
-			lastError = aError;
-			protocolError = true;
-		}
-
-		void resetError() noexcept {
-			lastError = Util::emptyString;
-			protocolError = false;
-		}
-
-
-		GETPROP(string, lastError, Error);
-		IGETPROP(bool, protocolError, IsProtocolError, false);
-
-		GETPROP(string, hubHint, HubHint);
-		IGETPROP(bool, success, IsSuccess, false);
-	};
-
-	ConnectResult connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
+	UserConnectResult connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType type = CONNECTION_TYPE_LAST) const noexcept;
 
 
 	SharedMutex& getCS() { return cs; }
@@ -308,7 +281,7 @@ private:
 
 	using OfflineUserMap = unordered_map<CID *, OfflineUser>;
 
-	using OnlineMap = unordered_multimap<CID *, OnlineUser *>;
+	using OnlineMap = unordered_multimap<CID*, OnlineUserPtr>;
 	using OnlineIter = OnlineMap::iterator;
 	using OnlineIterC = OnlineMap::const_iterator;
 	using OnlinePair = pair<OnlineIter, OnlineIter>;
@@ -337,7 +310,7 @@ private:
 	~ClientManager() override;
 
 	/// @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
-	OnlineUser* findOnlineUserHintUnsafe(const CID& aCID, const string& aHubUrl) const noexcept {
+	OnlineUserPtr findOnlineUserHintUnsafe(const CID& aCID, const string& aHubUrl) const noexcept {
 		OnlinePairC p;
 		return findOnlineUserHintUnsafe(aCID, aHubUrl, p);
 	}
@@ -345,7 +318,7 @@ private:
 	* @param p OnlinePair of all the users found by CID, even those who don't match the hint.
 	* @return OnlineUser* found by CID and hint; discard any user that doesn't match the hint.
 	*/
-	OnlineUser* findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHubUrl, OnlinePairC& p) const noexcept;
+	OnlineUserPtr findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHubUrl, OnlinePairC& p) const noexcept;
 
 	// ClientListener
 	void on(ClientListener::Connected, const Client* c) noexcept override;

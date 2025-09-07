@@ -34,7 +34,7 @@ namespace webserver {
 		auto& apiRequest = aRequest.apiRequest;
 		if (apiRequest.getApiVersion() != API_VERSION) {
 			apiRequest.setResponseErrorStr("Unsupported API version");
-			return websocketpp::http::status_code::precondition_failed;
+			return http_status::precondition_failed;
 		}
 
 		int code;
@@ -47,13 +47,13 @@ namespace webserver {
 			// Require auth for all other modules
 			if (!apiRequest.getSession()) {
 				apiRequest.setResponseErrorStr("Not authorized");
-				return websocketpp::http::status_code::unauthorized;
+				return http_status::unauthorized;
 			}
 
 			// Require using the same protocol that was used for logging in
 			if (apiRequest.getSession()->getSessionType() != Session::TYPE_BASIC_AUTH && (apiRequest.getSession()->getSessionType() == Session::TYPE_SECURE) != aRequest.isSecure) {
 				apiRequest.setResponseErrorStr("Protocol mismatch");
-				return websocketpp::http::status_code::not_acceptable;
+				return http_status::not_acceptable;
 			}
 
 			apiRequest.getSession()->updateActivity();
@@ -67,7 +67,7 @@ namespace webserver {
 			code = e.getCode();
 		} catch (const std::exception& e) {
 			apiRequest.setResponseErrorStr(e.what());
-			code = websocketpp::http::status_code::bad_request;
+			code = http_status::bad_request;
 		}
 
 		dcassert(HttpUtil::isStatusOk(code) || code == CODE_DEFERRED || apiRequest.hasErrorMessage());
@@ -83,6 +83,6 @@ namespace webserver {
 		}
 
 		apiRequest.setResponseErrorStr("Invalid command/method (not authenticated)");
-		return websocketpp::http::status_code::bad_request;
+		return http_status::bad_request;
 	}
 }

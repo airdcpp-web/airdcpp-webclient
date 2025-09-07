@@ -266,8 +266,7 @@ namespace dcpp {
 		auto status = aReason;
 		if (aDownload->isSet(Download::FLAG_SLOWUSER)) {
 			status += ": " + STRING(SLOW_USER);
-		}
-		else if (aDownload->getOverlapped() && !aDownload->isSet(Download::FLAG_OVERLAP)) {
+		} else if (aDownload->getOverlapped() && !aDownload->isSet(Download::FLAG_OVERLAP)) {
 			status += ": " + STRING(OVERLAPPED_SLOW_SEGMENT);
 		}
 
@@ -321,8 +320,7 @@ namespace dcpp {
 			return;
 		}
 
-		t->setStatusString(aError);
-		onTransferUpdated(t, TransferInfo::UpdateFlags::STATUS);
+		onFailed(t, aError);
 	}
 
 	void TransferInfoManager::starting(const Download* aDownload, const string& aStatus, bool aFullUpdate) noexcept {

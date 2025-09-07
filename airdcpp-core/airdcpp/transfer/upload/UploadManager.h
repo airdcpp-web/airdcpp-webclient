@@ -30,7 +30,7 @@
 #include <airdcpp/util/text/StringMatch.h>
 #include <airdcpp/core/timer/TimerManagerListener.h>
 #include <airdcpp/transfer/upload/UploadManagerListener.h>
-#include <airdcpp/transfer/upload/UploadSlot.h>
+#include <airdcpp/transfer/TransferSlot.h>
 #include <airdcpp/connection/UserConnectionListener.h>
 
 namespace dcpp {
@@ -43,7 +43,7 @@ struct ParsedUpload;
 class UploadManager : private UserConnectionListener, public Speaker<UploadManagerListener>, private TimerManagerListener, public Singleton<UploadManager>
 {
 public:
-	ActionHook<OptionalUploadSlot, const UserConnection&, const ParsedUpload&> slotTypeHook;
+	ActionHook<OptionalTransferSlot, const UserConnection&, const ParsedUpload&> slotTypeHook;
 
 	void setFreeSlotMatcher();
 
@@ -118,7 +118,7 @@ private:
 	void disconnectExtraMultiConn() noexcept;
 
 	void removeSlot(UserConnection& aSource) noexcept;
-	void updateSlotCounts(UserConnection& aSource, const UploadSlot& aNewSlot) noexcept;
+	void updateSlotCounts(UserConnection& aSource, const TransferSlot& aNewSlot) noexcept;
 
 	friend class Singleton<UploadManager>;
 	UploadManager() noexcept;
@@ -154,9 +154,9 @@ private:
 
 	// Parse slot type for the connection
 	// Throws in case of hook errors
-	OptionalUploadSlot parseSlotHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
+	OptionalTransferSlot parseSlotHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
 
-	OptionalUploadSlot parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
+	OptionalTransferSlot parseAutoGrantHookedThrow(const UserConnection& aSource, const UploadParser& aParser) const;
 
 	void deleteDelayUpload(Upload* aUpload, bool aResuming) noexcept;
 	void disconnectOfflineUsers() noexcept;

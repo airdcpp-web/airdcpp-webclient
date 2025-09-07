@@ -145,6 +145,10 @@ bool ConnectionQueueItem::isActive() const noexcept {
 	return state == State::ACTIVE;
 }
 
+bool ConnectionQueueItem::isRunning() const noexcept {
+	return isSet(FLAG_RUNNING);
+}
+
 bool ConnectionQueueItem::isMcn() const noexcept {
 	return isSet(FLAG_MCN);
 }
@@ -221,7 +225,7 @@ bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot,
 		supportMcn = true;
 
 		if (cqi->getDownloadType() == QueueDownloadType::MCN_NORMAL) {
-			if (!cqi->isActive()) {
+			if (!cqi->isRunning()) {
 				// Already has a waiting item? Small slot doesn't count
 				if (!aSmallSlot) {
 					// Force in case we joined a new hub and there was a protocol error
@@ -238,7 +242,7 @@ bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot,
 			// (regardless of whether it's running or not)
 			if (aSmallSlot) {
 				// Force in case we joined a new hub and there was a protocol error
-				if (!cqi->isActive() && aWaitingCallback) {
+				if (!cqi->isRunning() && aWaitingCallback) {
 					aWaitingCallback(cqi);
 				}
 
@@ -439,7 +443,7 @@ bool ConnectionManager::attemptDownloadUnsafe(ConnectionQueueItem* cqi, StringLi
 		// Forcing the connection and it's not connected yet? Retry
 		(cqi->getLastAttempt() == 0 && cqi->getState() == ConnectionQueueItem::State::CONNECTING && find(userConnections.begin(), userConnections.end(), cqi->getToken()) == userConnections.end())
 	) {
-		if (startResult.startDownload) {
+		if (startResult.slotType) {
 			return connectUnsafe(cqi, startResult.allowUrlChange);
 		} else {
 			// Download limits full or similar temporary error
@@ -502,6 +506,7 @@ void ConnectionManager::createNewMCN(const HintedUser& aUser) noexcept {
 		WLock l (cs);
 		auto cqiNew = getCQIUnsafe(aUser, CONNECTION_TYPE_DOWNLOAD);
 		cqiNew->setDownloadType(QueueDownloadType::MCN_NORMAL);
+		cqiNew->setFlag(ConnectionQueueItem::FLAG_MCN);
 
 		dcdebug("ConnectionManager::createNewMCN: creating new connection for user %s\n", ClientManager::getInstance()->getFormattedNicks(aUser).c_str());
 	}
@@ -925,6 +930,8 @@ void ConnectionManager::on(UserConnectionListener::Direction, UserConnection* aS
 
 
 void ConnectionManager::addPMConnection(UserConnection* uc) noexcept {
+	dcassert(uc->isSet(UserConnection::FLAG_PM));
+
 	{
 		WLock l(cs);
 		auto& container = cqis[CONNECTION_TYPE_PM];
@@ -1128,18 +1135,15 @@ void ConnectionManager::on(AdcCommand::INF, UserConnection* aSource, const AdcCo
 	if (aSource->isSet(UserConnection::FLAG_DOWNLOAD)) {
 		addDownloadConnection(aSource);
 	} else if (aSource->isSet(UserConnection::FLAG_PM) || cmd.hasFlag("PM", 0)) {
-		// Flag
-		if (!aSource->isSet(UserConnection::FLAG_PM)) {
-			aSource->setFlag(UserConnection::FLAG_PM);
-		}
-
 		// Token
-		if (cmd.hasFlag("PM", 0)) {
+		if (!aSource->isSet(UserConnection::FLAG_PM)) {
 			if (!tokens.addToken(token, CONNECTION_TYPE_PM)) {
 				dcassert(0);
 				fail(AdcCommand::ERROR_GENERIC, "Duplicate token");
 				return;
 			}
+
+			aSource->setFlag(UserConnection::FLAG_PM);
 		} else {
 			dcassert(tokens.hasToken(token));
 		}
@@ -1275,7 +1279,11 @@ ConnectionType toConnectionType(const UserConnection* aSource) {
 		return CONNECTION_TYPE_DOWNLOAD;
 	}
 
-	return aSource->isSet(UserConnection::FLAG_PM) ? CONNECTION_TYPE_PM : CONNECTION_TYPE_LAST;
+	if (aSource->isSet(UserConnection::FLAG_PM)) {
+		return CONNECTION_TYPE_PM;
+	}
+
+	return CONNECTION_TYPE_LAST;
 }
 
 void ConnectionManager::putCQI(UserConnection* aSource) noexcept {

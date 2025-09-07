@@ -16,32 +16,36 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#ifndef DCPLUSPLUS_DCPP_UPLOADQUEUEMANAGERLISTENER_H_
-#define DCPLUSPLUS_DCPP_UPLOADQUEUEMANAGERLISTENER_H_
+#ifndef DCPLUSPLUS_DCPP_CONNECTIVITY_MANAGER_LISTENER_H
+#define DCPLUSPLUS_DCPP_CONNECTIVITY_MANAGER_LISTENER_H
+
 
 #include <airdcpp/forward.h>
-#include <airdcpp/core/header/typedefs.h>
 
-#include <airdcpp/transfer/upload/UploadQueueItem.h>
+#include <string>
 
 namespace dcpp {
 
-class UploadQueueManagerListener {
+using std::string;
+
+class ConnectivityManagerListener {
 public:
-	virtual ~UploadQueueManagerListener() { }
+	virtual ~ConnectivityManagerListener() {}
 	template<int I>	struct X { enum { TYPE = I }; };
 
-	typedef X<1> QueueAdd;
-	typedef X<2> QueueUserRemove;
-	typedef X<3> QueueItemRemove;
-	typedef X<4> QueueUpdate;
+	typedef X<0> Message;
+	typedef X<1> Started;
+	typedef X<2> Finished;
+	typedef X<3> SettingChanged; // auto-detection has been enabled / disabled
 
-	virtual void on(QueueAdd, const UploadQueueItemPtr&) noexcept { }
-	virtual void on(QueueUserRemove, const UserPtr&) noexcept { }
-	virtual void on(QueueItemRemove, const UploadQueueItemPtr&) noexcept { }
-	virtual void on(QueueUpdate) noexcept { }
+	virtual void on(Message, const LogMessagePtr&) noexcept {}
+	virtual void on(Started, bool /*v6*/) noexcept {}
+	virtual void on(Finished, bool /*v6*/, bool /*failed*/) noexcept {}
+	virtual void on(SettingChanged) noexcept {}
 };
+
+#define CONNSETTING(k) ConnectivityManager::getInstance()->get(SettingsManager::k)
 
 } // namespace dcpp
 
-#endif /*UPLOADMANAGERLISTENER_H_*/
+#endif // !defined(CONNECTIVITY_MANAGER_H)

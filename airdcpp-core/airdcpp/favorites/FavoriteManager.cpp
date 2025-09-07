@@ -376,7 +376,7 @@ void FavoriteManager::loadFavoriteHubs(SimpleXML& aXml) {
 
 		aXml.resetCurrentChild();
 		while (aXml.findChild("Hub")) {
-			FavoriteHubEntryPtr e = new FavoriteHubEntry();
+			auto e = std::make_shared<FavoriteHubEntry>();
 			e->setName(aXml.getChildAttrib("Name"));
 			e->setAutoConnect(aXml.getBoolChildAttrib("Connect"));
 			e->setDescription(aXml.getChildAttrib("Description"));

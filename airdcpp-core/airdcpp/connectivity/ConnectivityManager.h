@@ -24,6 +24,8 @@
 #include <airdcpp/core/Singleton.h>
 #include <airdcpp/core/Speaker.h>
 #include <airdcpp/message/Message.h>
+
+#include <airdcpp/connectivity/ConnectivityManagerListener.h>
 #include <airdcpp/connectivity/MappingManager.h>
 
 #include <string>
@@ -34,22 +36,6 @@ namespace dcpp {
 
 using std::string;
 using std::unordered_map;
-
-class ConnectivityManagerListener {
-public:
-	virtual ~ConnectivityManagerListener() { }
-	template<int I>	struct X { enum { TYPE = I }; };
-
-	typedef X<0> Message;
-	typedef X<1> Started;
-	typedef X<2> Finished;
-	typedef X<3> SettingChanged; // auto-detection has been enabled / disabled
-
-	virtual void on(Message, const string&) noexcept { }
-	virtual void on(Started, bool /*v6*/) noexcept { }
-	virtual void on(Finished, bool /*v6*/, bool /*failed*/) noexcept { }
-	virtual void on(SettingChanged) noexcept { }
-};
 
 class ConnectivityManager : public Singleton<ConnectivityManager>, public Speaker<ConnectivityManagerListener>
 {

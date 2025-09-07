@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
@@ -179,9 +179,24 @@ void ShareTree::getRootsUnsafe(const OptionalProfileToken& aProfile, ShareDirect
 	ranges::copy(rootPaths | views::values | views::filter(ShareDirectory::HasRootProfile(aProfile)), back_inserter(dirs_));
 }
 
-ShareDirectory::Ptr ShareTree::findRootUnsafe(const string& aPath) const noexcept {
-	auto i = rootPaths.find(aPath);
+ShareDirectory::Ptr ShareTree::findRootUnsafe(const string& aRootPath) const noexcept {
+	auto i = rootPaths.find(aRootPath);
 	return i != rootPaths.end() ? i->second : nullptr;
+}
+
+string ShareTree::parseRoot(const string& aRealPath) const noexcept {
+	RLock l(cs);
+	auto root = parseRootUnsafe(aRealPath);
+	if (!root) {
+		return Util::emptyString;
+	}
+
+	return root->getRealPathUnsafe();
+}
+
+ShareDirectory::Ptr ShareTree::parseRootUnsafe(const string& aRealPath) const noexcept {
+	auto mi = find_if(rootPaths | views::values, ShareDirectory::RootIsParentOrExact(aRealPath)).base();
+	return mi == rootPaths.end() ? nullptr : mi->second;
 }
 
 ShareDirectory::List ShareTree::getRoots(const OptionalProfileToken& aProfile) const noexcept {
@@ -449,7 +464,7 @@ ShareRoot::Ptr ShareTree::updateShareRoot(const ShareDirectoryInfoPtr& aDirector
 }
 
 bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirtyProfiles) {
-	ShareDirectory::Ptr parent = nullptr;
+	ShareDirectory* parent = nullptr;
 
 	WLock l(cs);
 
@@ -476,9 +491,11 @@ bool ShareTree::applyRefreshChanges(ShareRefreshInfo& ri, ProfileTokenSet* aDirt
 
 		if (!parent) {
 			// Create new parent
-			parent = ensureDirectoryUnsafe(PathUtil::getParentDir(ri.path));
-			if (!parent) {
+			auto newParent = ensureDirectoryUnsafe(PathUtil::getParentDir(ri.path));
+			if (!newParent) {
 				return false;
+			} else {
+				parent = newParent.get();
 			}
 		}
 
@@ -791,14 +808,12 @@ ShareSearchStats ShareSearchCounters::toStats() const noexcept {
 }
 
 ShareDirectory::Ptr ShareTree::findDirectoryUnsafe(const string& aRealPath, StringList& remainingTokens_) const noexcept {
-	auto mi = find_if(rootPaths | views::values, ShareDirectory::RootIsParentOrExact(aRealPath)).base();
-	if (mi == rootPaths.end()) {
+	auto curDir = parseRootUnsafe(aRealPath);
+	if (!curDir) {
 		return nullptr;
 	}
 
-	auto curDir = mi->second;
-
-	remainingTokens_ = StringTokenizer<string>(aRealPath.substr(mi->first.length()), PATH_SEPARATOR).getTokens();
+	remainingTokens_ = StringTokenizer<string>(aRealPath.substr(curDir->getRealPathUnsafe().length()), PATH_SEPARATOR).getTokens();
 
 	bool hasMissingToken = false;
 	std::erase_if(remainingTokens_, [&](const string& currentName) {
@@ -831,7 +846,7 @@ ShareDirectory::Ptr ShareTree::ensureDirectoryUnsafe(const string& aRealPath) no
 	// Tokens should have been validated earlier
 	for (const auto& curName: tokens) {
 		curDir->updateModifyDate();
-		curDir = ShareDirectory::createNormal(DualString(curName), curDir, File::getLastModified(curDir->getRealPathUnsafe()), *this);
+		curDir = ShareDirectory::createNormal(DualString(curName), curDir.get(), File::getLastModified(curDir->getRealPathUnsafe()), *this);
 	}
 
 	return curDir;
@@ -915,8 +930,14 @@ void ShareTree::testDualString() {
 	}
 
 	{
-		auto character = _T("\u00D6"); // �
+		auto character = _T("\u00D6"); // Ö
 		DualString d2(Text::wideToUtf8(character));
+		dcassert(d2.getNormal() != d2.getLower());
+	}
+
+	{
+		auto character = Text::wideToUtf8(L"I\u0307"); // Capital i with a dot
+		DualString d2(character);
 		dcassert(d2.getNormal() != d2.getLower());
 	}
 }

@@ -41,10 +41,11 @@ namespace dcpp {
 
 	class MessageCache {
 	public:
+		using HighlightList = map<MessageHighlightToken, MessageHighlightPtr>;
 
 		using ChatMessageFilterF = std::function<bool (const ChatMessagePtr &)>;
 
-		explicit MessageCache(SettingsManager::IntSetting aSetting) noexcept : setting(aSetting) { }
+		explicit MessageCache(SettingsManager::IntSetting aSetting) noexcept;
 		MessageCache(const MessageCache& aCache) noexcept;
 
 		template<class T>
@@ -56,6 +57,8 @@ namespace dcpp {
 		const MessageList& getMessagesUnsafe() const noexcept {
 			return messages;
 		}
+
+		HighlightList getHighlights() const noexcept;
 
 		LogMessageList getLogMessages() const noexcept;
 		ChatMessageList getChatMessages() const noexcept;
@@ -75,7 +78,7 @@ namespace dcpp {
 
 		SettingsManager::IntSetting setting;
 		MessageList messages;
-		map<MessageHighlightToken, MessageHighlightPtr> highlights;
+		HighlightList highlights;
 
 		mutable SharedMutex cs;
 	};

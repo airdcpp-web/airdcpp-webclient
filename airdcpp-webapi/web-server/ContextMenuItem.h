@@ -56,8 +56,13 @@ struct ContextMenuItemClickData {
 
 class ContextMenuItem {
 public:
-	ContextMenuItem(const string& aId, const string& aTitle, const StringMap& aIconInfo, const ActionHookSubscriber& aHook, const StringList& aUrls, const ExtensionSettingItem::List& aFormFieldDefinitions) :
-		id(aId), title(aTitle), iconInfo(aIconInfo), hook(aHook), urls(aUrls), formFieldDefinitions(aFormFieldDefinitions) {
+	typedef vector<std::shared_ptr<ContextMenuItem>> List;
+
+	ContextMenuItem(
+		const string& aId, const string& aTitle, const StringMap& aIconInfo, const ActionHookSubscriber& aHook, 
+		const StringList& aUrls, const ExtensionSettingItem::List& aFormFieldDefinitions, const ContextMenuItem::List& aChildren
+	) :
+		id(aId), title(aTitle), iconInfo(aIconInfo), hook(aHook), urls(aUrls), formFieldDefinitions(aFormFieldDefinitions), children(aChildren) {
 
 	}
 
@@ -67,6 +72,8 @@ public:
 	GETSET(ActionHookSubscriber, hook, Hook);
 	GETSET(StringList, urls, Urls);
 	GETSET(ExtensionSettingItem::List, formFieldDefinitions, FormFieldDefinitions);
+
+	GETSET(List, children, Children);
 };
 
 class GroupedContextMenuItem {

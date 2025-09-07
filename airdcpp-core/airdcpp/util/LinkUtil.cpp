@@ -28,7 +28,8 @@ namespace dcpp {
 boost::regex LinkUtil::urlReg = boost::regex(LinkUtil::getUrlReg());
 
 const string LinkUtil::getUrlReg() noexcept {
-	return R"(((?:[a-z][\w-]{0,10})?:/{1,3}|www\d{0,3}[.]|magnet:\?[^\s=]+=|spotify:|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))";
+	// Keep the protocol section lower case only to avoid false positives (e.g. client tags being formatted as links)
+	return R"(((?:(?:[a-z][a-z0-9+.-]*):/{1,3}|(?:[a-z][a-z0-9+.-]*):|www\d{0,3}[.]|magnet:\?[^\s=]+=|[A-Za-z0-9.\-]+[.][A-Za-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`()\[\]{};:'\".,<>?«»“”‘’]))|(?:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}))";
 }
 
 bool LinkUtil::isAdcHub(const string& aHubUrl) noexcept {
@@ -50,6 +51,43 @@ bool LinkUtil::isHubLink(const string& aHubUrl) noexcept {
 
 void LinkUtil::sanitizeUrl(string& url) noexcept {
 	boost::algorithm::trim_if(url, boost::is_space() || boost::is_any_of("<>\""));
+}
+
+string LinkUtil::parseLink(const string& aLink) noexcept {
+
+	// hasScheme: ^[A-Za-z][A-Za-z0-9+.-]*:  OR protocol-relative: ^//
+	const boost::regex reHasScheme(R"(^[A-Za-z][A-Za-z0-9+\-.]*:)", boost::regex::perl);
+	const boost::regex reProtoRelative(R"(^//)", boost::regex::perl);
+	// isEmail: very simple and safe variation
+	const boost::regex reEmail(R"(^[^\s@]+@[^\s@]+\.[^\s@]+$)", boost::regex::perl);
+	// isUnsafeScheme: javascript: | data: | vbscript:
+	const boost::regex reUnsafe(R"(^(?:javascript|data|vbscript):)", boost::regex::perl | boost::regex::icase);
+
+	if (!aLink.empty()) {
+		const bool hasScheme = boost::regex_search(aLink, reHasScheme) || boost::regex_search(aLink, reProtoRelative);
+
+		if (hasScheme) {
+			// Block unsafe schemes
+			if (boost::regex_search(aLink, reUnsafe)) {
+				return Util::emptyString; // ignore click
+			}
+			// Expand protocol-relative for ShellExecute compatibility
+			if (boost::regex_search(aLink, reProtoRelative)) {
+				return "http:" + aLink;
+			}
+		}
+		else {
+			// Email without scheme -> mailto:
+			if (boost::regex_match(aLink, reEmail)) {
+				return "mailto:" + aLink;
+			} else {
+				// Fallback to HTTPS for bare hosts/domains
+				return "http://" + aLink;
+			}
+		}
+	}
+
+	return aLink;
 }
 
 

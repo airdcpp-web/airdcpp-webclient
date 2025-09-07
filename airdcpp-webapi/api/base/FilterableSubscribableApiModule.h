@@ -81,7 +81,7 @@ namespace webserver {
 		api_return handleSubscribe(ApiRequest& aRequest) override {
 			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 			if (hasEntitySubscribers(subscription)) {
-				throw RequestException(websocketpp::http::status_code::conflict, "Global listener can't be added while ID-specific subscriptions are active");
+				throw RequestException(http_status::conflict, "Global listener can't be added while ID-specific subscriptions are active");
 			}
 
 			return BaseType::handleSubscribe(aRequest);
@@ -89,12 +89,12 @@ namespace webserver {
 
 		const string& parseFilterableSubscription(ApiRequest& aRequest) {
 			if (!BaseType::getSocket()) {
-				throw RequestException(websocketpp::http::status_code::precondition_required, "Socket required");
+				throw RequestException(http_status::precondition_required, "Socket required");
 			}
 
 			const auto& subscription = aRequest.getStringParam(LISTENER_PARAM_ID);
 			if (!filterableSubscriptionExists(subscription)) {
-				throw RequestException(websocketpp::http::status_code::not_found, "No such filterable subscription: " + subscription);
+				throw RequestException(http_status::not_found, "No such filterable subscription: " + subscription);
 			}
 
 			return subscription;
@@ -121,11 +121,11 @@ namespace webserver {
 			const auto entityId = parseEntityIdParam(aRequest);
 
 			if (BaseType::subscriptionActive(subscription)) {
-				throw RequestException(websocketpp::http::status_code::conflict, "ID-specific subscription can't be added while the listener is globally active");
+				throw RequestException(http_status::conflict, "ID-specific subscription can't be added while the listener is globally active");
 			}
 
 			subscribeEntity(subscription, entityId);
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		bool subscribeEntity(const string& aSubscription, const IdType& aEntityId) {
@@ -154,7 +154,7 @@ namespace webserver {
 			auto entityId = parseEntityIdParam(aRequest);
 
 			unsubscribeEntity(subscription, entityId);
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		bool hasEntitySubscribersUnsafe(const string& aSubscription, const IdType& aId) const noexcept {

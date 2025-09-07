@@ -16,14 +16,14 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 
-#ifndef DCPLUSPLUS_DCPP_UPLOAD_SLOT_H
-#define DCPLUSPLUS_DCPP_UPLOAD_SLOT_H
+#ifndef DCPLUSPLUS_DCPP_TRANSFER_SLOT_H
+#define DCPLUSPLUS_DCPP_TRANSFER_SLOT_H
 
 #include <airdcpp/core/header/typedefs.h>
 
 namespace dcpp {
 
-struct UploadSlot {
+struct TransferSlot {
 
 	// Note: the "best" slot type should have the highest number
 	enum Type : uint8_t {
@@ -37,17 +37,17 @@ struct UploadSlot {
 	};
 
 
-	UploadSlot(Type aType, const string& aSource) : type(aType), source(aSource) {}
+	TransferSlot(Type aType, const string& aSource) : type(aType), source(aSource) {}
 
 	Type type;
 	string source;
 
-	static Type toType(const std::optional<UploadSlot>& aSlot) noexcept {
+	static Type toType(const std::optional<TransferSlot>& aSlot) noexcept {
 		return aSlot ? aSlot->type : NOSLOT;
 	}
 };
 
-typedef std::optional<UploadSlot> OptionalUploadSlot;
+typedef std::optional<TransferSlot> OptionalTransferSlot;
 
 }
 

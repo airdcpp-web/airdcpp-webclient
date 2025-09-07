@@ -134,9 +134,10 @@ bool Mapper_MiniUPnPc::init() {
 		device = localIp.empty() ? "Generic" : localIp;
 	}
 
-	if(ret) {
+	freeUPNPDevlist(devices);
+
+	if (ret) {
 		FreeUPNPUrls(&urls);
-		freeUPNPDevlist(devices);
 	}
 
 	return ok;

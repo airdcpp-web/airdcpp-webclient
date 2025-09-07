@@ -39,6 +39,7 @@ struct ShareRefreshStats {
 	size_t skippedDirectoryCount = 0;
 	size_t skippedFileCount = 0;
 
+	bool isEmpty() const noexcept;
 	void merge(const ShareRefreshStats& aOther) noexcept;
 };
 

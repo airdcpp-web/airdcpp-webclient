@@ -224,9 +224,7 @@ bool FavoriteUserManager::hasSlot(const UserPtr& aUser) const noexcept {
 	{
 		RLock l(cs);
 		auto i = users.find(aUser->getCID());
-		if (i == users.end())
-			return false;
-		if (i->second.isSet(FavoriteUser::FLAG_GRANTSLOT)) {
+		if (i != users.end() && i->second.isSet(FavoriteUser::FLAG_GRANTSLOT)) {
 			return true;
 		}
 	}
@@ -362,10 +360,10 @@ ActionHookResult<MessageHighlightList> FavoriteUserManager::onHubMessage(const C
 	return formatFavoriteUsers(aMessage, aResultGetter);
 }
 
-ActionHookResult<OptionalUploadSlot> FavoriteUserManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept {
+ActionHookResult<OptionalTransferSlot> FavoriteUserManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalTransferSlot>& aResultGetter) const noexcept {
 	auto autoGrant = hasSlot(aUserConnection.getHintedUser());
 	if (autoGrant) {
-		return aResultGetter.getData(UploadSlot(UploadSlot::Type::USERSLOT, FAVORITE_USERS_HOOK_ID));
+		return aResultGetter.getData(TransferSlot(TransferSlot::Type::USERSLOT, FAVORITE_USERS_HOOK_ID));
 	}
 
 	return aResultGetter.getData(nullopt);

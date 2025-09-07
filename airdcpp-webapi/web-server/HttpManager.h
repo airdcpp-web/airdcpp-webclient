@@ -53,6 +53,8 @@ namespace webserver {
 
 		void start(const string& aWebResourcePath) noexcept;
 		void stop() noexcept;
+
+		static const int64_t MAX_HTTP_BODY_SIZE = websocketpp::http::max_body_size;
 	private:
 		static api_return handleApiRequest(const HttpRequest& aRequest,
 			json& output_, json& error_, const ApiDeferredHandler& aDeferredHandler) noexcept;
@@ -66,9 +68,32 @@ namespace webserver {
 					session_ = wsm->getUserManager().parseHttpSession(authToken, aIp);
 				} catch (const std::exception& e) {
 					con->set_body(e.what());
-					con->set_status(websocketpp::http::status_code::unauthorized);
+					con->set_status(http_status::unauthorized);
 					return false;
 				}
+			}
+
+			return true;
+		}
+
+		template <typename ConnType>
+		bool setHttpResponse(const ConnType& con, http_status aStatus, const string& aOutput) {
+			// The maximum HTTP response body is currently capped to 32 MB
+			// https://github.com/zaphoyd/websocketpp/issues/1009
+			if (aOutput.length() > MAX_HTTP_BODY_SIZE) {
+				con->set_status(http_status::internal_server_error);
+				con->set_body("The response size is larger than " + Util::toString(MAX_HTTP_BODY_SIZE) + " bytes");
+				return false;
+			}
+
+			con->set_status(aStatus /*, aOutput*/); //  https://github.com/zaphoyd/websocketpp/issues/1177
+			try {
+				con->set_body(aOutput);
+			} catch (const std::exception&) {
+				// Shouldn't really happen
+				con->set_status(http_status::internal_server_error);
+				con->set_body("Failed to set response body");
+				return false;
 			}
 
 			return true;
@@ -79,7 +104,7 @@ namespace webserver {
 			wsm->onData(aRequest.path + ": " + aRequest.httpRequest.get_body(), TransportType::TYPE_HTTP_API, Direction::INCOMING, aRequest.ip);
 
 			// Don't capture aRequest in here (it can't be used for async actions)
-			auto responseF = [this, s, con, ip = aRequest.ip](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+			auto responseF = [this, s, con, ip = aRequest.ip](http_status aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
 				string data;
 				const auto& responseJson = !aResponseErrorJson.is_null() ? aResponseErrorJson : aResponseJsonData;
 				if (!responseJson.is_null()) {
@@ -89,17 +114,16 @@ namespace webserver {
 						WebServerManager::logDebugError(s, "Failed to convert data to JSON: " + string(e.what()), websocketpp::log::elevel::fatal);
 
 						con->set_body("Failed to convert data to JSON: " + string(e.what()));
-						con->set_status(websocketpp::http::status_code::internal_server_error);
+						con->set_status(http_status::internal_server_error);
 						return;
 					}
 				}
 
 				wsm->onData(con->get_resource() + " (" + Util::toString(aStatus) + "): " + data, TransportType::TYPE_HTTP_API, Direction::OUTGOING, ip);
 
-				con->set_body(data);
-				con->append_header("Content-Type", "application/json");
-				con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
-				con->set_status(aStatus);
+				if (setHttpResponse(con, aStatus, data)) {
+					con->append_header("Content-Type", "application/json");
+				}
 			};
 
 
@@ -108,7 +132,7 @@ namespace webserver {
 				con->defer_http_response();
 				isDeferred = true;
 
-				return [con, cb = std::move(responseF)](websocketpp::http::status_code::value aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
+				return [con, cb = std::move(responseF)](http_status aStatus, const json& aResponseJsonData, const json& aResponseErrorJson) {
 					cb(aStatus, aResponseJsonData, aResponseErrorJson);
 					con->send_http_response();
 				};
@@ -135,7 +159,7 @@ namespace webserver {
 			std::string output;
 
 			// Don't capture aRequest in here (it can't be used for async actions)
-			auto responseF = [this, con, ip = aRequest.ip](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders = StringPairList()) {
+			auto responseF = [this, con, ip = aRequest.ip](http_status aStatus, const string& aOutput, const StringPairList& aHeaders = StringPairList()) {
 				wsm->onData(
 					con->get_request().get_method() + " " + con->get_resource() + ": " + Util::toString(aStatus) + " (" + Util::formatBytes(aOutput.length()) + ")",
 					TransportType::TYPE_HTTP_FILE,
@@ -143,20 +167,14 @@ namespace webserver {
 					ip
 				);
 
-				con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
-
-				if (HttpUtil::isStatusOk(aStatus)) {
+				auto responseOk = setHttpResponse(con, aStatus, aOutput);
+				if (responseOk && HttpUtil::isStatusOk(aStatus)) {
 					// Don't set any incomplete/invalid headers in case of errors...
 					for (const auto& [name, value] : aHeaders) {
 						con->append_header(name, value);
 					}
-
-					con->set_status(aStatus);
-					con->set_body(aOutput);
-				} else {
-					con->set_status(aStatus, aOutput);
-					con->set_body(aOutput);
 				}
+
 			};
 
 			bool isDeferred = false;
@@ -164,7 +182,7 @@ namespace webserver {
 				con->defer_http_response();
 				isDeferred = true;
 
-				return [cb = std::move(responseF), con](websocketpp::http::status_code::value aStatus, const string& aOutput, const StringPairList& aHeaders) {
+				return [cb = std::move(responseF), con](http_status aStatus, const string& aOutput, const StringPairList& aHeaders) {
 					cb(aStatus, aOutput, aHeaders);
 					con->send_http_response();
 				};
@@ -181,6 +199,8 @@ namespace webserver {
 			// Blocking HTTP Handler
 			auto con = s->get_con_from_hdl(hdl);
 			auto ip = con->get_raw_socket().remote_endpoint().address().to_string();
+
+			con->append_header("Connection", "close"); // Workaround for https://github.com/zaphoyd/websocketpp/issues/890
 
 			// We also have public resources (such as UI resources and auth endpoints) 
 			// so session isn't required at this point

@@ -17,7 +17,8 @@
  */
 
 #include "stdinc.h"
-#include <airdcpp/transfer/upload/UploadQueueManager.h>
+
+#include "UploadQueueManager.h"
 
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/events/LogManager.h>
@@ -26,6 +27,13 @@
 
 
 namespace dcpp {
+
+IncrementingIdCounter<UploadQueueItemToken> UploadQueueItem::idCounter;
+
+UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
+	pos(_pos), token(idCounter.next()), user(_user), file(_file), size(_size), time(GET_TIME()) {
+}
+
 
 using ranges::find_if;
 
@@ -39,30 +47,23 @@ UploadQueueManager::~UploadQueueManager() {
 	ClientManager::getInstance()->removeListener(this);
 	{
 		WLock l(cs);
-		for (const auto& ii: uploadQueue) {
-			for (const auto& f: ii.files) {
-				f->dec();
-			}
-		}
-
 		uploadQueue.clear();
 	}
 }
 
-UploadQueueItem::UploadQueueItem(const HintedUser& _user, const string& _file, int64_t _pos, int64_t _size) :
-	pos(_pos), user(_user), file(_file), size(_size), time(GET_TIME()) {
-
-	inc();
+UserConnectResult UploadQueueManager::connectUser(const HintedUser& aUser, const string& aToken) noexcept {
+	return ClientManager::getInstance()->connect(aUser, aToken, true);
 }
 
-void UploadQueueManager::connectUser(const HintedUser& aUser, const string& aToken) noexcept {
-	// TODO: report errors?
-	ClientManager::getInstance()->connect(aUser, aToken, true);
-}
+optional<UserConnectResult> UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
+	if (!aUser.user->isOnline()) {
+		return nullopt;
+	}
 
-void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
 	bool connect = false;
 	string token;
+
+	optional<UserConnectResult> result;
 
 	// find user in upload queue to connect with correct token
 	{
@@ -75,8 +76,10 @@ void UploadQueueManager::connectUser(const HintedUser& aUser) noexcept {
 	}
 
 	if (connect) {
-		connectUser(aUser, token);
+		result = connectUser(aUser, token);
 	}
+
+	return result;
 }
 
 size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const string& aFile, int64_t aPos, int64_t aSize) noexcept {
@@ -93,7 +96,7 @@ size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const 
 		}
 	}
 
-	auto uqi = new UploadQueueItem(aSource.getHintedUser(), aFile, aPos, aSize);
+	auto uqi = std::make_shared<UploadQueueItem>(aSource.getHintedUser(), aFile, aPos, aSize);
 	if (it == uploadQueue.end()) {
 		++queue_position;
 
@@ -111,12 +114,11 @@ size_t UploadQueueManager::addFailedUpload(const UserConnection& aSource, const 
 void UploadQueueManager::clearUserFilesUnsafe(const UserPtr& aUser) noexcept {
 	auto it = ranges::find_if(uploadQueue, [&](const UserPtr& u) { return u == aUser; });
 	if (it != uploadQueue.end()) {
-		for (const auto f: it->files) {
+		for (const auto& f: it->files) {
 			fire(UploadQueueManagerListener::QueueItemRemove(), f);
-			f->dec();
 		}
 		uploadQueue.erase(it);
-		fire(UploadQueueManagerListener::QueueRemove(), aUser);
+		fire(UploadQueueManagerListener::QueueUserRemove(), aUser);
 	}
 }
 

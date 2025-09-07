@@ -36,6 +36,10 @@ namespace webserver {
 		return handleHookAction(aRequest, true);
 	}
 
+	void HookActionHandler::reportError(const string& aError, SubscribableApiModule* aModule) noexcept {
+		aModule->getSession()->reportError(aError);
+	}
+
 
 	HookCompletionDataPtr HookActionHandler::runHook(const string& aSubscription, int aTimeoutSeconds, const json& aJson, SubscribableApiModule* aModule) {
 #ifdef _DEBUG
@@ -72,7 +76,7 @@ namespace webserver {
 		}
 
 		if (!completionData) {
-			aModule->getSession()->reportError("Action " + aSubscription + " timed out for subscriber " + aModule->getSession()->getUser()->getUserName() + "\n");
+			reportError("Action " + aSubscription + " timed out for subscriber " + aModule->getSession()->getUser()->getUserName(), aModule);
 			dcdebug("Action %s (id %d) timed out\n", aSubscription.c_str(), id);
 #ifdef _DEBUG
 		} else {
@@ -112,13 +116,13 @@ namespace webserver {
 		auto h = pendingHookActions.find(id);
 		if (h == pendingHookActions.end()) {
 			aRequest.setResponseErrorStr("No pending hook with ID " + std::to_string(id) + " (did the hook time out?)");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
 		auto& action = h->second;
 		action.completionData = std::make_shared<HookCompletionData>(aRejected, aRequest.getRequestBody());
 		action.semaphore.signal();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	HookCompletionData::HookCompletionData(bool aRejected, const json& aJson) : rejected(aRejected) {

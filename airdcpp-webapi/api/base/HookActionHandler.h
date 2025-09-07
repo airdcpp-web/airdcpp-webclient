@@ -27,40 +27,8 @@
 #include <api/base/SubscribableApiModule.h>
 
 namespace webserver {
-	struct HookCompletionData {
-		HookCompletionData(bool aRejected, const json& aJson);
-
-		json resolveJson;
-
-		string rejectId;
-		string rejectMessage;
-		const bool rejected;
-
-		using Ptr = std::shared_ptr<HookCompletionData>;
-
-		template<typename DataT>
-		using HookDataGetter = std::function<DataT(const json& aDataJson, const ActionHookResultGetter<DataT>& aResultGetter)>;
-
-		template <typename DataT = nullptr_t>
-		static ActionHookResult<DataT> toResult(const HookCompletionData::Ptr& aData, const ActionHookResultGetter<DataT>& aResultGetter, const HookDataGetter<DataT>& aDataGetter = nullptr) noexcept {
-			if (aData) {
-				if (aData->rejected) {
-					return aResultGetter.getRejection(aData->rejectId, aData->rejectMessage);
-				} else if (aDataGetter) {
-					try {
-						const auto data = aResultGetter.getData(aDataGetter(aData->resolveJson, aResultGetter));
-						return data;
-					} catch (const std::exception& e) {
-						dcdebug("Failed to deserialize hook data for subscriber %s: %s\n", aResultGetter.getSubscriber().getId().c_str(), e.what());
-						return aResultGetter.getDataRejection(e);
-					}
-				}
-			}
-
-			return { nullptr, nullptr };
-		}
-	};
-	using HookCompletionDataPtr = HookCompletionData::Ptr;
+	struct HookCompletionData;
+	using HookCompletionDataPtr = std::shared_ptr<HookCompletionData>;
 
 	class HookActionHandler {
 	public:
@@ -69,6 +37,8 @@ namespace webserver {
 
 		api_return handleResolveHookAction(ApiRequest& aRequest);
 		api_return handleRejectHookAction(ApiRequest& aRequest);
+
+		static void reportError(const string& aError, SubscribableApiModule* aModule) noexcept;
 	private:
 		api_return handleHookAction(ApiRequest& aRequest, bool aRejected);
 		mutable SharedMutex cs;
@@ -84,6 +54,43 @@ namespace webserver {
 		static IncrementingIdCounter<int> hookIdCounter;
 	};
 
+	class HookActionHandler;
+	struct HookCompletionData {
+		HookCompletionData(bool aRejected, const json& aJson);
+
+		json resolveJson;
+
+		string rejectId;
+		string rejectMessage;
+		const bool rejected;
+
+		template<typename DataT>
+		using HookDataGetter = std::function<DataT(const json& aDataJson, const ActionHookResultGetter<DataT>& aResultGetter)>;
+
+		template <typename DataT = nullptr_t>
+		static ActionHookResult<DataT> toResult(const HookCompletionDataPtr& aData, const ActionHookResultGetter<DataT>& aResultGetter, SubscribableApiModule* aModule, const HookDataGetter<DataT>& aDataGetter = nullptr) noexcept {
+			if (aData) {
+				if (aData->rejected) {
+					return aResultGetter.getRejection(aData->rejectId, aData->rejectMessage);
+				} else if (aDataGetter) {
+					try {
+						const auto data = aResultGetter.getData(aDataGetter(aData->resolveJson, aResultGetter));
+						return data;
+					} catch (const ArgumentException& e) {
+						dcdebug("Failed to deserialize hook data for subscriber %s: %s (field %s)\n", aResultGetter.getSubscriber().getId().c_str(), e.what(), e.getField().c_str());
+						HookActionHandler::reportError("Failed to deserialize hook data for subscriber " + aResultGetter.getSubscriber().getId() + ": " + e.what() + " (field \"" + e.getField() + "\")", aModule);
+						return aResultGetter.getDataRejection(e);
+					} catch (const std::exception& e) {
+						dcdebug("Failed to deserialize hook data for subscriber %s: %s\n", aResultGetter.getSubscriber().getId().c_str(), e.what());
+						HookActionHandler::reportError("Failed to deserialize hook data for subscriber " + aResultGetter.getSubscriber().getId() + ": " + e.what(), aModule);
+						return aResultGetter.getDataRejection(e);
+					}
+				}
+			}
+
+			return { nullptr, nullptr };
+		}
+	};
 }
 
 #endif

@@ -35,7 +35,7 @@ bool ShareValidatorException::isReportableError(ShareValidatorErrorType aType) n
 	return aType == TYPE_CONFIG_ADJUSTABLE || aType == TYPE_HOOK;
 }
 
-SharePathValidator::SharePathValidator() {
+SharePathValidator::SharePathValidator(RootPointParser&& aRootPointParser) : rootPointParser(std::move(aRootPointParser)) {
 #ifdef _WIN32
 	// don't share Windows directory
 	TCHAR path[MAX_PATH];
@@ -112,11 +112,12 @@ void SharePathValidator::setExcludedPaths(const StringSet& aPaths) noexcept {
 	excludedPaths = aPaths;
 }
 
-void SharePathValidator::addExcludedPath(const string& aPath, const StringList& aRootPaths) {
+void SharePathValidator::addExcludedPath(const string& aPath) {
 
 	{
 		// Make sure this is a sub folder of a shared folder
-		if (ranges::none_of(aRootPaths, [&aPath](const string& aRootPath) { return PathUtil::isSubLocal(aPath, aRootPath); })) {
+		auto rootPath = rootPointParser(aPath);
+		if (rootPath.empty() || Util::stricmp(aPath, rootPath) == 0) {
 			throw ShareException(STRING(PATH_NOT_SHARED));
 		}
 	}
@@ -191,8 +192,17 @@ void SharePathValidator::validateHooked(const FileItemInfoBase& aFileItem, const
 		throw ShareValidatorException("File is hidden", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
 	}
 
-	if (!SETTING(SHARE_FOLLOW_SYMLINKS) && aFileItem.isLink()) {
-		throw ShareValidatorException("File is a symbolic link", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
+	if (aFileItem.isLink()) {
+		if (!SETTING(SHARE_FOLLOW_SYMLINKS)) {
+			throw ShareValidatorException("File is a symbolic link", ShareValidatorErrorType::TYPE_CONFIG_BOOLEAN);
+		}
+
+		// Linux only as Windows can't follow symlinks by using the linked path
+		auto linkTargetPath = File(aPath, File::READ, File::OPEN).getRealPath();
+		auto rootPath = rootPointParser(linkTargetPath);
+		if (!rootPath.empty()) {
+			throw ShareValidatorException("Symlinks pointing to a shared directory are not supported", ShareValidatorErrorType::TYPE_CONFIG_ADJUSTABLE);
+		}
 	}
 
 	if (aFileItem.isDirectory()) {

@@ -34,23 +34,23 @@ DualString::DualString(const string& aStr) : str(dcpp::Text::toLower(aStr)) {
 // Set possible uppercase characters
 void DualString::init(const string& aNormalStr) noexcept {
 	int arrayPos = 0, bitPos = 0;
-	auto a = aNormalStr.c_str();
-	auto b = str.c_str();
-	while (*a) {
-		wchar_t ca = 0, cb = 0;
-		int na = dcpp::Text::utf8ToWc(a, ca);
-		int nb = dcpp::Text::utf8ToWc(b, cb);
-		if (ca != cb) {
+	auto iNormal = aNormalStr.c_str();
+	auto iLower = str.c_str();
+	while (*iLower) {
+		wchar_t cNormal = 0, cLower = 0;
+		int nNormal = dcpp::Text::utf8ToWc(iNormal, cNormal);
+		int nLower = dcpp::Text::utf8ToWc(iLower, cLower);
+		if (cNormal != cLower) {
 			if (!charSizes) {
 				initSizeArray(aNormalStr.size());
 			}
 			charSizes.get()[arrayPos] |= (1 << bitPos);
 		}
 
-		a += abs(na);
-		b += abs(nb);
+		iNormal += abs(nNormal);
+		iLower += abs(nLower);
 
-		bitPos += abs(na);
+		bitPos += abs(nLower);
 
 		// move to the next array?
 		if (bitPos >= static_cast<int>(ARRAY_BITS)) {
@@ -87,20 +87,22 @@ string DualString::getNormal() const noexcept {
 
 	int bitPos = 0, arrayPos = 0;
 	const char* end = &str.c_str()[0] + str.size();
-	for (const char* p = &str.c_str()[0]; p < end;) {
+	for (const char* iLower = &str.c_str()[0]; iLower < end;) {
 		if (charSizes.get()[arrayPos] & (1 << bitPos)) {
-			wchar_t c = 0;
-			int n = dcpp::Text::utf8ToWc(p, c);
+			wchar_t cLower = 0;
+			int nLower = dcpp::Text::utf8ToWc(iLower, cLower);
 
-			dcpp::Text::wcToUtf8(dcpp::Text::toUpper(c), ret);
+			auto cUpper = dcpp::Text::toUpper(cLower);
+			dcpp::Text::wcToUtf8(cUpper, ret);
 
-			bitPos += n;
-			p += n;
+			bitPos += abs(nLower);
+			iLower += abs(nLower);
 		} else {
-			ret += p[0];
+			ret += iLower[0];
 			bitPos++;
-			p++;
+			iLower++;
 		}
+
 
 		if (bitPos >= static_cast<int>(ARRAY_BITS)) {
 			bitPos = 0 + bitPos-ARRAY_BITS;

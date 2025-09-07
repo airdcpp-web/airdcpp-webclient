@@ -106,7 +106,6 @@ namespace dcpp {
 
 		std::erase_if(floodIps, [this, tick](const auto& ipTimePair) {
 			if (static_cast<uint64_t>(ipTimePair.second + (floodPeriod * 1000)) < tick) {
-				dcdebug("Removing an expired flood attempt from IP %s\n", ipTimePair.first.c_str());
 				return true;
 			}
 

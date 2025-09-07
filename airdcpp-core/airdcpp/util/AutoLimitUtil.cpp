@@ -47,9 +47,23 @@ TimeCounter::~TimeCounter() {
 
 namespace dcpp {
 
-int AutoLimitUtil::getSlotsPerUser(bool download, double value, int aSlots, SettingsManager::SettingProfile aProfile) {
-	if (!SETTING(MCN_AUTODETECT) && value == 0) {
-		return download ? SETTING(MAX_MCN_DOWNLOADS) : SETTING(MAX_MCN_UPLOADS);
+
+double AutoLimitUtil::getConnectionSpeedMbps(bool aIsDownload, double aOverrideConnectionSpeedMbps) noexcept {
+	double speed;
+	if (aOverrideConnectionSpeedMbps != 0) {
+		return aOverrideConnectionSpeedMbps;
+	} else if (aIsDownload) {
+		int limit = SETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getDownLimit() : 0;
+		return limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(DOWNLOAD_SPEED));
+	} else {
+		int limit = SETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getUpLimit() : 0;
+		return limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(UPLOAD_SPEED));
+	}
+}
+
+int AutoLimitUtil::getSlotsPerUser(bool aIsDownload, double aOverrideConnectionSpeedMbps, int aSlots, SettingsManager::SettingProfile aProfile) {
+	if (!SETTING(MCN_AUTODETECT) && aOverrideConnectionSpeedMbps == 0) {
+		return aIsDownload ? SETTING(MAX_MCN_DOWNLOADS) : SETTING(MAX_MCN_UPLOADS);
 	}
 
 	if (aProfile == SettingsManager::PROFILE_LAN) {
@@ -58,11 +72,9 @@ int AutoLimitUtil::getSlotsPerUser(bool download, double value, int aSlots, Sett
 
 	int totalSlots = aSlots;
 	if (aSlots ==0)
-		totalSlots = getSlots(download ? true : false);
+		totalSlots = getSlots(aIsDownload ? true : false);
 
-	double speed = value;
-	if (value == 0)
-		speed = download ? Util::toDouble(SETTING(DOWNLOAD_SPEED)) : Util::toDouble(SETTING(UPLOAD_SPEED));
+	auto speed = getConnectionSpeedMbps(aIsDownload, aOverrideConnectionSpeedMbps);
 
 	//LogManager::getInstance()->message("Slots: " + Util::toString(slots));
 
@@ -88,25 +100,18 @@ int AutoLimitUtil::getSlotsPerUser(bool download, double value, int aSlots, Sett
 }
 
 
-int AutoLimitUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::SettingProfile aProfile) {
-	if (!SETTING(DL_AUTODETECT) && aValue == 0 && aIsDownload) {
-		//LogManager::getInstance()->message("Slots1");
-		return SETTING(DOWNLOAD_SLOTS);
-	} else if (!SETTING(UL_AUTODETECT) && aValue == 0 && !aIsDownload) {
-		//LogManager::getInstance()->message("Slots2");
-		return SETTING(UPLOAD_SLOTS);
+int AutoLimitUtil::getSlots(bool aIsDownload, double aOverrideConnectionSpeedMbps, SettingsManager::SettingProfile aProfile) {
+	if (aOverrideConnectionSpeedMbps == 0) {
+		if (!SETTING(DL_AUTODETECT) && aIsDownload) {
+			//LogManager::getInstance()->message("Slots1");
+			return SETTING(DOWNLOAD_SLOTS);
+		} else if (!SETTING(UL_AUTODETECT) && !aIsDownload) {
+			//LogManager::getInstance()->message("Slots2");
+			return SETTING(UPLOAD_SLOTS);
+		}
 	}
 
-	double speed;
-	if (aValue != 0) {
-		speed = aValue;
-	} else if (aIsDownload) {
-		int limit = SETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getDownLimit() : 0;
-		speed = limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(DOWNLOAD_SPEED));
-	} else {
-		int limit = SETTING(AUTO_DETECTION_USE_LIMITED) ? ThrottleManager::getInstance()->getUpLimit() : 0;
-		speed = limit > 0 ? (limit * 8.00) / 1024.00 : Util::toDouble(SETTING(UPLOAD_SPEED));
-	}
+	auto speed = getConnectionSpeedMbps(aIsDownload, aOverrideConnectionSpeedMbps);
 
 	int slots = 3;
 
@@ -180,43 +185,41 @@ int AutoLimitUtil::getSlots(bool aIsDownload, double aValue, SettingsManager::Se
 
 }
 
-int AutoLimitUtil::getSpeedLimitKbps(bool download, double value) {
-
-	if (!SETTING(DL_AUTODETECT) && value == 0 && download) {
-		//LogManager::getInstance()->message("Slots1");
-		return SETTING(MAX_DOWNLOAD_SPEED);
-	} else if (!SETTING(UL_AUTODETECT) && value == 0 && !download) {
-		//LogManager::getInstance()->message("Slots2");
-		return SETTING(MIN_UPLOAD_SPEED);
+int AutoLimitUtil::getSpeedLimitKbps(bool aIsDownload, double aOverrideConnectionSpeedMbps) {
+	if (aOverrideConnectionSpeedMbps == 0) {
+		if (!SETTING(DL_AUTODETECT) && aIsDownload) {
+			//LogManager::getInstance()->message("Slots1");
+			return SETTING(MAX_DOWNLOAD_SPEED);
+		} else if (!SETTING(UL_AUTODETECT) && !aIsDownload) {
+			//LogManager::getInstance()->message("Slots2");
+			return SETTING(MIN_UPLOAD_SPEED);
+		}
 	}
 
-	if (value == 0)
-		value = download ? Util::toDouble(SETTING(DOWNLOAD_SPEED)) : Util::toDouble(SETTING(UPLOAD_SPEED));
-
-	return static_cast<int>(download ? value*105 : value*60);
+	auto connectionSpeed = getConnectionSpeedMbps(aIsDownload, aOverrideConnectionSpeedMbps);
+	return static_cast<int>(aIsDownload ? connectionSpeed * 105 : connectionSpeed * 60);
 }
 
-int AutoLimitUtil::getMaxAutoOpened(double value) {
-	if (!SETTING(UL_AUTODETECT) && value == 0) {
+int AutoLimitUtil::getMaxAutoOpened(double aOverrideConnectionSpeedMbps) {
+	if (!SETTING(UL_AUTODETECT) && aOverrideConnectionSpeedMbps == 0) {
 		return SETTING(AUTO_SLOTS);
 	}
 
-	if (value == 0)
-		value = Util::toDouble(SETTING(UPLOAD_SPEED));
+	auto connectionSpeed = getConnectionSpeedMbps(false, aOverrideConnectionSpeedMbps);
 
 	int slots=1;
 
-	if (value < 1) {
+	if (connectionSpeed < 1) {
 		slots=1;
-	} else if (value >= 1 && value <= 5) {
+	} else if (connectionSpeed >= 1 && connectionSpeed <= 5) {
 		slots=2;
-	}  else if (value > 5 && value <= 20) {
+	}  else if (connectionSpeed > 5 && connectionSpeed <= 20) {
 		slots=3;
-	} else if (value > 20 && value < 100) {
+	} else if (connectionSpeed > 20 && connectionSpeed < 100) {
 		slots=4;
-	} else if (value == 100) {
+	} else if (connectionSpeed == 100) {
 		slots=6;
-	} else if (value >= 100) {
+	} else if (connectionSpeed >= 100) {
 		slots=10;
 	}
 

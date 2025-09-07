@@ -51,17 +51,17 @@ namespace webserver {
 	api_return EventApi::handlePostMessage(ApiRequest& aRequest) {
 		auto messageInput = Deserializer::deserializeStatusMessage(aRequest.getRequestBody());
 		LogManager::getInstance()->message(messageInput.message, messageInput.severity, MessageUtils::parseStatusMessageLabel(aRequest.getSession()));
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return EventApi::handleRead(ApiRequest&) {
 		LogManager::getInstance()->setRead();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return EventApi::handleClearMessages(ApiRequest&) {
 		LogManager::getInstance()->clearCache();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return EventApi::handleGetMessages(ApiRequest& aRequest) {
@@ -72,12 +72,12 @@ namespace webserver {
 		);
 
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return EventApi::handleGetInfo(ApiRequest& aRequest) {
 		aRequest.setResponseBody(MessageUtils::serializeCacheInfo(LogManager::getInstance()->getCache(), MessageUtils::serializeUnreadLog));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	void EventApi::on(LogManagerListener::Message, const LogMessagePtr& aMessageData) noexcept {

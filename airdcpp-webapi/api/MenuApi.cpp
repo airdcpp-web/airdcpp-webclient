@@ -41,6 +41,8 @@
 #include <airdcpp/search/SearchManager.h>
 #include <airdcpp/search/SearchInstance.h>
 
+#define MAX_MENU_NESTING 6
+
 #define MYMACRO(...) __VA_ARGS__
 
 #define CONTEXT_MENU_HANDLER(menuId, hook, hook2, access) \
@@ -273,6 +275,7 @@ namespace webserver {
 			{ "hook_id", aMenuItem->getHook().getId() },
 			{ "urls", aMenuItem->getUrls() },
 			{ "form_definitions", aMenuItem->getFormFieldDefinitions().empty() ? json() : Serializer::serializeList(aMenuItem->getFormFieldDefinitions(), SettingUtils::serializeDefinition) },
+			{ "children", aMenuItem->getChildren().empty() ? json() : Serializer::serializeList(aMenuItem->getChildren(), serializeMenuItem) }
 		};
 	}
 
@@ -314,13 +317,25 @@ namespace webserver {
 		return iconInfo;
 	}
 
-	ContextMenuItemPtr MenuApi::toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter) {
+	ContextMenuItemPtr MenuApi::toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter, int aLevel) {
 		const auto id = JsonUtil::getField<string>("id", aData, false);
 		const auto title = JsonUtil::getField<string>("title", aData, false);
 		const auto iconInfo = deserializeIconInfo(JsonUtil::getOptionalRawField("icon", aData, false));
 		const auto urls = JsonUtil::getOptionalFieldDefault<StringList>("urls", aData, StringList());
 
-		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getSubscriber(), urls, deserializeFormFieldDefinitions(aData));
+		ContextMenuItem::List children;
+		const auto childrenJson = JsonUtil::getOptionalArrayField("children", aData);
+		if (!childrenJson.is_null() && !childrenJson.empty()) {
+			if (aLevel == MAX_MENU_NESTING) {
+				JsonUtil::throwError("children", JsonException::ERROR_INVALID, "Maximum menu level nesting of " + Util::toString(MAX_MENU_NESTING) + " exceeded");
+			}
+
+			for (const auto& menuItem : childrenJson) {
+				children.push_back(toMenuItem(menuItem, aResultGetter, aLevel + 1));
+			}
+		}
+
+		return make_shared<ContextMenuItem>(id, title, iconInfo, aResultGetter.getSubscriber(), urls, deserializeFormFieldDefinitions(aData), children);
 	}
 
 

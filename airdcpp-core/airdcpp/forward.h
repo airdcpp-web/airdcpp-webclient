@@ -23,7 +23,6 @@
  * This file contains forward declarations for the various DC++ classes
  */
 
-#include <boost/intrusive_ptr.hpp>
 #include <stdint.h>
 
 namespace dcpp {
@@ -102,7 +101,7 @@ using DownloadPtr = Download *;
 using DownloadList = std::vector<DownloadPtr>;
 
 class FavoriteHubEntry;
-using FavoriteHubEntryPtr = boost::intrusive_ptr<FavoriteHubEntry>;
+using FavoriteHubEntryPtr = std::shared_ptr<FavoriteHubEntry>;
 using FavoriteHubEntryList = std::vector<FavoriteHubEntryPtr>;
 using FavoriteHubToken = RandomNumericToken;
 
@@ -149,7 +148,7 @@ using LogMessagePtr = std::shared_ptr<LogMessage>;
 using LogMessageList = std::deque<LogMessagePtr>;
 
 class OnlineUser;
-using OnlineUserPtr = boost::intrusive_ptr<OnlineUser>;
+using OnlineUserPtr = std::shared_ptr<OnlineUser>;
 using OnlineUserList = std::vector<OnlineUserPtr>;
 using SID = uint32_t;
 

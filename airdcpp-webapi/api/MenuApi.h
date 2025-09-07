@@ -51,7 +51,7 @@ namespace webserver {
 
 		static StringMap deserializeIconInfo(const json& aJson);
 
-		static ContextMenuItemPtr toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter);
+		static ContextMenuItemPtr toMenuItem(const json& aData, const MenuActionHookResultGetter& aResultGetter, int aLevel = 0);
 		static GroupedContextMenuItemPtr deserializeMenuItems(const json& aData, const MenuActionHookResultGetter& aResultGetter);
 
 		static ExtensionSettingItem::List deserializeFormFieldDefinitions(const json& aJson);
@@ -67,6 +67,7 @@ namespace webserver {
 			return HookCompletionData::toResult<GroupedContextMenuItemPtr>(
 				fireMenuHook(aMenuId, Serializer::serializeList(aSelections, aIdSerializer), aListData, aEntityId),
 				aResultGetter,
+				this,
 				MenuApi::deserializeMenuItems
 			);
 		}
@@ -75,6 +76,7 @@ namespace webserver {
 			return HookCompletionData::toResult<GroupedContextMenuItemPtr>(
 				fireMenuHook(aMenuId, nullptr, aListData, nullptr),
 				aResultGetter,
+				this,
 				MenuApi::deserializeMenuItems
 			);
 		}
@@ -103,7 +105,7 @@ namespace webserver {
 			const auto accessList = aRequest.getSession()->getUser()->getPermissions();
 			const auto clickData = deserializeClickData(aRequest.getRequestBody(), accessList);
 			aHandler(clickData);
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		static ContextMenuItemClickData deserializeClickData(const json& aJson, const AccessList& aPermissions);
@@ -123,7 +125,7 @@ namespace webserver {
 			] {
 				const auto items = aHandlerHooked(ContextMenuItemListData(supports, accessList, ownerPtr));
 				complete(
-					websocketpp::http::status_code::ok,
+					http_status::ok,
 					Serializer::serializeList(items, MenuApi::serializeGroupedMenuItem),
 					nullptr
 				);

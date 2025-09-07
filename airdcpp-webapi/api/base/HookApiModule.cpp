@@ -86,13 +86,13 @@ namespace webserver {
 	
 	HookApiModule::APIHook& HookApiModule::getAPIHook(ApiRequest& aRequest) {
 		if (!SubscribableApiModule::getSocket()) {
-			throw RequestException(websocketpp::http::status_code::precondition_required, "Socket required");
+			throw RequestException(http_status::precondition_required, "Socket required");
 		}
 
 		const auto& hook = aRequest.getStringParam(LISTENER_PARAM_ID);
 		auto i = hooks.find(hook);
 		if (i == hooks.end()) {
-			throw RequestException(websocketpp::http::status_code::not_found, "No such hook: " + hook);
+			throw RequestException(http_status::not_found, "No such hook: " + hook);
 		}
 
 		return i->second;
@@ -110,7 +110,7 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(ret);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	ActionHookSubscriber HookApiModule::deserializeActionHookSubscriber(CallerPtr aOwner, Session* aSession, const json& aJson) {
@@ -126,7 +126,7 @@ namespace webserver {
 		handleSubscribe(aRequest);
 		apiHook.enable(std::move(actionHookSubscriber));
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return HookApiModule::handleUnsubscribeHook(ApiRequest& aRequest) {
@@ -135,7 +135,7 @@ namespace webserver {
 		apiHook.disable(session);
 		handleUnsubscribe(aRequest);
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	HookCompletionDataPtr HookApiModule::maybeFireHook(const string& aSubscription, int aTimeoutSeconds, const JsonCallback& aJsonCallback) {

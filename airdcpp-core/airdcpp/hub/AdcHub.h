@@ -79,7 +79,7 @@ private:
 	friend class Identity;
 
 	/** Map session id to OnlineUser */
-	using SIDMap = unordered_map<dcpp::SID, OnlineUser *>;
+	using SIDMap = unordered_map<dcpp::SID, OnlineUserPtr>;
 
 	void getUserList(OnlineUserList& list, bool aListHidden) const noexcept override;
 
@@ -92,7 +92,7 @@ private:
 	AdcCommand::Error allowConnect(const OnlineUser& aUser, bool aSecure, string& failedProtocol_, bool checkBase) const noexcept;
 	/* Does the same thing but also sends the error to the remote user */
 	bool checkProtocol(const OnlineUser& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken) noexcept;
-	bool validateConnectUser(const OnlineUser* aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken, const string& aRemotePort) noexcept;
+	bool validateConnectUser(const OnlineUserPtr& aUser, bool& secure_, const string& aRemoteProtocol, const string& aToken, const string& aRemotePort) noexcept;
 
 	bool oldPassword = false;
 	SIDMap users;
@@ -107,15 +107,15 @@ private:
 
 	string checkNick(const string& nick) noexcept override;
 
-	OnlineUser& getUser(dcpp::SID aSID, const CID& aCID) noexcept;
-	OnlineUser* findUser(dcpp::SID aSID) const noexcept override;
-	OnlineUser* findUser(const CID& cid) const noexcept;
+	OnlineUserPtr getUser(dcpp::SID aSID, const CID& aCID) noexcept;
+	OnlineUserPtr findUser(dcpp::SID aSID) const noexcept override;
+	OnlineUserPtr findUser(const CID& cid) const noexcept;
 	
 	OnlineUserPtr findUser(const string& aNick) const noexcept override;
 
 	// Returns the user and whether the user had to be created
-	pair<OnlineUser*, bool> parseInfUser(const AdcCommand& c) noexcept;
-	void updateInfUserProperties(OnlineUser* aUser, const StringList& aParams) noexcept;
+	pair<OnlineUserPtr, bool> parseInfUser(const AdcCommand& c) noexcept;
+	void updateInfUserProperties(const OnlineUserPtr& aUser, const StringList& aParams) noexcept;
 	void recalculateConnectModes() noexcept;
 
 	void putUser(dcpp::SID aSID, bool aDisconnectTransfers) noexcept;
@@ -158,7 +158,7 @@ private:
 	void on(BufferedSocketListener::Connected) noexcept override;
 	void on(BufferedSocketListener::Line, const string& aLine) noexcept override;
 
-	void onErrorMessage(const AdcCommand& c, OnlineUser* aSender) noexcept;
+	void onErrorMessage(const AdcCommand& c, const OnlineUserPtr& aSender) noexcept;
 
 	void on(TimerManagerListener::Second, uint64_t aTick) noexcept override;
 

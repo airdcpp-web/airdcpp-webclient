@@ -167,7 +167,6 @@ ClientPtr ClientManager::redirect(const string& aHubUrl, const string& aNewUrl) 
 	oldClient->removeListener(this);
 
 	auto newClient = ClientManager::makeClient(aNewUrl, oldClient);
-	oldClient->clearCache();
 
 	{
 		WLock l(cs);
@@ -256,10 +255,12 @@ OrderedStringSet ClientManager::getHubSet(const CID& aCID) const noexcept {
 StringList ClientManager::getHubNames(const CID& aCID) const noexcept {
 	StringList lst;
 
-	RLock l(cs);
-	auto op = onlineUsers.equal_range(const_cast<CID*>(&aCID));
-	for (const auto& ou : op | pair_to_range | views::values) {
-		lst.push_back(ou->getClient()->getHubName());
+	{
+		RLock l(cs);
+		auto op = onlineUsers.equal_range(const_cast<CID*>(&aCID));
+		for (const auto& ou : op | pair_to_range | views::values) {
+			lst.push_back(ou->getClient()->getHubName());
+		}
 	}
 
 	sort(lst.begin(), lst.end());
@@ -269,7 +270,7 @@ StringList ClientManager::getHubNames(const CID& aCID) const noexcept {
 void ClientManager::putOnline(const OnlineUserPtr& ou) noexcept {
 	{
 		WLock l(cs);
-		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou.get());
+		onlineUsers.emplace(const_cast<CID*>(&ou->getUser()->getCID()), ou);
 	}
 	
 	if (!ou->getUser()->isOnline()) {
@@ -477,7 +478,7 @@ OnlineUserPtr ClientManager::getOnlineUsers(const HintedUser& aUser, OnlineUserL
 	return nullptr;
 }
 
-OnlineUser* ClientManager::findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHintUrl, OnlinePairC& p) const noexcept {
+OnlineUserPtr ClientManager::findOnlineUserHintUnsafe(const CID& aCID, const string_view& aHintUrl, OnlinePairC& p) const noexcept {
 	p = onlineUsers.equal_range(const_cast<CID*>(&aCID));
 	if (p.first == p.second) // no user found with the given CID.
 		return nullptr;
@@ -586,9 +587,9 @@ OnlineUserList ClientManager::searchNicks(const string& aPattern, size_t aMaxRes
 
 
 // CONNECT
-ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType aConnType) const noexcept {
+UserConnectResult ClientManager::connect(const HintedUser& aUser, const string& aToken, bool aAllowUrlChange, ConnectionType aConnType) const noexcept {
 	dcassert(aAllowUrlChange || !aUser.hint.empty());
-	ConnectResult result;
+	UserConnectResult result;
 
 	auto connectUser = [&] (const OnlineUserPtr& ou) {
 		result.resetError();
@@ -610,6 +611,8 @@ ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, con
 			result.onProtocolError(STRING(NO_NATT_SUPPORT));
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
 			result.onProtocolError(STRING(UNABLE_CONNECT_USER));
+		} else {
+			result.onMinorError(STRING_F(ERROR_CODE_X, STRING(UNKNOWN_ERROR) % ret));
 		}
 
 		return false;
@@ -631,10 +634,11 @@ ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, con
 	OnlineUserList otherHubUsers;
 
 	{
-		auto ou = getOnlineUsers(aUser, otherHubUsers);
-
 		// Prefer the hinted hub
-		if (ou && connectUser(ou)) {
+		auto ou = getOnlineUsers(aUser, otherHubUsers);
+		if (!ou) {
+			result.onMinorError(STRING(USER_OFFLINE));
+		} else if (connectUser(ou)) {
 			result.onSuccess(aUser.hint);
 			return result;
 		}
@@ -642,7 +646,6 @@ ClientManager::ConnectResult ClientManager::connect(const HintedUser& aUser, con
 
 	// Offline in the hinted hub
 	if (!aAllowUrlChange) {
-		result.onMinorError(STRING(USER_OFFLINE));
 		return result;
 	}
 
@@ -951,7 +954,7 @@ optional<ClientManager::ClientStats> ClientManager::getClientStats() const noexc
 	map<string, int> clientNames;
 	{
 		RLock l(cs);
-		map<CID, OnlineUser*> uniqueUserMap;
+		map<CID, OnlineUserPtr> uniqueUserMap;
 		for (const auto& ou : onlineUsers | views::values) {
 			uniqueUserMap.try_emplace(ou->getUser()->getCID(), ou);
 		}

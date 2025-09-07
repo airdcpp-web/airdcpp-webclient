@@ -52,7 +52,7 @@
 #define HOOK_NEW_DIRECTORY_VALIDATION "new_share_directory_validation_hook"
 
 namespace webserver {
-	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SETTINGS_VIEW, Access::SETTINGS_EDIT) {
+	ShareApi::ShareApi(Session* aSession) : HookApiModule(aSession, Access::SHARE_VIEW, Access::SHARE_EDIT) {
 		createSubscriptions({
 			"share_refresh_queued",
 			"share_refresh_started",
@@ -66,34 +66,34 @@ namespace webserver {
 		});
 
 		// Methods
-		METHOD_HANDLER(Access::ANY,				METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("validate_path")),						ShareApi::handleValidatePath);
-		METHOD_HANDLER(Access::ANY,				METHOD_POST,	(EXACT_PARAM("check_path_shared")),					ShareApi::handleIsPathShared);
+		METHOD_HANDLER(Access::ANY,			METHOD_GET,		(EXACT_PARAM("grouped_root_paths")),				ShareApi::handleGetGroupedRootPaths);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("stats")),								ShareApi::handleGetStats);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("find_dupe_paths")),					ShareApi::handleFindDupePaths);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("search")),							ShareApi::handleSearch);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("validate_path")),						ShareApi::handleValidatePath);
+		METHOD_HANDLER(Access::ANY,			METHOD_POST,	(EXACT_PARAM("check_path_shared")),					ShareApi::handleIsPathShared);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real"), EXACT_PARAM("content"), RANGE_START_PARAM, RANGE_MAX_PARAM),	ShareApi::handleGetDirectoryContentByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real")),		ShareApi::handleGetDirectoryByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_POST,	(EXACT_PARAM("files"), EXACT_PARAM("by_real")),				ShareApi::handleGetFileByReal);
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),							ShareApi::handleGetFilesByTTH);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real"), EXACT_PARAM("content"), RANGE_START_PARAM, RANGE_MAX_PARAM),	ShareApi::handleGetDirectoryContentByReal);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("directories"), EXACT_PARAM("by_real")),		ShareApi::handleGetDirectoryByReal);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_POST,	(EXACT_PARAM("files"), EXACT_PARAM("by_real")),				ShareApi::handleGetFileByReal);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("files"), TTH_PARAM),							ShareApi::handleGetFilesByTTH);
 
 
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh")),							ShareApi::handleAbortRefreshShare);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtualPath);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh")),							ShareApi::handleRefreshShare);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh")),							ShareApi::handleAbortRefreshShare);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("paths")),		ShareApi::handleRefreshPaths);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("refresh"), EXACT_PARAM("virtual")),	ShareApi::handleRefreshVirtualPath);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("refresh"), EXACT_PARAM("tasks")),					ShareApi::handleGetRefreshTasks);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh"), EXACT_PARAM("tasks"), TOKEN_PARAM),	ShareApi::handleAbortRefreshTask);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("refresh"), EXACT_PARAM("tasks")),					ShareApi::handleGetRefreshTasks);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("refresh"), EXACT_PARAM("tasks"), TOKEN_PARAM),	ShareApi::handleAbortRefreshTask);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("excludes")),							ShareApi::handleGetExcludes);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("add")),		ShareApi::handleAddExclude);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("excludes"), EXACT_PARAM("remove")),	ShareApi::handleRemoveExclude);
 
-		METHOD_HANDLER(Access::SETTINGS_VIEW,	METHOD_GET,		(EXACT_PARAM("temp_shares")),						ShareApi::handleGetTempShares);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
-		METHOD_HANDLER(Access::SETTINGS_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
+		METHOD_HANDLER(Access::SHARE_VIEW,	METHOD_GET,		(EXACT_PARAM("temp_shares")),						ShareApi::handleGetTempShares);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_POST,	(EXACT_PARAM("temp_shares")),						ShareApi::handleAddTempShare);
+		METHOD_HANDLER(Access::SHARE_EDIT,	METHOD_DELETE,	(EXACT_PARAM("temp_shares"), TOKEN_PARAM),			ShareApi::handleRemoveTempShare);
 
 		// Hooks
 		HOOK_HANDLER(HOOK_FILE_VALIDATION,			ShareManager::getInstance()->getValidator().fileValidationHook,			ShareApi::fileValidationHook);
@@ -103,10 +103,12 @@ namespace webserver {
 
 		// Listeners
 		ShareManager::getInstance()->addListener(this);
+		TempShareManager::getInstance()->addListener(this);
 	}
 
 	ShareApi::~ShareApi() {
 		ShareManager::getInstance()->removeListener(this);
+		TempShareManager::getInstance()->removeListener(this);
 	}
 
 	ActionHookResult<> ShareApi::fileValidationHook(const string& aPath, int64_t aSize, const ActionHookResultGetter<>& aResultGetter) noexcept {
@@ -117,7 +119,8 @@ namespace webserver {
 					{ "size", aSize },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -128,7 +131,8 @@ namespace webserver {
 					{ "path", aPath },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -141,7 +145,8 @@ namespace webserver {
 					{ "new_parent", aNewParent },
 				});
 			}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -153,7 +158,8 @@ namespace webserver {
 					{ "new_parent", aNewParent },
 					});
 				}),
-			aResultGetter
+			aResultGetter,
+			this
 		);
 	}
 
@@ -287,7 +293,7 @@ namespace webserver {
 
 		// Serialize results
 		aRequest.setResponseBody(Serializer::serializeList(results, serializeVirtualItem));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetFilesByTTH(ApiRequest& aRequest) {
@@ -295,7 +301,7 @@ namespace webserver {
 
 		const auto files = ShareManager::getInstance()->findFiles(tth);
 		aRequest.setResponseBody(Serializer::serializeList(files, serializeFile));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetDirectoryContentByReal(ApiRequest& aRequest) {
@@ -317,7 +323,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetFileByReal(ApiRequest& aRequest) {
@@ -328,7 +334,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetDirectoryByReal(ApiRequest& aRequest) {
@@ -339,7 +345,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Path was not found");
 		}
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleAddTempShare(ApiRequest& aRequest) {
@@ -365,7 +371,7 @@ namespace webserver {
 				HashManager::getInstance()->getFileTTH(filePath, size, true, tth, sizeLeft, cancelHashing);
 			} catch (const Exception& e) {
 				aRequest.setResponseErrorStr("Failed to calculate file TTH: " + e.getError());
-				return websocketpp::http::status_code::internal_server_error;
+				return http_status::internal_server_error;
 			}
 		}
 
@@ -377,17 +383,17 @@ namespace webserver {
 			{ "item", !item ? json() : serializeTempShare(*item) }
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleRemoveTempShare(ApiRequest& aRequest) {
 		auto token = aRequest.getTokenParam();
 		if (!TempShareManager::getInstance()->removeTempShare(token)) {
 			aRequest.setResponseErrorStr("Temp share item " + Util::toString(token) + " was not found");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	json ShareApi::serializeTempShare(const TempShareInfo& aInfo) noexcept {
@@ -407,12 +413,12 @@ namespace webserver {
 		const auto tempShares = TempShareManager::getInstance()->getTempShares();
 
 		aRequest.setResponseBody(Serializer::serializeList(tempShares, serializeTempShare));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetExcludes(ApiRequest& aRequest) {
 		aRequest.setResponseBody(ShareManager::getInstance()->getExcludedPaths());
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleAddExclude(ApiRequest& aRequest) {
@@ -422,10 +428,10 @@ namespace webserver {
 			ShareManager::getInstance()->addExcludedPath(path);
 		} catch (const ShareException& e) {
 			aRequest.setResponseErrorStr(e.getError());
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareApi::handleRemoveExclude(ApiRequest& aRequest) {
@@ -434,7 +440,7 @@ namespace webserver {
 			JsonUtil::throwError("path", JsonException::ERROR_INVALID, "Excluded path was not found");
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	void ShareApi::on(ShareManagerListener::ExcludeAdded, const string& aPath) noexcept {
@@ -464,23 +470,23 @@ namespace webserver {
 
 	api_return ShareApi::handleAbortRefreshShare(ApiRequest& aRequest) {
 		ShareManager::getInstance()->abortRefresh();
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareApi::handleGetRefreshTasks(ApiRequest& aRequest) {
 		auto tasks = ShareManager::getInstance()->getRefreshTasks();
 		aRequest.setResponseBody(Serializer::serializeList(tasks, serializeRefreshTask));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleAbortRefreshTask(ApiRequest& aRequest) {
 		const auto token = aRequest.getTokenParam();
 		if (!ShareManager::getInstance()->abortRefresh(token)) {
 			aRequest.setResponseErrorStr("Refresh task " + Util::toString(token) + " was not found");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
-		return websocketpp::http::status_code::no_content;
+		return http_status::no_content;
 	}
 
 	api_return ShareApi::handleRefreshShare(ApiRequest& aRequest) {
@@ -490,7 +496,7 @@ namespace webserver {
 		auto refreshInfo = ShareManager::getInstance()->refresh(incoming ? ShareRefreshType::REFRESH_INCOMING : ShareRefreshType::REFRESH_ALL, priority);
 		aRequest.setResponseBody(serializeRefreshQueueInfo(refreshInfo));
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleRefreshPaths(ApiRequest& aRequest) {
@@ -507,7 +513,7 @@ namespace webserver {
 			};
 
 			if (runPathValidatorF(refreshF, complete)) {
-				complete(websocketpp::http::status_code::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
+				complete(http_status::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
 			}
 		});
 
@@ -536,9 +542,9 @@ namespace webserver {
 				ShareManager::getInstance()->getRealPaths(virtualPath, refreshPaths);
 
 				auto refreshInfo = ShareManager::getInstance()->refreshPathsHookedThrow(priority, refreshPaths, callerPtr, formatVirtualPath(virtualPath));
-				complete(websocketpp::http::status_code::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
+				complete(http_status::ok, serializeRefreshQueueInfo(refreshInfo), nullptr);
 			} catch (const ShareException& e) {
-				complete(websocketpp::http::status_code::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+				complete(http_status::bad_request, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			}
 		});
 
@@ -548,7 +554,7 @@ namespace webserver {
 	api_return ShareApi::handleGetStats(ApiRequest& aRequest) {
 		auto optionalItemStats = ShareManager::getInstance()->getShareItemStats();
 		if (!optionalItemStats) {
-			return websocketpp::http::status_code::no_content;
+			return http_status::no_content;
 		}
 
 		auto itemStats = *optionalItemStats;
@@ -581,13 +587,13 @@ namespace webserver {
 		};
 
 		aRequest.setResponseBody(j);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleGetGroupedRootPaths(ApiRequest& aRequest) {
 		auto roots = ShareManager::getInstance()->getGroupedDirectories();
 		aRequest.setResponseBody(Serializer::serializeList(roots, Serializer::serializeGroupedPaths));
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	api_return ShareApi::handleIsPathShared(ApiRequest& aRequest) {
@@ -597,7 +603,7 @@ namespace webserver {
 			{ "is_shared", isShared },
 		});
 
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	bool ShareApi::runPathValidatorF(const Callback& aValidationF, const ApiCompletionF& aErrorF) noexcept {
@@ -605,19 +611,19 @@ namespace webserver {
 			aValidationF();
 		} catch (const QueueException& e) {
 			// Queued bundle
-			aErrorF(websocketpp::http::status_code::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::conflict, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		} catch (const ShareValidatorException& e) {
 			// Validation error
-			aErrorF(websocketpp::http::status_code::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::forbidden, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		} catch (const ShareException& e) {
 			// Path not inside a shared directory
-			aErrorF(websocketpp::http::status_code::expectation_failed, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::expectation_failed, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		} catch (const FileException& e) {
 			// File doesn't exist
-			aErrorF(websocketpp::http::status_code::not_found, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
+			aErrorF(http_status::not_found, nullptr, ApiRequest::toResponseErrorStr(e.getError()));
 			return false;
 		}
 
@@ -637,7 +643,7 @@ namespace webserver {
 			};
 
 			if (runPathValidatorF(validateF, complete)) {
-				complete(websocketpp::http::status_code::no_content, nullptr, nullptr);
+				complete(http_status::no_content, nullptr, nullptr);
 			}
 		});
 
@@ -659,12 +665,12 @@ namespace webserver {
 		}
 
 		aRequest.setResponseBody(ret);
-		return websocketpp::http::status_code::ok;
+		return http_status::ok;
 	}
 
 	string ShareApi::refreshTypeToString(ShareRefreshType aType) noexcept {
 		switch (aType) {
-			case ShareRefreshType::ADD_DIR: return "add_directory";
+			case ShareRefreshType::ADD_ROOT_DIRECTORY: return "add_directory";
 			case ShareRefreshType::STARTUP:
 			case ShareRefreshType::REFRESH_ALL: return "refresh_all";
 			case ShareRefreshType::REFRESH_DIRS: return "refresh_directories";

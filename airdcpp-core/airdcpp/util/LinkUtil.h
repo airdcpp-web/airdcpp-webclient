@@ -37,7 +37,7 @@ public:
 	static bool isSecure(const string& aHubUrl) noexcept;
 	static bool isHubLink(const string& aHubUrl) noexcept;
 
-
+	static string parseLink(const string& aLink) noexcept;
 	static void sanitizeUrl(string& url) noexcept;
 	static void decodeUrl(const string& aUrl, string& protocol, string& host, string& port, string& path, string& query, string& fragment) noexcept;
 	static string encodeURI(const string& aString, bool reverse = false) noexcept;

@@ -51,9 +51,9 @@ using ranges::for_each;
 
 ShareManager::ShareManager() : 
 	profiles(make_unique<ShareProfileManager>([this](const ShareProfilePtr& p) { removeRootProfile(p); })), 
-	validator(make_unique<SharePathValidator>()), 
-	tasks(make_unique<ShareTasks>(this)), 
-	tree(make_unique<ShareTree>())
+	tree(make_unique<ShareTree>()),
+	validator(make_unique<SharePathValidator>([this](const string& aRealPath) { return tree->parseRoot(aRealPath); })),
+	tasks(make_unique<ShareTasks>(this))
 { 
 	SettingsManager::getInstance()->addListener(this);
 	HashManager::getInstance()->addListener(this);
@@ -155,7 +155,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 		curDirPathLower(aOldRoot->getRoot()->getPathLower()),
 		curDirPath(aOldRoot->getRoot()->getPath())
 	{ 
-		cur = newDirectory;
+		cur = newDirectory.get();
 	}
 
 
@@ -167,7 +167,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			if (!name.empty()) {
 				curDirPath += name + PATH_SEPARATOR;
 
-				cur = ShareDirectory::createNormal(name, cur, Util::toTimeT(date), *this);
+				cur = ShareDirectory::createNormal(name, cur, Util::toTimeT(date), *this).get();
 				if (!cur) {
 					throw Exception("Duplicate directory name");
 				}
@@ -217,7 +217,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 private:
 	friend struct SizeSort;
 
-	ShareDirectory::Ptr cur;
+	ShareDirectory* cur;
 
 	string curDirPathLower;
 	string curDirPath;
@@ -703,7 +703,7 @@ void ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const string& aPa
 			}
 
 			// Add it
-			auto curDir = ShareDirectory::createNormal(std::move(dualName), aParent, i->getLastWriteTime(), *this);
+			auto curDir = ShareDirectory::createNormal(std::move(dualName), aParent.get(), i->getLastWriteTime(), *this);
 			if (curDir) {
 				buildTree(curPath, curPathLower, curDir, oldDir, aStopping);
 				if (checkContent(curDir)) {
@@ -824,14 +824,20 @@ bool ShareManager::handleRefreshPath(const string& aRefreshPath, const ShareRefr
 
 	auto ri = RefreshTaskHandler::ShareBuilder(aRefreshPath, optionalOldDirectory, File::getLastModified(aRefreshPath), *bloom_, this);
 	setRefreshState(ri.path, ShareRootRefreshState::STATE_RUNNING, false, aTask.token);
-
+	 
 	// Build the tree
 	auto completed = ri.buildTree(aTask.canceled);
 
 	// Apply the changes
 	if (completed) {
-		tree->applyRefreshChanges(ri, &dirtyProfiles_);
-		totalStats.merge(ri.stats);
+		auto success = tree->applyRefreshChanges(ri, &dirtyProfiles_);
+		if (success) {
+			totalStats.merge(ri.stats);
+		} else {
+			dcdebug("ShareManager::handleRefreshPath: could not apply refresh changes for path %s\n", aRefreshPath.c_str());
+			totalStats.skippedDirectoryCount += ri.stats.skippedDirectoryCount + ri.stats.existingDirectoryCount;
+			totalStats.skippedFileCount += ri.stats.newFileCount + ri.stats.existingFileCount;
+		}
 	}
 
 	// Finish up
@@ -884,6 +890,7 @@ shared_ptr<ShareTasksManager::RefreshTaskHandler> ShareManager::startRefresh(con
 		lastIncomingUpdate = GET_TICK();
 	}
 
+	fire(ShareManagerListener::RefreshStarted(), aTask);
 	return make_shared<ShareManager::RefreshTaskHandler>(
 		refreshBloom,
 		std::bind_front(&ShareManager::handleRefreshPath, this),
@@ -958,7 +965,7 @@ bool ShareManager::addRootDirectory(const ShareDirectoryInfoPtr& aDirectoryInfo)
 
 	const auto& path = aDirectoryInfo->path;
 	fire(ShareManagerListener::RootCreated(), path);
-	tasks->addRefreshTask(ShareRefreshPriority::MANUAL, { path }, ShareRefreshType::ADD_DIR);
+	tasks->addRefreshTask(ShareRefreshPriority::MANUAL, { path }, ShareRefreshType::ADD_ROOT_DIRECTORY);
 
 	profiles->setProfilesDirty(aDirectoryInfo->profiles, true);
 	return true;
@@ -973,7 +980,7 @@ bool ShareManager::removeRootDirectory(const string& aPath) noexcept {
 	HashManager::getInstance()->stopHashing(aPath);
 
 	// Safe, the directory isn't in use
-	auto dirtyProfiles = root->getRootProfiles();
+	decltype(auto) dirtyProfiles = root->getRootProfiles();
 
 	log(STRING_F(SHARED_DIR_REMOVED, aPath), LogMessage::SEV_INFO);
 
@@ -1192,7 +1199,6 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 		return;
 	}
 
-	auto path = aBundle->getTarget();
 	tasks->addRefreshTask(ShareRefreshPriority::NORMAL, { aBundle->getTarget() }, ShareRefreshType::BUNDLE, aBundle->getTarget());
 }
 
@@ -1276,8 +1282,7 @@ StringSet ShareManager::getExcludedPaths() const noexcept {
 }
 
 void ShareManager::addExcludedPath(const string& aPath) {
-	auto rootPaths = tree->getRootPathList();
-	validator->addExcludedPath(aPath, rootPaths);
+	validator->addExcludedPath(aPath);
 	fire(ShareManagerListener::ExcludeAdded(), aPath);
 }
 

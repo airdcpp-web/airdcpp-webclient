@@ -101,7 +101,7 @@ public:
 	virtual void refreshUserList(bool) noexcept = 0;
 	virtual void getUserList(OnlineUserList& list, bool aListHidden) const noexcept = 0;
 	virtual OnlineUserPtr findUser(const string& aNick) const noexcept = 0;
-	virtual OnlineUser* findUser(dcpp::SID aSID) const noexcept = 0;
+	virtual OnlineUserPtr findUser(dcpp::SID aSID) const noexcept = 0;
 	
 	const string& getPort() const noexcept { return port; }
 	const string& getAddress() const noexcept { return address; }
@@ -262,11 +262,11 @@ protected:
 	FloodCounter ctmFloodCounter;
 	FloodCounter searchFloodCounter;
 
-	static FloodCounter::FloodLimits getCTMLimits(const OnlineUser* aAdcUser) noexcept;
+	static FloodCounter::FloodLimits getCTMLimits(const OnlineUserPtr& aAdcUser) noexcept;
 	static FloodCounter::FloodLimits getSearchLimits() noexcept;
 
-	bool checkIncomingCTM(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
-	bool checkIncomingSearch(const string& aTarget, const OnlineUser* aAdcUser = nullptr) noexcept;
+	bool checkIncomingCTM(const string& aTarget, const OnlineUserPtr& aAdcUser = nullptr) noexcept;
+	bool checkIncomingSearch(const string& aTarget, const OnlineUserPtr& aAdcUser = nullptr) noexcept;
 
 	AdcSupports supports;
 private:

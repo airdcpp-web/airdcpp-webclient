@@ -38,12 +38,14 @@ namespace dcpp {
 class AutoLimitUtil {
 	
 public:
-	static int getSlotsPerUser(bool download, double value=0, int aSlots=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
-	static int getSlots(bool download, double value=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
+	static int getSlotsPerUser(bool aIsDownload, double aOverrideConnectionSpeedMbps = 0, int aSlots=0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
+	static int getSlots(bool aIsDownload, double aOverrideConnectionSpeedMbps = 0, SettingsManager::SettingProfile aProfile = static_cast<SettingsManager::SettingProfile>(SETTING(SETTINGS_PROFILE)));
 
 	// Maximum wanted download/upload speed. Uses set connection values by default.
-	static int getSpeedLimitKbps(bool download, double value=0);
-	static int getMaxAutoOpened(double value = 0);
+	static int getSpeedLimitKbps(bool aIsDownload, double aOverrideConnectionSpeedMbps = 0);
+	static int getMaxAutoOpened(double aOverrideConnectionSpeedMbps = 0);
+
+	static double getConnectionSpeedMbps(bool aDownload, double aOverrideConnectionSpeedMbps) noexcept;
 };
 
 }

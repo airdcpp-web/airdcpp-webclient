@@ -25,7 +25,7 @@
 #include <airdcpp/queue/partial_sharing/PartialFileSharingManager.h>
 #include <airdcpp/share/UploadFileProvider.h>
 #include <airdcpp/transfer/upload/UploadManagerListener.h>
-#include <airdcpp/transfer/upload/UploadSlot.h>
+#include <airdcpp/transfer/TransferSlot.h>
 
 
 namespace dcpp {
@@ -52,9 +52,9 @@ public:
 	const string providerName = "partial_sharing";
 private:
 	uint8_t extraPartial = 0;
-	ActionHookResult<OptionalUploadSlot> onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalUploadSlot>& aResultGetter) const noexcept;
+	ActionHookResult<OptionalTransferSlot> onSlotType(const UserConnection& aUserConnection, const ParsedUpload&, const ActionHookResultGetter<OptionalTransferSlot>& aResultGetter) const noexcept;
 
-	void on(UploadManagerListener::Created, Upload*, const UploadSlot& aNewSlot) noexcept override;
+	void on(UploadManagerListener::Created, Upload*, const TransferSlot& aNewSlot) noexcept override;
 	void on(UploadManagerListener::Failed, const Upload*, const string&) noexcept override;
 
 	QueueItemList getBloomFiles() const noexcept;

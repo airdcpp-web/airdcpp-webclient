@@ -23,6 +23,8 @@
 
 #include <airdcpp/core/header/debug.h>
 
+#include <chrono>
+
 namespace webserver {
 	class Timer : public boost::noncopyable {
 	public:
@@ -34,7 +36,7 @@ namespace webserver {
 			cb(std::move(aCallback)),
 			cbWrapper(aWrapper),
 			timer(aIO),
-			interval(aIntervalMillis)
+			interval(std::chrono::milliseconds(aIntervalMillis))
 		{
 			dcdebug("Timer %p was created\n", this);
 		}
@@ -50,7 +52,7 @@ namespace webserver {
 			}
 
 			running = true;
-			scheduleNext(aInstantTick ? boost::posix_time::milliseconds(0) : interval);
+			scheduleNext(aInstantTick ? std::chrono::milliseconds(0) : interval);
 			return true;
 		}
 
@@ -63,6 +65,11 @@ namespace webserver {
 
 		bool isRunning() const noexcept {
 			return running;
+		}
+
+		void flush() {
+			timer.cancel();
+			scheduleNext(std::chrono::milliseconds(0));
 		}
 	private:
 		// Static in case the timer has been destructed
@@ -79,12 +86,12 @@ namespace webserver {
 			}
 		}
 
-		void scheduleNext(const boost::posix_time::milliseconds& aFromNow) {
+		void scheduleNext(std::chrono::milliseconds aFromNow) {
 			if (!running) {
 				return;
 			}
 
-			timer.expires_from_now(aFromNow);
+			timer.expires_after(aFromNow);
 			timer.async_wait(std::bind(&Timer::tick, std::placeholders::_1, cbWrapper, this));
 		}
 
@@ -97,8 +104,8 @@ namespace webserver {
 		Callback cb;
 		CallbackWrapper cbWrapper;
 
-		boost::asio::deadline_timer timer;
-		boost::posix_time::milliseconds interval;
+		boost::asio::steady_timer timer;
+		std::chrono::milliseconds interval;
 		bool running = false;
 		bool shutdown = false;
 	};

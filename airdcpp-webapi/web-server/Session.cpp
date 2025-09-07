@@ -96,11 +96,11 @@ namespace webserver {
 		return h != apiHandlers.end() ? h->second.get() : nullptr;
 	}
 
-	websocketpp::http::status_code::value Session::handleRequest(ApiRequest& aRequest) {
+	http_status Session::handleRequest(ApiRequest& aRequest) {
 		auto m = getModule(aRequest.getApiModule());
 		if (!m) {
 			aRequest.setResponseErrorStr("Section not found");
-			return websocketpp::http::status_code::not_found;
+			return http_status::not_found;
 		}
 
 		return m->handleRequest(aRequest);

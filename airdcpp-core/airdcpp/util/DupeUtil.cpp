@@ -52,6 +52,8 @@ StringList DupeUtil::getFileDupePaths(DupeType aType, const TTHValue& aTTH) {
 		ret = QueueManager::getInstance()->getTargets(aTTH);
 	}
 
+	std::sort(ret.begin(), ret.end());
+	ret.erase(unique(ret.begin(), ret.end()), ret.end()); // Duplicate paths can be added by different share providers
 	return ret;
 }
 

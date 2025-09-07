@@ -126,6 +126,8 @@ namespace webserver {
 	void setEndpointOptions(T& aEndpoint) {
 		aEndpoint.set_open_handshake_timeout(HANDSHAKE_TIMEOUT);
 		aEndpoint.set_pong_timeout(WEBCFG(PING_TIMEOUT).num() * 1000);
+
+		aEndpoint.set_max_http_body_size(HttpManager::MAX_HTTP_BODY_SIZE);
 	}
 
 	bool WebServerManager::startup(const MessageCallback& errorF, const string& aWebResourcePath, const Callback& aShutdownF) {
@@ -405,13 +407,17 @@ namespace webserver {
 	string WebServerManager::getLocalServerAddress(const ServerConfig& aConfig) noexcept {
 		auto bindAddress = aConfig.bindAddress.str();
 		if (isAnyAddress(bindAddress)) {
-			websocketpp::lib::asio::error_code ec;
+			/*websocketpp::lib::asio::error_code ec;
 			auto isV6 = endpoint_plain.get_local_endpoint(ec).protocol().family() == AF_INET6;
 			if (ec) {
 				dcassert(0);
 			}
 
-			bindAddress = isV6 ? "[::1]" : "127.0.0.1";
+			bindAddress = isV6 ? "[::1]" : "127.0.0.1";*/
+
+			// Workaround for https://github.com/zaphoyd/websocketpp/pull/879
+			// websocketpp can't currently handle bracketed IPv6 addresses so we need to use something else
+			bindAddress = "localhost";
 		} else {
 			bindAddress = resolveAddress(bindAddress, aConfig.port.str());
 		}

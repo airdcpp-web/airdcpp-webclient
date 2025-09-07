@@ -82,17 +82,17 @@ namespace webserver {
 		if (handler == requestHandlers.end()) {
 			if (hasParamNameMatch) {
 				aRequest.setResponseErrorStr("Method " + aRequest.getMethodStr() + " is not supported for this handler");
-				return websocketpp::http::status_code::method_not_allowed;
+				return http_status::method_not_allowed;
 			}
 
 			aRequest.setResponseErrorStr("The supplied URL " + aRequest.getRequestPath() + " doesn't match any method in this API module");
-			return websocketpp::http::status_code::bad_request;
+			return http_status::bad_request;
 		}
 
 		// Check permission
 		if (!session->getUser()->hasPermission(handler->access)) {
 			aRequest.setResponseErrorStr("The permission " + WebUser::accessToString(handler->access) + " is required for accessing this method");
-			return websocketpp::http::status_code::forbidden;
+			return http_status::forbidden;
 		}
 
 		return handler->f(aRequest);

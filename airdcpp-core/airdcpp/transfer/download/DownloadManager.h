@@ -47,7 +47,7 @@ public:
 
 	/** @internal */
 	void addConnection(UserConnection* conn);
-	bool checkIdle(const UserPtr& aUser, bool aSmallSlot);
+	bool checkIdle(const UserPtr& aUser, bool aSmallSlot, bool aRevive = true);
 	bool checkIdle(const string& aToken);
 
 	/** @internal */

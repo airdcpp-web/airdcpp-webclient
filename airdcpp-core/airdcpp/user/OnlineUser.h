@@ -30,7 +30,6 @@
 #include <airdcpp/core/classes/FastAlloc.h>
 #include <airdcpp/core/types/GetSet.h>
 #include <airdcpp/user/HintedUser.h>
-#include <airdcpp/core/classes/Pointer.h>
 #include <airdcpp/util/Util.h>
 #include <airdcpp/user/User.h>
 #include <airdcpp/user/UserInfoBase.h>
@@ -196,7 +195,7 @@ private:
 	SupportList supports;
 };
 
-class OnlineUser final :  public FastAlloc<OnlineUser>, public intrusive_ptr_base<OnlineUser>, private boost::noncopyable {
+class OnlineUser final :  public FastAlloc<OnlineUser>, private boost::noncopyable {
 public:
 	static const string CLIENT_PROTOCOL;
 	static const string SECURE_CLIENT_PROTOCOL_TEST;

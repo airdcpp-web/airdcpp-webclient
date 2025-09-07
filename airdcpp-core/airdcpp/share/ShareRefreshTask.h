@@ -44,7 +44,7 @@ struct RefreshTaskQueueInfo {
 };
 
 enum class ShareRefreshType : uint8_t {
-	ADD_DIR,
+	ADD_ROOT_DIRECTORY,
 	REFRESH_DIRS,
 	REFRESH_INCOMING,
 	REFRESH_ALL,
