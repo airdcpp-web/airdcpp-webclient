@@ -23,7 +23,7 @@ UI related issues should also include the browser version. Please ensure that yo
 
 ### Operating system:
 
-Name and version of the operating system on which the application is installed on
+Name and version of the operating system on which the application is installed on. Also include your browser version if the issue happens in the Web UI.
 
 ### Steps to reproduce the issue:
 
