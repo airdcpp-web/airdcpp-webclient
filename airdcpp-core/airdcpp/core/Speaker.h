@@ -41,9 +41,12 @@ public:
 
 	template<typename... ArgT>
 	void fire(ArgT&&... args) noexcept {
-		Lock l(listenerCS);
-		tmpListeners = listeners;
-		for(auto listener: tmpListeners) {
+		ListenerList snapshot;
+		{
+			Lock l(listenerCS);
+			snapshot = listeners;
+		}
+		for(auto listener: snapshot) {
 			listener->on(std::forward<ArgT>(args)...);
 		}
 	}
@@ -52,9 +55,12 @@ public:
 	// (e.g. during a shutdown sequence the listeners that were added last should be uninitialized first)
 	template<typename... ArgT>
 	void fireReversed(ArgT&&... args) noexcept {
-		Lock l(listenerCS);
-		tmpListeners = listeners;
-		for (auto listener : tmpListeners | views::reverse) {
+		ListenerList snapshot;
+		{
+			Lock l(listenerCS);
+			snapshot = listeners;
+		}
+		for (auto listener : snapshot | views::reverse) {
 			listener->on(std::forward<ArgT>(args)...);
 		}
 	}
@@ -84,7 +90,6 @@ public:
 	
 protected:
 	ListenerList listeners;
-	ListenerList tmpListeners;
 	mutable CriticalSection listenerCS;
 };
 
