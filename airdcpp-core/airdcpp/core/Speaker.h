@@ -41,12 +41,8 @@ public:
 
 	template<typename... ArgT>
 	void fire(ArgT&&... args) noexcept {
-		ListenerList snapshot;
-		{
-			Lock l(listenerCS);
-			snapshot = listeners;
-		}
-		for(auto listener: snapshot) {
+		RLock l(listenerCS);
+		for(auto listener: listeners) {
 			listener->on(std::forward<ArgT>(args)...);
 		}
 	}
@@ -55,42 +51,38 @@ public:
 	// (e.g. during a shutdown sequence the listeners that were added last should be uninitialized first)
 	template<typename... ArgT>
 	void fireReversed(ArgT&&... args) noexcept {
-		ListenerList snapshot;
-		{
-			Lock l(listenerCS);
-			snapshot = listeners;
-		}
-		for (auto listener : snapshot | views::reverse) {
+		RLock l(listenerCS);
+		for (auto listener : listeners | views::reverse) {
 			listener->on(std::forward<ArgT>(args)...);
 		}
 	}
 
 	void addListener(Listener* aListener) noexcept {
-		Lock l(listenerCS);
+		WLock l(listenerCS);
 		if(ranges::find(listeners, aListener) == listeners.end())
 			listeners.push_back(aListener);
 	}
 
 	void removeListener(Listener* aListener) noexcept {
-		Lock l(listenerCS);
+		WLock l(listenerCS);
 		auto it = ranges::find(listeners, aListener);
 		if(it != listeners.end())
 			listeners.erase(it);
 	}
 
 	bool hasListener(Listener* aListener) const noexcept {
-		Lock l(listenerCS);
+		RLock l(listenerCS);
 		return ranges::find(listeners, aListener) != listeners.end();
 	}
 
 	void removeListeners() noexcept {
-		Lock l(listenerCS);
+		WLock l(listenerCS);
 		listeners.clear();
 	}
 	
 protected:
 	ListenerList listeners;
-	mutable CriticalSection listenerCS;
+	mutable SharedMutex listenerCS;
 };
 
 } // namespace dcpp
