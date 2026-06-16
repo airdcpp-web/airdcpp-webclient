@@ -41,7 +41,7 @@ public:
 
 	template<typename... ArgT>
 	void fire(ArgT&&... args) noexcept {
-		RLock l(listenerCS);
+		WLock l(listenerCS);
 		for(auto listener: listeners) {
 			listener->on(std::forward<ArgT>(args)...);
 		}
@@ -51,7 +51,7 @@ public:
 	// (e.g. during a shutdown sequence the listeners that were added last should be uninitialized first)
 	template<typename... ArgT>
 	void fireReversed(ArgT&&... args) noexcept {
-		RLock l(listenerCS);
+		WLock l(listenerCS);
 		for (auto listener : listeners | views::reverse) {
 			listener->on(std::forward<ArgT>(args)...);
 		}
