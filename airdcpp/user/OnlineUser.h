@@ -21,7 +21,7 @@
 
 #include <map>
 
-#include <boost/noncopyable.hpp>
+
 
 #include <airdcpp/forward.h>
 
@@ -195,8 +195,10 @@ private:
 	SupportList supports;
 };
 
-class OnlineUser final :  public FastAlloc<OnlineUser>, private boost::noncopyable {
+class OnlineUser final :  public FastAlloc<OnlineUser> {
 public:
+	OnlineUser(const OnlineUser&) = delete;
+	OnlineUser& operator=(const OnlineUser&) = delete;
 	static const string CLIENT_PROTOCOL;
 	static const string SECURE_CLIENT_PROTOCOL_TEST;
 	static const string ADCS_FEATURE;

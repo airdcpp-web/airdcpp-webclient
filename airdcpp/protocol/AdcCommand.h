@@ -22,6 +22,7 @@
 #include <airdcpp/core/header/typedefs.h>
 
 #include <airdcpp/core/classes/Exception.h>
+#include <cstring>
 
 namespace dcpp {
 
@@ -123,8 +124,16 @@ public:
 
 	static const dcpp::SID HUB_SID = 0xffffffff;		// No client will have this sid
 
-	static uint32_t toFourCC(const char* x) noexcept { return *reinterpret_cast<const uint32_t*>(x); }
-	static std::string fromFourCC(uint32_t x) noexcept { return std::string(reinterpret_cast<const char*>(&x), sizeof(x)); }
+	static uint32_t toFourCC(const char* x) noexcept {
+		uint32_t result;
+		memcpy(&result, x, sizeof(result));
+		return result;
+	}
+	static std::string fromFourCC(uint32_t x) noexcept {
+		std::string result(sizeof(x), '\0');
+		memcpy(&result[0], &x, sizeof(x));
+		return result;
+	}
 
 	explicit AdcCommand(uint32_t aCmd, char aType = TYPE_CLIENT) noexcept;
 	explicit AdcCommand(uint32_t aCmd, dcpp::SID aTarget, char aType) noexcept;

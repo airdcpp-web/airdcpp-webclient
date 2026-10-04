@@ -30,7 +30,7 @@
 
 #include <string>
 #include <unordered_map>
-#include <boost/variant.hpp>
+#include <variant>
 
 namespace dcpp {
 
@@ -103,7 +103,7 @@ private:
 	/* contains auto-detected settings. they are stored separately from manual connectivity
 	settings (stored in SettingsManager) in case the user wants to keep the manually set ones for
 	future use. */
-	unordered_map<int, boost::variant<bool, int, string>> autoSettings;
+	unordered_map<int, std::variant<bool, int, string>> autoSettings;
 
 	MappingManager mapperV4;
 	MappingManager mapperV6;

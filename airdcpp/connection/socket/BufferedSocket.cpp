@@ -337,8 +337,8 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 			size_t bytesRead = readBuf.size() - readPos;
 			size_t actual = file->read(&readBuf[readPos], bytesRead);
 
-			if(bytesRead > 0) {
-				fire(BufferedSocketListener::BytesSent(), bytesRead, 0);
+			if(actual > 0) {
+				fire(BufferedSocketListener::BytesSent(), actual, 0);
 			}
 
 			if(actual == 0) {
@@ -390,8 +390,8 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 					size_t bytesRead = min(readBuf.size() - readPos, readBuf.size() / 2);
 					size_t actual = file->read(&readBuf[readPos], bytesRead);
 
-					if(bytesRead > 0) {
-						fire(BufferedSocketListener::BytesSent(), bytesRead, 0);
+					if(actual > 0) {
+						fire(BufferedSocketListener::BytesSent(), actual, 0);
 					}
 
 					if(actual == 0) {

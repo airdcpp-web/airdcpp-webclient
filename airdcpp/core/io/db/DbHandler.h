@@ -35,8 +35,10 @@ class DbSnapshot {
 };
 
 // Most methods throw DbException in case of errors
-class DbHandler : boost::noncopyable {
+class DbHandler {
 public:
+	DbHandler(const DbHandler&) = delete;
+	DbHandler& operator=(const DbHandler&) = delete;
 	virtual DbSnapshot* getSnapshot() { return nullptr; }
 
 	virtual void repair(StepFunction stepF, MessageFunction messageF) = 0;

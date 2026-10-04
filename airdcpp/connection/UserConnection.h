@@ -35,10 +35,11 @@
 namespace dcpp {
 
 class UserConnection : public Speaker<UserConnectionListener>, 
-	private BufferedSocketListener, public Flags, private CommandHandler<UserConnection>,
-	private boost::noncopyable
+	private BufferedSocketListener, public Flags, private CommandHandler<UserConnection>
 {
 public:
+	UserConnection(const UserConnection&) = delete;
+	UserConnection& operator=(const UserConnection&) = delete;
 	friend class ConnectionManager;
 	
 	static const string FEATURE_MINISLOTS;

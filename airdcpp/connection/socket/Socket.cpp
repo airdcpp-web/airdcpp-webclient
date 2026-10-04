@@ -1051,7 +1051,7 @@ void Socket::socksParseResponseAddress(const ByteVector& aData, size_t aDataLeng
 		addr_.sai.sin_addr.S_un.S_addr = *((long*)(&aData[4]));
 	}
 #else
-	if (udpAddr.sa.sa_family == AF_INET6) {
+	if (addr_.sa.sa_family == AF_INET6) {
 		memcpy(addr_.sai6.sin6_addr.s6_addr, &aData[4], 16);
 	} else {
 		addr_.sai.sin_addr.s_addr = *((long*)(&aData[4]));

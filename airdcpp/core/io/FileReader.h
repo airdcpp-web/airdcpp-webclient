@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-#include <boost/noncopyable.hpp>
+
 
 namespace dcpp {
 
@@ -34,8 +34,10 @@ using std::vector;
 
 /** Helper class for reading an entire file */
 
-class FileReader : boost::noncopyable {
+class FileReader {
 public:
+	FileReader(const FileReader&) = delete;
+	FileReader& operator=(const FileReader&) = delete;
 
 	enum Strategy {
 		ASYNC = 1,

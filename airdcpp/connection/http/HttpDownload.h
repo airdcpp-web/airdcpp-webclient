@@ -26,7 +26,9 @@ namespace dcpp {
 using std::string;
 
 /** Helper struct to manage a single HTTP download. Calls a completion function when finished. */
-struct HttpDownload : private HttpConnectionListener, private boost::noncopyable {
+struct HttpDownload : private HttpConnectionListener {
+	HttpDownload(const HttpDownload&) = delete;
+	HttpDownload& operator=(const HttpDownload&) = delete;
 	HttpConnection* c;
 	string buf;
 	string status;

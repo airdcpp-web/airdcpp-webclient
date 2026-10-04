@@ -23,13 +23,13 @@
 
 #include <airdcpp/core/localization/ResourceManager.h>
 
-#include <boost/variant.hpp>
+#include <variant>
 
 namespace dcpp {
 
 
 struct SettingItem {
-	using SettingValue = boost::variant<string, bool, int, double>;
+	using SettingValue = std::variant<bool, int, string>;
 	using List = vector<SettingItem>;
 
 	const int key;
@@ -45,12 +45,11 @@ struct SettingItem {
 	const string& getDescription() const noexcept;
 	string currentToString() const noexcept;
 
-	struct ToString : boost::static_visitor<string> {
+	struct ToString {
 		explicit ToString(int aKey) : key(aKey) { }
 
 		string operator()(const string& s) const noexcept;
 		string operator()(int s) const noexcept;
-		string operator()(double d) const noexcept;
 		string operator()(bool b) const noexcept;
 	private:
 		const int key;

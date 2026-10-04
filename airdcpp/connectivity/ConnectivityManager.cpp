@@ -101,7 +101,7 @@ bool ConnectivityManager::get(SettingsManager::BoolSetting setting) const {
 		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
-			return boost::get<bool>(i->second);
+			return std::get<bool>(i->second);
 		}
 	}
 	return SettingsManager::getInstance()->get(setting);
@@ -112,7 +112,7 @@ int ConnectivityManager::get(SettingsManager::IntSetting setting) const {
 		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
-			return boost::get<int>(i->second);
+			return std::get<int>(i->second);
 		}
 	}
 	return SettingsManager::getInstance()->get(setting);
@@ -123,7 +123,7 @@ const string& ConnectivityManager::get(SettingsManager::StrSetting setting) cons
 		RLock l(cs);
 		auto i = autoSettings.find(setting);
 		if(i != autoSettings.end()) {
-			return boost::get<string>(i->second);
+			return std::get<string>(i->second);
 		}
 	}
 	return SettingsManager::getInstance()->get(setting);
@@ -370,9 +370,9 @@ void ConnectivityManager::editAutoSettings() {
 	auto sm = SettingsManager::getInstance();
 	for(auto i = autoSettings.cbegin(), iend = autoSettings.cend(); i != iend; ++i) {
 		if(i->first >= SettingsManager::STR_FIRST && i->first < SettingsManager::STR_LAST) {
-			sm->set(static_cast<SettingsManager::StrSetting>(i->first), boost::get<string>(i->second));
+			sm->set(static_cast<SettingsManager::StrSetting>(i->first), std::get<string>(i->second));
 		} else if(i->first >= SettingsManager::INT_FIRST && i->first < SettingsManager::INT_LAST) {
-			sm->set(static_cast<SettingsManager::IntSetting>(i->first), boost::get<int>(i->second));
+			sm->set(static_cast<SettingsManager::IntSetting>(i->first), std::get<int>(i->second));
 		}
 	}
 	autoSettings.clear();

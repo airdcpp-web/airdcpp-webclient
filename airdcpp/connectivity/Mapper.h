@@ -23,16 +23,18 @@
 #include <set>
 #include <utility>
 
-#include <boost/noncopyable.hpp>
+
 
 namespace dcpp {
 
 using std::string;
 
 /** abstract class to represent an implementation usable by MappingManager. */
-class Mapper : boost::noncopyable
+class Mapper
 {
 public:
+	Mapper(const Mapper&) = delete;
+	Mapper& operator=(const Mapper&) = delete;
 	Mapper(const string& localIp, bool v6);
 	virtual ~Mapper() = default;
 

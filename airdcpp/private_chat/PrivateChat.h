@@ -29,8 +29,10 @@
 
 namespace dcpp {
 	class PrivateChat: public ChatHandlerBase, public Speaker<PrivateChatListener>, public UserConnectionListener,
-		private ClientManagerListener, private boost::noncopyable {
+		private ClientManagerListener {
 	public:
+		PrivateChat(const PrivateChat&) = delete;
+		PrivateChat& operator=(const PrivateChat&) = delete;
 		
 		enum PMInfo: uint8_t {
 			//CPMI types

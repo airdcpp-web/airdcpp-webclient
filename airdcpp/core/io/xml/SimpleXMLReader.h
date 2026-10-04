@@ -22,13 +22,16 @@
 #include <airdcpp/core/header/typedefs.h>
 #include <airdcpp/core/io/File.h>
 
-#include <boost/noncopyable.hpp>
+
 
 namespace dcpp {
 
 class SimpleXMLReader {
 public:
-	struct CallBack : private boost::noncopyable {
+	struct CallBack {
+		CallBack() = default;
+		CallBack(const CallBack&) = delete;
+		CallBack& operator=(const CallBack&) = delete;
 		virtual ~CallBack() = default;
 
 		/** A new XML tag has been encountered.

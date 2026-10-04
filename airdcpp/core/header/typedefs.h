@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <airdcpp/forward.h>
 
-#include <boost/variant.hpp>
+#include <variant>
 
 namespace dcpp {
 
@@ -82,7 +82,7 @@ typedef StringMap TStringMap;
 
 #endif
 
-using ParamMap = unordered_map<string, boost::variant<string, std::function<string ()>>>;
+using ParamMap = unordered_map<string, std::variant<string, std::function<string ()>>>;
 
 }
 

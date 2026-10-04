@@ -37,7 +37,7 @@
 #include <memory>
 #include <utility>
 
-#include <boost/noncopyable.hpp>
+
 #ifdef STD_MAP_STD_UNIQUE_PTR_BUG
 #include <boost/shared_array.hpp>
 #endif
@@ -70,9 +70,11 @@ private:
 	static string TranslateError(int e);
 };
 
-class ZipFile : private boost::noncopyable 
+class ZipFile 
 {
 public:
+	ZipFile(const ZipFile&) = delete;
+	ZipFile& operator=(const ZipFile&) = delete;
 	struct FileInfo {
 		FileInfo() : name(Util::emptyString), time((time_t)-1), size(-1) { }
 		FileInfo(string zfn, time_t zft, int64_t zfs) : name(zfn), time(zft), size(zfs) { }

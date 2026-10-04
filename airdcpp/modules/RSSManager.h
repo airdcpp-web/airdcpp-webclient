@@ -79,8 +79,10 @@ public:
 
 };
 
-class RSS : private boost::noncopyable {
+class RSS {
 public:
+	RSS(const RSS&) = delete;
+	RSS& operator=(const RSS&) = delete;
 
 	RSS(const string& aUrl, const string& aName, bool aEnable, time_t aLastUpdate, int aUpdateInterval = 60, int aToken = 0) noexcept :
 		url(aUrl), feedName(aName), lastUpdate(aLastUpdate), updateInterval(aUpdateInterval), token(aToken), enable(aEnable)
@@ -132,8 +134,10 @@ private:
 
 };
 
-class RSSData: private boost::noncopyable {
+class RSSData {
 public:
+	RSSData(const RSSData&) = delete;
+	RSSData& operator=(const RSSData&) = delete;
 	RSSData(const string& aTitle, const string& aLink, const string& aPubDate, const RSSPtr& aFeed, time_t aDateAdded = GET_TIME()) noexcept :
 		title(aTitle), link(aLink), pubDate(aPubDate), feed(aFeed), dateAdded(aDateAdded)  {
 	}

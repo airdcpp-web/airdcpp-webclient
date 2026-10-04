@@ -29,8 +29,10 @@ namespace dcpp {
 using std::string;
 using std::vector;
 
-class GeoIP : public boost::noncopyable {
+class GeoIP {
 public:
+	GeoIP(const GeoIP&) = delete;
+	GeoIP& operator=(const GeoIP&) = delete;
 	explicit GeoIP(string&& path);
 	~GeoIP();
 
