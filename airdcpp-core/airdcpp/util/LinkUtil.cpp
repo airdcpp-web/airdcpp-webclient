@@ -56,12 +56,12 @@ void LinkUtil::sanitizeUrl(string& url) noexcept {
 string LinkUtil::parseLink(const string& aLink) noexcept {
 
 	// hasScheme: ^[A-Za-z][A-Za-z0-9+.-]*:  OR protocol-relative: ^//
-	const boost::regex reHasScheme(R"(^[A-Za-z][A-Za-z0-9+\-.]*:)", boost::regex::perl);
-	const boost::regex reProtoRelative(R"(^//)", boost::regex::perl);
+	static const boost::regex reHasScheme(R"(^[A-Za-z][A-Za-z0-9+\-.]*:)", boost::regex::perl);
+	static const boost::regex reProtoRelative(R"(^//)", boost::regex::perl);
 	// isEmail: very simple and safe variation
-	const boost::regex reEmail(R"(^[^\s@]+@[^\s@]+\.[^\s@]+$)", boost::regex::perl);
+	static const boost::regex reEmail(R"(^[^\s@]+@[^\s@]+\.[^\s@]+$)", boost::regex::perl);
 	// isUnsafeScheme: javascript: | data: | vbscript:
-	const boost::regex reUnsafe(R"(^(?:javascript|data|vbscript):)", boost::regex::perl | boost::regex::icase);
+	static const boost::regex reUnsafe(R"(^(?:javascript|data|vbscript):)", boost::regex::perl | boost::regex::icase);
 
 	if (!aLink.empty()) {
 		const bool hasScheme = boost::regex_search(aLink, reHasScheme) || boost::regex_search(aLink, reProtoRelative);
