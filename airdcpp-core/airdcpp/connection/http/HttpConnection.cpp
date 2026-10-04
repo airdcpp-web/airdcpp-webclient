@@ -222,7 +222,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 				string proto, queryTmp, fragment;
 				LinkUtil::decodeUrl(currentUrl, proto, server, port, file, queryTmp, fragment);
 				string tmp = proto + "://" + server;
-				if(port != "80" || port != "443")
+				if(port != "80" && port != "443")
 					tmp += ':' + port;
 				location = tmp + location;
 			} else {

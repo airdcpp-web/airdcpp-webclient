@@ -430,8 +430,8 @@ void AutoSearch::saveToXml(SimpleXML& xml) {
 	xml.addChildAttrib("Action", getAction());
 	xml.addChildAttrib("Remove", getRemove());
 	xml.addChildAttrib("Target", getTarget());
-	xml.addChildAttrib("MatcherType", getMethod()),
-	xml.addChildAttrib("MatcherString", getMatcherString()),
+	xml.addChildAttrib("MatcherType", getMethod());
+	xml.addChildAttrib("MatcherString", getMatcherString());
 	xml.addChildAttrib("UserMatch", getNickPattern());
 	xml.addChildAttrib("ExpireTime", getExpireTime());
 	xml.addChildAttrib("CheckAlreadyQueued", getCheckAlreadyQueued());
