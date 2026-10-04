@@ -300,8 +300,8 @@ int Util::strnicmp(const char* a, const char* b, size_t n) noexcept {
 	return (a >= end) ? 0 : ((int)Text::toLower(ca) - (int)Text::toLower(cb));
 }
 
-// used to parse the boost::variant params of the formatParams function.
-struct GetString : boost::static_visitor<string> {
+// used to parse the std::variant params of the formatParams function.
+struct GetString {
 	string operator()(const string& s) const noexcept { return s; }
 	string operator()(const std::function<string ()>& f) const noexcept { return f(); }
 };
@@ -332,7 +332,7 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF a
 			i = j;
 
 		} else {
-			auto replacement = boost::apply_visitor(GetString(), param->second);
+			auto replacement = std::visit(GetString(), param->second);
 
 			// replace all % in params with %% for strftime
 			replace("%", "%%", replacement);

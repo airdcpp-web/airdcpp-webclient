@@ -36,7 +36,7 @@ StringMatch StringMatch::getSearch(const string& aPattern, Method aMethod) {
 }
 
 StringMatch::Method StringMatch::getMethod() const noexcept {
-	return boost::get<StringSearch>(&search) ? PARTIAL : boost::get<string>(&search) ? EXACT : isWildCard ? WILDCARD : REGEX;
+	return std::get_if<StringSearch>(&search) ? PARTIAL : std::get_if<string>(&search) ? EXACT : isWildCard ? WILDCARD : REGEX;
 }
 
 void StringMatch::setMethod(Method method) {
@@ -57,7 +57,7 @@ bool StringMatch::operator==(const StringMatch& rhs) const noexcept {
 	return pattern == rhs.pattern && getMethod() == rhs.getMethod();
 }
 
-struct Prepare : boost::static_visitor<bool> {
+struct Prepare {
 	Prepare(const string& aPattern, bool aWildCard, bool aVerbosePatternErrors) : pattern(aPattern), wildCard(aWildCard), verbosePatternErrors(aVerbosePatternErrors) {}
 	Prepare& operator=(const Prepare&) = delete;
 
@@ -100,10 +100,10 @@ private:
 };
 
 bool StringMatch::prepare() {
-	return !pattern.empty() && boost::apply_visitor(Prepare(pattern, isWildCard /*m == WILDCARD*/, verbosePatternErrors), search);
+	return !pattern.empty() && std::visit(Prepare(pattern, isWildCard /*m == WILDCARD*/, verbosePatternErrors), search);
 }
 
-struct Match : boost::static_visitor<bool> {
+struct Match {
 	explicit Match(const string& aStr) : str(aStr) { }
 	Match& operator=(const Match&) = delete;
 
@@ -133,7 +133,7 @@ private:
 };
 
 bool StringMatch::match(const string& str) const {
-	return !str.empty() && boost::apply_visitor(Match(str), search);
+	return !str.empty() && std::visit(Match(str), search);
 }
 
 } // namespace dcpp

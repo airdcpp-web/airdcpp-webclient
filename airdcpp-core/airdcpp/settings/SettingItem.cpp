@@ -68,7 +68,7 @@ const string& SettingItem::getDescription() const noexcept {
 
 string SettingItem::currentToString() const noexcept {
 	auto cur = getCurValue(true);
-	return boost::apply_visitor(ToString(key), cur);
+	return std::visit(ToString(key), cur);
 }
 
 string SettingItem::ToString::operator()(const string& s) const noexcept {
@@ -82,10 +82,6 @@ string SettingItem::ToString::operator()(int val) const noexcept {
 	}
 
 	return Util::toString(val);
-}
-
-string SettingItem::ToString::operator()(double d) const noexcept {
-	return Util::toString(d);
 }
 
 string SettingItem::ToString::operator()(bool b) const noexcept {
@@ -103,7 +99,7 @@ bool ProfileSettingItem::isProfileCurrent() const noexcept {
 }
 
 string ProfileSettingItem::profileToString() const noexcept {
-	return boost::apply_visitor(ToString(key), profileValue);
+	return std::visit(ToString(key), profileValue);
 }
 
 void ProfileSettingItem::setProfileToDefault(bool aReset) const noexcept {
@@ -111,11 +107,11 @@ void ProfileSettingItem::setProfileToDefault(bool aReset) const noexcept {
 		SettingsManager::getInstance()->unsetKey(key);
 
 	if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
-		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::StrSetting>(key), boost::get<string>(profileValue));
+		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::StrSetting>(key), std::get<string>(profileValue));
 	} else if (key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::IntSetting>(key), boost::get<int>(profileValue));
+		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::IntSetting>(key), std::get<int>(profileValue));
 	} else if (key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::BoolSetting>(key), boost::get<bool>(profileValue));
+		SettingsManager::getInstance()->setDefault(static_cast<SettingsManager::BoolSetting>(key), std::get<bool>(profileValue));
 	} else {
 		dcassert(0);
 	}

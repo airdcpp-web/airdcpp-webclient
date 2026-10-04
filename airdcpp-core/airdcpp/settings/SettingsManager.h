@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (C) 20 01-2024 Jacek Sieka, arnetheduck on gmailpoint com
  *
  * This program is free software; you can redistribute it and/or modif
@@ -316,7 +316,7 @@ public:
 	static const ResourceManager::Strings dropStrings[QUEUE_LAST];
 	static const ResourceManager::Strings updateStrings[VERSION_LAST];
 
-	using SettingValue = boost::variant<bool, int, string>;
+	using SettingValue = std::variant<bool, int, string>;
 	using SettingValueList = vector<SettingValue>;
 
 	using SettingKeyList = vector<int>;

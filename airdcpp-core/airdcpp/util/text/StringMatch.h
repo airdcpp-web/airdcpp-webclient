@@ -24,7 +24,7 @@
 
 #include <string>
 
-#include <boost/variant.hpp>
+#include <variant>
 
 namespace dcpp {
 
@@ -58,7 +58,7 @@ struct StringMatch {
 
 
 private:
-	boost::variant<StringSearch, string, boost::regex> search;
+	std::variant<StringSearch, string, boost::regex> search;
 	bool isWildCard = false;
 	bool verbosePatternErrors = true;
 };
