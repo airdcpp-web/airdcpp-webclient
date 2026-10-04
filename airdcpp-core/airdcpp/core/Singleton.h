@@ -21,14 +21,16 @@
 
 #include <airdcpp/core/header/debug.h>
 
-#include <boost/noncopyable.hpp>
+
 
 namespace dcpp {
 
 template<typename T>
-class Singleton : boost::noncopyable {
+class Singleton {
 public:
 	Singleton() { }
+	Singleton(const Singleton&) = delete;
+	Singleton& operator=(const Singleton&) = delete;
 	virtual ~Singleton() { }
 
 	static T* getInstance() {

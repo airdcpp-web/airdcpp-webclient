@@ -20,7 +20,7 @@
 #ifndef DCPLUSPLUS_DCPP_STREAMBASE_H
 #define DCPLUSPLUS_DCPP_STREAMBASE_H
 
-#include <boost/noncopyable.hpp>
+
 
 #include <airdcpp/core/header/typedefs.h>
 
@@ -29,9 +29,11 @@ namespace dcpp {
 /**
 	* A simple output stream. Intended to be used for nesting streams one inside the other.
 	*/
-class OutputStream : public boost::noncopyable {
+class OutputStream {
 public:
 	OutputStream() = default;
+	OutputStream(const OutputStream&) = delete;
+	OutputStream& operator=(const OutputStream&) = delete;
 	virtual ~OutputStream() = default;
 
 	/**
@@ -64,9 +66,11 @@ public:
 	virtual OutputStream* releaseRootStream() { return this; }
 };
 
-class InputStream : public boost::noncopyable {
+class InputStream {
 public:
 	InputStream() = default;
+	InputStream(const InputStream&) = delete;
+	InputStream& operator=(const InputStream&) = delete;
 	virtual ~InputStream() = default;
 	/**
 		* Call this function until it returns 0 to get all bytes.

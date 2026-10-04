@@ -49,8 +49,10 @@ private:
 	static FastCriticalSection cs;
 };
 
-class ConnectionQueueItem : public boost::noncopyable, public Flags {
+class ConnectionQueueItem : public Flags {
 public:
+	ConnectionQueueItem(const ConnectionQueueItem&) = delete;
+	ConnectionQueueItem& operator=(const ConnectionQueueItem&) = delete;
 	using Ptr = ConnectionQueueItem *;
 	using List = vector<Ptr>;
 	

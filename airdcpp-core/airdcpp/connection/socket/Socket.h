@@ -46,7 +46,7 @@ const int INVALID_SOCKET = -1;
 #include <airdcpp/util/Util.h>
 #include <airdcpp/core/classes/Exception.h>
 
-#include <boost/noncopyable.hpp>
+
 #include <memory>
 
 namespace dcpp {
@@ -65,9 +65,11 @@ private:
 };
 
 /** RAII socket handle */
-class SocketHandle : public boost::noncopyable {
+class SocketHandle {
 public:
 	SocketHandle() : sock(INVALID_SOCKET) { }
+	SocketHandle(const SocketHandle&) = delete;
+	SocketHandle& operator=(const SocketHandle&) = delete;
 	explicit SocketHandle(socket_t sock) : sock(sock) { }
 	~SocketHandle() { reset(); }
 
@@ -81,9 +83,11 @@ private:
 	socket_t sock;
 };
 
-class Socket : public boost::noncopyable
+class Socket
 {
 public:
+	Socket(const Socket&) = delete;
+	Socket& operator=(const Socket&) = delete;
 	enum SocketType {
 		TYPE_TCP = IPPROTO_TCP,
 		TYPE_UDP = IPPROTO_UDP

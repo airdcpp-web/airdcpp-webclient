@@ -28,8 +28,10 @@ namespace webserver {
 	using FilterToken = uint32_t;
 
 
-	class PropertyFilter : public boost::noncopyable {
+	class PropertyFilter {
 	public:
+		PropertyFilter(const PropertyFilter&) = delete;
+		PropertyFilter& operator=(const PropertyFilter&) = delete;
 		using InfoFunction = std::function<std::string (int)>;
 		using NumericFunction = std::function<double (int)>;
 		using CustomFilterFunction = std::function<bool (int, const StringMatch &, double)>;

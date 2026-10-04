@@ -33,9 +33,11 @@ namespace dcpp {
 
 class SearchQuery;
 
-class DirectoryListing::File: public boost::noncopyable {
+class DirectoryListing::File {
 
 public:
+	File(const File&) = delete;
+	File& operator=(const File&) = delete;
 	using Owner = const void*;
 	using Ptr = std::shared_ptr<File>;
 
@@ -79,8 +81,10 @@ enum class DirectoryListing::DirectoryLoadType {
 	NONE,
 };
 
-class DirectoryListing::Directory : public boost::noncopyable {
+class DirectoryListing::Directory {
 public:
+	Directory(const Directory&) = delete;
+	Directory& operator=(const Directory&) = delete;
 	enum DirType {
 		TYPE_NORMAL,
 		TYPE_INCOMPLETE_CHILD,

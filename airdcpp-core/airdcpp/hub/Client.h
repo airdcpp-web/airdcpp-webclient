@@ -35,7 +35,7 @@
 #include <airdcpp/search/SearchQueue.h>
 #include <airdcpp/core/Speaker.h>
 
-#include <boost/noncopyable.hpp>
+
 
 namespace dcpp {
 
@@ -59,8 +59,10 @@ public:
 /** Yes, this should probably be called a Hub */
 class Client : 
 	public ClientBase, public ChatHandlerBase, public Speaker<ClientListener>, public BufferedSocketListener, protected TimerManagerListener, 
-	private ShareProfileManagerListener, public HubSettings, private boost::noncopyable {
+	private ShareProfileManagerListener, public HubSettings {
 public:
+	Client(const Client&) = delete;
+	Client& operator=(const Client&) = delete;
 	using UrlMap = unordered_map<string *, ClientPtr, noCaseStringHash, noCaseStringEq>;
 	using IdMap = unordered_map<ClientToken, ClientPtr>;
 

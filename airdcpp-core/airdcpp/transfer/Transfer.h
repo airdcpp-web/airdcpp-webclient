@@ -29,8 +29,10 @@
 
 namespace dcpp {
 
-class Transfer : private boost::noncopyable {
+class Transfer {
 public:
+	Transfer(const Transfer&) = delete;
+	Transfer& operator=(const Transfer&) = delete;
 	enum Type {
 		TYPE_FILE,
 		TYPE_FULL_LIST,

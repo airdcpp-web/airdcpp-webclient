@@ -38,9 +38,11 @@ public:
 };
 
 
-class HttpConnection : private BufferedSocketListener, public Speaker<HttpConnectionListener>, public boost::noncopyable
+class HttpConnection : private BufferedSocketListener, public Speaker<HttpConnectionListener>
 {
 public:
+	HttpConnection(const HttpConnection&) = delete;
+	HttpConnection& operator=(const HttpConnection&) = delete;
 	HttpConnection(bool aIsUnique = false, const HttpOptions& aOptions = HttpOptions());
 	virtual ~HttpConnection();
 

@@ -24,7 +24,7 @@
 
 #include <airdcpp/core/io/xml/SimpleXMLReader.h>
 
-#include <boost/noncopyable.hpp>
+
 
 namespace dcpp {
 
@@ -32,9 +32,11 @@ namespace dcpp {
  * A simple XML class that loads an XML-ish structure into an internal tree
  * and allows easy access to each element through a "current location".
  */
-class SimpleXML : private boost::noncopyable
+class SimpleXML
 {
 public:
+	SimpleXML(const SimpleXML&) = delete;
+	SimpleXML& operator=(const SimpleXML&) = delete;
 	SimpleXML();
 	~SimpleXML() = default;
 	
@@ -136,8 +138,10 @@ public:
 	}
 	static const string utf8Header;
 private:
-	class Tag : public boost::noncopyable {
+	class Tag {
 	public:
+		Tag(const Tag&) = delete;
+		Tag& operator=(const Tag&) = delete;
 		using Ptr = Tag *;
 		using List = vector<Ptr>;
 		using Iter = List::iterator;

@@ -26,8 +26,10 @@
 #include <chrono>
 
 namespace webserver {
-	class Timer : public boost::noncopyable {
+	class Timer {
 	public:
+		Timer(const Timer&) = delete;
+		Timer& operator=(const Timer&) = delete;
 		using CallbackWrapper = std::function<void (const Callback &)>;
 
 		// CallbackWrapper is meant to ensure the lifetime of the timer
