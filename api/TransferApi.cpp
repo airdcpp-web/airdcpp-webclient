@@ -186,37 +186,52 @@ namespace webserver {
 
 	PropertyIdSet TransferApi::updateFlagsToPropertyIds(int aUpdatedProperties) noexcept {
 		PropertyIdSet updatedProps;
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::TARGET)
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::TARGET) {
 			updatedProps.insert(TransferUtils::PROP_TARGET);
 			updatedProps.insert(TransferUtils::PROP_NAME);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::TYPE)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::TYPE) {
 			updatedProps.insert(TransferUtils::PROP_TYPE);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::SIZE)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SIZE) {
 			updatedProps.insert(TransferUtils::PROP_SIZE);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::STATUS)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::STATUS) {
 			updatedProps.insert(TransferUtils::PROP_STATUS);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::BYTES_TRANSFERRED)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::BYTES_TRANSFERRED) {
 			updatedProps.insert(TransferUtils::PROP_BYTES_TRANSFERRED);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::USER)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::USER) {
 			updatedProps.insert(TransferUtils::PROP_USER);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::TIME_STARTED)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::TIME_STARTED) {
 			updatedProps.insert(TransferUtils::PROP_TIME_STARTED);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::SPEED)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SPEED) {
 			updatedProps.insert(TransferUtils::PROP_SPEED);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::SECONDS_LEFT)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SECONDS_LEFT) {
 			updatedProps.insert(TransferUtils::PROP_SECONDS_LEFT);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::IP)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::IP) {
 			updatedProps.insert(TransferUtils::PROP_IP);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::FLAGS)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::FLAGS) {
 			updatedProps.insert(TransferUtils::PROP_FLAGS);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::SUPPORTS)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::SUPPORTS) {
 			updatedProps.insert(TransferUtils::PROP_SUPPORTS);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::ENCRYPTION)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::ENCRYPTION) {
 			updatedProps.insert(TransferUtils::PROP_ENCRYPTION);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::QUEUE_ID)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::QUEUE_ID) {
 			updatedProps.insert(TransferUtils::PROP_QUEUE_ID);
-		if (aUpdatedProperties & TransferInfo::UpdateFlags::STATE)
+		}
+		if (aUpdatedProperties & TransferInfo::UpdateFlags::STATE) {
 			updatedProps.insert(TransferUtils::PROP_STATUS);
+		}
 
 		return updatedProps;
 	}
