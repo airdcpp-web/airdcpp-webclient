@@ -109,13 +109,13 @@ void AutoSearchManager::addAutoSearch(AutoSearchPtr aAutoSearch, bool search, bo
 
 bool AutoSearchManager::validateAutoSearchStr(const string& aStr) const noexcept {
 	if (aStr.length() <= 5) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aStr % STRING(LINE_EMPTY_OR_TOO_SHORT)), LogMessage::SEV_ERROR);
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aStr, STRING(LINE_EMPTY_OR_TOO_SHORT)), LogMessage::SEV_ERROR);
 		return false;
 	}
 
 	auto lst = getSearchesByString(aStr);
 	if (!lst.empty()) {
-		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aStr % STRING(ITEM_NAME_EXISTS)), LogMessage::SEV_ERROR);
+		logMessage(STRING_F(AUTOSEARCH_ADD_FAILED, aStr, STRING(ITEM_NAME_EXISTS)), LogMessage::SEV_ERROR);
 		return false;
 	}
 	return true;
@@ -302,7 +302,7 @@ void AutoSearchManager::onBundleError(const void* aSearch, const string& aError,
 	RLock l(cs);
 	auto as = searchItems.getItem(aSearch);
 	if (as) {
-		as->setLastError(STRING_F(AS_ERROR, aBundleName % aError % Util::formatCurrentTime() % ClientManager::getInstance()->getFormattedNicks(aUser)));
+		as->setLastError(STRING_F(AS_ERROR, aBundleName,  aError,  Util::formatCurrentTime(), ClientManager::getInstance()->getFormattedNicks(aUser)));
 		fire(AutoSearchManagerListener::ItemUpdated(), as, true);
 	}
 
@@ -483,13 +483,13 @@ void AutoSearchManager::performSearch(AutoSearchPtr& as, StringList& aHubs, Sear
 			} else {
 				auto time = searchInfo.queueTime / 1000;
 				if (failedBundle) {
-					msg = STRING_F(FAILED_BUNDLE_SEARCHED_IN, searchWord % time);
+					msg = STRING_F(FAILED_BUNDLE_SEARCHED_IN, searchWord, time);
 				}
 				else if (aType == TYPE_NEW) {
-					msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord % time);
+					msg = CSTRING_F(AUTOSEARCH_ADDED_SEARCHED_IN, searchWord, time);
 				}
 				else {
-					msg = as->isRecent() ? STRING_F(ITEM_SEARCHED_IN_RECENT, searchWord % time) : STRING_F(ITEM_SEARCHED_IN, searchWord % time);
+					msg = as->isRecent() ? STRING_F(ITEM_SEARCHED_IN_RECENT, searchWord, time) : STRING_F(ITEM_SEARCHED_IN, searchWord, time);
 				}
 			}
 			fire(AutoSearchManagerListener::ItemSearched(), as, msg);
@@ -908,7 +908,7 @@ void AutoSearchManager::handleAction(const SearchResultPtr& sr, AutoSearchPtr& a
 			if (client && client->isConnected()) {
 				//TODO: use magnet link
 				client->statusMessage(STRING(AUTO_SEARCH) + ": " +
-					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::Type::DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)) % sr->getFileName() % u->getIdentity().getNick()), LogMessage::SEV_INFO);
+					STRING_F(AS_X_FOUND_FROM, Text::toLower(sr->getType() == SearchResult::Type::DIRECTORY ? STRING(FILE) : STRING(DIRECTORY)),  sr->getFileName(), u->getIdentity().getNick()), LogMessage::SEV_INFO);
 			}
 
 			if (as->getRemove()) {

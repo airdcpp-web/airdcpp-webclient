@@ -23,7 +23,7 @@
 #include <airdcpp/connection/ConnectionManager.h>
 #include <airdcpp/DCPlusPlus.h>
 #include <airdcpp/favorites/FavoriteManager.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/events/LogManager.h>
 #include <airdcpp/connectivity/MappingManager.h>
 #include <airdcpp/util/NetworkUtil.h>
@@ -385,8 +385,8 @@ string ConnectivityManager::getInformation() const {
 		return "Connectivity settings are being configured; try again later";
 	}
 
-	string autoStatusV4 = ok(false) ? str(boost::format("enabled - %1%") % getStatus(false)) : "disabled";
-	string autoStatusV6 = ok(true) ? str(boost::format("enabled - %1%") % getStatus(true)) : "disabled";
+	string autoStatusV4 = ok(false) ? std::format("enabled - {}", getStatus(false)) : "disabled";
+	string autoStatusV6 = ok(true) ? std::format("enabled - {}", getStatus(true)) : "disabled";
 
 	auto getMode = [&](bool v6) -> string { 
 		switch(v6 ? CONNSETTING(INCOMING_CONNECTIONS6) : CONNSETTING(INCOMING_CONNECTIONS)) {
@@ -397,7 +397,7 @@ string ConnectivityManager::getInformation() const {
 			}
 		case SettingsManager::INCOMING_ACTIVE_UPNP:
 			{
-				return str(boost::format("Active mode behind a router that %1% can configure; port mapping status: %2%") % APPNAME % (v6 ? mapperV6.getStatus() : mapperV4.getStatus()));
+				return std::format("Active mode behind a router that {} can configure; port mapping status: {}", APPNAME, (v6 ? mapperV6.getStatus() : mapperV4.getStatus()));
 				break;
 			}
 		case SettingsManager::INCOMING_PASSIVE:
@@ -412,22 +412,23 @@ string ConnectivityManager::getInformation() const {
 
 	auto field = [](const string& s) { return s.empty() ? "undefined" : s; };
 
-	return str(boost::format(
+	return std::format(
 		"Connectivity information:\n\n"
-		"Automatic connectivity setup (v4) is: %1%\n\n"
-		"Automatic connectivity setup (v6) is: %2%\n\n"
-		"\tMode (v4): %3%\n"
-		"\tMode (v6): %4%\n"
-		"\tExternal IP (v4): %5%\n"
-		"\tExternal IP (v6): %6%\n"
-		"\tBound interface (v4): %7%\n"
-		"\tBound interface (v6): %8%\n"
-		"\tTransfer port: %9%\n"
-		"\tSearch port: %11%\n"
-		"\tEncrypted transfer port: %10%") % autoStatusV4 % autoStatusV6 % getMode(false) % getMode(true) %
-		field(CONNSETTING(EXTERNAL_IP)) % field(CONNSETTING(EXTERNAL_IP6)) %
-		field(CONNSETTING(BIND_ADDRESS)) % field(CONNSETTING(BIND_ADDRESS6)) %
-		field(ConnectionManager::getInstance()->getPort()) % field(ConnectionManager::getInstance()->getSecurePort()) %
+		"Automatic connectivity setup (v4) is: {0}\n\n"
+		"Automatic connectivity setup (v6) is: {1}\n\n"
+		"\tMode (v4): {2}\n"
+		"\tMode (v6): {3}\n"
+		"\tExternal IP (v4): {4}\n"
+		"\tExternal IP (v6): {5}\n"
+		"\tBound interface (v4): {6}\n"
+		"\tBound interface (v6): {7}\n"
+		"\tTransfer port: {8}\n"
+		"\tSearch port: {10}\n"
+		"\tEncrypted transfer port: {9}",
+		autoStatusV4, autoStatusV6, getMode(false), getMode(true),
+		field(CONNSETTING(EXTERNAL_IP)), field(CONNSETTING(EXTERNAL_IP6)),
+		field(CONNSETTING(BIND_ADDRESS)), field(CONNSETTING(BIND_ADDRESS6)),
+		field(ConnectionManager::getInstance()->getPort()), field(ConnectionManager::getInstance()->getSecurePort()),
 		field(SearchManager::getInstance()->getPort()));
 }
 

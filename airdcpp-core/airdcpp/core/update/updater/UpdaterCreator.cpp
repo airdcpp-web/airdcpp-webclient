@@ -22,7 +22,7 @@
 
 #include <airdcpp/core/update/UpdateConstants.h>
 
-#include <airdcpp/core/header/format.h>
+#include <format>
 
 #include <airdcpp/util/AppUtil.h>
 #include <airdcpp/util/CryptoUtil.h>
@@ -173,7 +173,7 @@ bool UpdaterCreator::writePublicKey(const string& aOutputPath, const ByteVector&
 
 	c_key += "uint8_t dcpp::UpdateManager::publicKey[] = { " NATIVE_NL "\t";
 	for (int i = 0; i < aPubKey.size(); ++i) {
-		c_key += (dcpp_fmt("0x%02X") % (unsigned int)aPubKey[i]).str();
+		c_key += std::format("0x{:02X}", (unsigned int)aPubKey[i]);
 		if (i < aPubKey.size() - 1) {
 			c_key += ", ";
 			if ((i + 1) % 15 == 0) c_key += NATIVE_NL "\t";

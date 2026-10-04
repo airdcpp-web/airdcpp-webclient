@@ -228,7 +228,7 @@ namespace webserver {
 			aEndpoint.startAccept();
 			return true;
 		} catch (const std::exception& e) {
-			auto message = STRING_F(WEB_SERVER_SETUP_FAILED, aProtocol % aConfig.port.num() % string(e.what()));
+			auto message = STRING_F(WEB_SERVER_SETUP_FAILED, aProtocol,  aConfig.port.num(), string(e.what()));
 			if (errorF) {
 				errorF(message);
 			}

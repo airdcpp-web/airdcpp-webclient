@@ -159,7 +159,7 @@ HBRIValidator::HBRIValidator(const ConnectInfo& aConnectInfo, const string& aReq
 			aMessageF(STRING(VALIDATION_SUCCEEDED), LogMessage::SEV_INFO);
 		} catch (const Exception& e) {
 			dcdebug("HBRI: validation failed (%s)\n", e.getError().c_str());
-			aMessageF(STRING_F(HBRI_VALIDATION_FAILED, e.getError() % (aConnectInfo.v6 ? "IPv6" : "IPv4")), LogMessage::SEV_ERROR);
+			aMessageF(STRING_F(HBRI_VALIDATION_FAILED, e.getError(), (aConnectInfo.v6 ? "IPv6" : "IPv4")), LogMessage::SEV_ERROR);
 		}
 	});
 }

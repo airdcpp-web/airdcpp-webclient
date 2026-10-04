@@ -26,7 +26,7 @@
 #include <web-server/Session.h>
 #include <web-server/WebServerManager.h>
 
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/core/timer/TimerManager.h>
 #include <airdcpp/util/Util.h>
 
@@ -87,7 +87,7 @@ namespace webserver {
 	}
 
 	void WebSocket::logError(const string& aMessage) const noexcept {
-		auto message = (dcpp_fmt("Websocket: " + aMessage + " (%s)") % (session ? session->getAuthToken().c_str() : "no session")).str();
+		auto message = std::format("Websocket: {} ({})", aMessage, session ? session->getAuthToken().c_str() : "no session");
 		// In phase 2 without websocketpp logging, just print to debug output
 		dcdebug("%s\n", message.c_str());
 	}

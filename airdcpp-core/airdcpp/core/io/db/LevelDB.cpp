@@ -73,11 +73,11 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 	if (!ret.ok()) {
 		if (ret.IsIOError()) {
 			// most likely there's another instance running or the permissions are wrong
-			messageF(STRING_F(DB_OPEN_FAILED_IO, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME % dbPath % APPNAME), false, true);
+			messageF(STRING_F(DB_OPEN_FAILED_IO, getNameLower(),  Text::toUtf8(ret.ToString()),  APPNAME,  dbPath, APPNAME), false, true);
 			throw DbException();
 		} else if (!forceRepair) {
 			// the database is corrupted?
-			messageF(STRING_F(DB_OPEN_FAILED_REPAIR, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME), false, false);
+			messageF(STRING_F(DB_OPEN_FAILED_REPAIR, getNameLower(),  Text::toUtf8(ret.ToString()), APPNAME), false, false);
 			repair(stepF, messageF);
 
 			// try it again
@@ -86,7 +86,7 @@ void LevelDB::open(StepFunction stepF, MessageFunction messageF) {
 	}
 
 	if (!ret.ok()) {
-		messageF(STRING_F(DB_OPEN_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % APPNAME), false, true);
+		messageF(STRING_F(DB_OPEN_FAILED, getNameLower(),  Text::toUtf8(ret.ToString()), APPNAME), false, true);
 		throw DbException();
 	}
 }
@@ -107,10 +107,10 @@ void LevelDB::repair(StepFunction stepF, MessageFunction messageF) {
 
 	auto ret = leveldb::RepairDB(Text::fromUtf8(dbPath), defaultOptions);
 	if (!ret.ok()) {
-		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower() % Text::toUtf8(ret.ToString()) % dbPath % APPNAME % APPNAME), false, true);
+		messageF(STRING_F(DB_REPAIR_FAILED, getNameLower(),  Text::toUtf8(ret.ToString()),  dbPath,  APPNAME, APPNAME), false, true);
 	}
 
-	messageF(STRING_F(DB_X_REPAIRED, friendlyName % logPath), false, false);
+	messageF(STRING_F(DB_X_REPAIRED, friendlyName, logPath), false, false);
 
 	//reset the options
 	delete defaultOptions.info_log;

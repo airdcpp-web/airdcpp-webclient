@@ -20,7 +20,7 @@
 #include <airdcpp/connection/socket/Socket.h>
 
 #include <airdcpp/connectivity/ConnectivityManager.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/core/timer/TimerManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
@@ -206,7 +206,7 @@ static const uint32_t SOCKS_TIMEOUT = 30000;
 string SocketException::errorToString(int aError) noexcept {
 	string msg = SystemUtil::translateError(aError);
 	if(msg.empty()) {
-		msg = str(boost::format("Unknown error: 0x%1$x") % aError);
+		msg = std::format("Unknown error: 0x{:x}", aError);
 	}
 
 	return msg;
@@ -229,7 +229,7 @@ socket_t Socket::setSock(socket_t s, int af) {
 		setSocketOpt2(s, IPPROTO_IPV6, IPV6_V6ONLY, 1);
 		sock6 = s;
 	} else {
-		throw SocketException(str(boost::format("Unknown protocol %d") % af));
+		throw SocketException(std::format("Unknown protocol {}", af));
 	}
 
 	return s;

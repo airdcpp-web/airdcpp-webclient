@@ -82,23 +82,21 @@ void Hasher::logHasher(const string& aMessage, LogMessage::Severity aSeverity, b
 void Hasher::logHashedDirectory(const string& aPath, const string& aLastFilePath, const HasherStats& aStats) const noexcept {
 	if (aStats.filesHashed == 1) {
 		logHasher(
-			STRING_F(HASHING_FINISHED_FILE,
-				aLastFilePath %
-				aStats.formatSize() %
-				aStats.formatDuration() %
-				aStats.formatSpeed()
+			STRING_F(HASHING_FINISHED_FILE, 
+				aLastFilePath, 
+				aStats.formatSize(), 
+				aStats.formatDuration(), aStats.formatSpeed()
 			),
 			LogMessage::SEV_INFO,
 			false
 		);
 	} else {
 		logHasher(
-			STRING_F(HASHING_FINISHED_DIR,
-				aPath %
-				aStats.filesHashed %
-				aStats.formatSize() %
-				aStats.formatDuration() %
-				aStats.formatSpeed()
+			STRING_F(HASHING_FINISHED_DIR, 
+				aPath, 
+				aStats.filesHashed, 
+				aStats.formatSize(), 
+				aStats.formatDuration(), aStats.formatSpeed()
 			),
 			LogMessage::SEV_INFO,
 			false
@@ -379,11 +377,10 @@ void Hasher::processQueue() noexcept {
 					if (totalDirsHashed > 0) {
 						logHasher(
 							STRING_F(HASHING_FINISHED_TOTAL, 
-								totalStats.filesHashed % 
-								totalStats.formatSize() %
-								totalDirsHashed %
-								totalStats.formatDuration() %
-								totalStats.formatSpeed()
+								totalStats.filesHashed,  
+								totalStats.formatSize(), 
+								totalDirsHashed, 
+								totalStats.formatDuration(), totalStats.formatSpeed()
 							),
 							LogMessage::SEV_INFO,
 							false

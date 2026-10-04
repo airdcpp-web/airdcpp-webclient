@@ -179,7 +179,7 @@ namespace dcpp {
 
 			log(STRING_F(FILE_ALREADY_VIEWED, aFileInfo.file), LogMessage::SEV_NOTIFY);
 		} catch (const Exception& e) {
-			log(STRING_F(ADD_FILE_ERROR, aFileInfo.file % ClientManager::getInstance()->getFormattedNicks(aFileInfo.user) % e.getError()), LogMessage::SEV_NOTIFY);
+			log(STRING_F(ADD_FILE_ERROR, aFileInfo.file,  ClientManager::getInstance()->getFormattedNicks(aFileInfo.user), e.getError()), LogMessage::SEV_NOTIFY);
 		}
 
 		return nullptr;
@@ -194,7 +194,7 @@ namespace dcpp {
 
 			log(STRING_F(FILE_ALREADY_VIEWED, aFileName), LogMessage::SEV_NOTIFY);
 		} catch (const Exception& e) {
-			log(STRING_F(FAILED_TO_OPEN_FILE, aFileName % e.getError()), LogMessage::SEV_NOTIFY);
+			log(STRING_F(FAILED_TO_OPEN_FILE, aFileName, e.getError()), LogMessage::SEV_NOTIFY);
 		}
 
 		return nullptr;

@@ -224,12 +224,12 @@ void UpdateManager::completeLanguageDownload() {
 
 			return;
 		} catch(const FileException& e) { 
-			log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % e.getError()), LogMessage::SEV_WARNING);
+			log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName(), e.getError()), LogMessage::SEV_WARNING);
 		}
 	}
 
 	fire(UpdateManagerListener::LanguageFailed(), conn->status);
-	log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName() % conn->status), LogMessage::SEV_WARNING);
+	log(STRING_F(LANGUAGE_UPDATE_FAILED, Localization::getCurLanguageName(), conn->status), LogMessage::SEV_WARNING);
 }
 
 void UpdateManager::completeVersionDownload(bool aManualCheck) {

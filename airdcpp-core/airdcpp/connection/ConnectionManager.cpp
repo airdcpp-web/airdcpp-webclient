@@ -26,10 +26,10 @@
 #include <airdcpp/transfer/download/DownloadManager.h>
 #include <airdcpp/events/LogManager.h>
 #include <airdcpp/queue/QueueManager.h>
-#include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/transfer/upload/UploadManager.h>
 #include <airdcpp/connection/UserConnection.h>
 #include <airdcpp/util/ValueGenerator.h>
+#include <format>
 
 namespace dcpp {
 FastCriticalSection TokenManager::cs;
@@ -587,7 +587,7 @@ int ConnectionManager::Server::run() noexcept {
 				dcdebug("ConnectionManager::Server::run Stopped listening: %s\n", e.getError().c_str());
 
 				if(!failed) {
-					LogManager::getInstance()->message(str(boost::format("Connectivity error: %1%") % e.getError()), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
+					LogManager::getInstance()->message(std::format("Connectivity error: {0}", e.getError()), LogMessage::SEV_ERROR, STRING(CONNECTIVITY));
 					failed = true;
 				}
 

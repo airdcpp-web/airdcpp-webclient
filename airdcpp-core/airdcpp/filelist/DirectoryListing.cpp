@@ -285,7 +285,7 @@ optional<DirectoryBundleAddResult> DirectoryListing::createBundleHooked(const Di
 		return result;
 	} catch (const std::bad_alloc&) {
 		errorMsg_ = STRING(OUT_OF_MEMORY);
-		log(STRING_F(BUNDLE_CREATION_FAILED, aTarget % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(BUNDLE_CREATION_FAILED, aTarget, STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 	}
 
 	return nullopt;
@@ -395,12 +395,12 @@ void DirectoryListing::dispatch(Callback& aCallback) noexcept {
 	try {
 		aCallback();
 	} catch (const std::bad_alloc&) {
-		log(STRING_F(LIST_LOAD_FAILED, getNick(false) % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(LIST_LOAD_FAILED, getNick(false), STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), "Out of memory");
 	} catch (const AbortException& e) {
 		// The error is empty on user cancellations
 		if (!e.getError().empty()) {
-			log(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+			log(STRING_F(LIST_LOAD_FAILED, getNick(false), e.getError()), LogMessage::SEV_ERROR);
 		}
 
 		fire(DirectoryListingListener::LoadingFailed(), e.getError());
@@ -409,7 +409,7 @@ void DirectoryListing::dispatch(Callback& aCallback) noexcept {
 	} catch (const QueueException& e) {
 		updateStatus("Queueing failed:" + e.getError());
 	} catch (const Exception& e) {
-		log(STRING_F(LIST_LOAD_FAILED, getNick(false) % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(LIST_LOAD_FAILED, getNick(false), e.getError()), LogMessage::SEV_ERROR);
 		fire(DirectoryListingListener::LoadingFailed(), getNick(false) + ": " + e.getError());
 	}
 }

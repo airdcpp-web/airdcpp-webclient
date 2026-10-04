@@ -90,14 +90,14 @@ namespace webserver {
 		}
 
 		if (download->buf.empty()) {
-			loggerF(STRING_F(WEB_EXTENSION_UPDATE_CHECK_FAILED, aName % download->status), LogMessage::SEV_ERROR);
+			loggerF(STRING_F(WEB_EXTENSION_UPDATE_CHECK_FAILED, aName, download->status), LogMessage::SEV_ERROR);
 			return;
 		}
 
 		try {
 			checkPackageData(download->buf, aName, aCurrentVersion);
 		} catch (const std::exception& e) {
-			loggerF(STRING_F(WEB_EXTENSION_UPDATE_CHECK_FAILED, aName % e.what()), LogMessage::SEV_ERROR);
+			loggerF(STRING_F(WEB_EXTENSION_UPDATE_CHECK_FAILED, aName, e.what()), LogMessage::SEV_ERROR);
 		}
 	}
 
@@ -123,7 +123,7 @@ namespace webserver {
 
 				if (remoteSemver.major > (*curSemver).major) {
 					if (!majorVersionAnnounced) {
-						loggerF(STRING_F(WEB_EXTENSION_MAJOR_UPDATE, elem.key() % aName), LogMessage::SEV_INFO);
+						loggerF(STRING_F(WEB_EXTENSION_MAJOR_UPDATE, elem.key(), aName), LogMessage::SEV_INFO);
 						majorVersionAnnounced = true;
 					}
 

@@ -632,7 +632,7 @@ bool Client::checkIncomingCTM(const string& aTarget, const OnlineUserPtr& aAdcUs
 	}
 
 	auto nick = aAdcUser ? aAdcUser->getIdentity().getNick() : STRING(UNKNOWN);
-	auto message = STRING_F(CONNECT_REQUEST_SPAM_FROM, aTarget % nick);
+	auto message = STRING_F(CONNECT_REQUEST_SPAM_FROM, aTarget, nick);
 
 	handleFlood(result, ctmFloodCounter.appendFloodRate(aTarget, message, result.type == FloodCounter::FloodType::FLOOD_SEVERE));
 	return false;
@@ -645,7 +645,7 @@ bool Client::checkIncomingSearch(const string& aTarget, const OnlineUserPtr& aAd
 	}
 
 	auto nick = aAdcUser ? aAdcUser->getIdentity().getNick() : STRING(UNKNOWN);
-	auto message = STRING_F(SEARCH_SPAM_FROM, aTarget % nick);
+	auto message = STRING_F(SEARCH_SPAM_FROM, aTarget, nick);
 
 	handleFlood(result, searchFloodCounter.appendFloodRate(aTarget, message, result.type == FloodCounter::FloodType::FLOOD_SEVERE));
 	return false;

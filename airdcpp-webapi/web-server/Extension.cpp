@@ -149,11 +149,11 @@ namespace webserver {
 
 	void Extension::checkCompatibilityThrow() const {
 		if (apiVersion != API_VERSION) {
-			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion) % Util::toString(API_VERSION)));
+			throw Exception(STRING_F(WEB_EXTENSION_API_VERSION_UNSUPPORTED, Util::toString(apiVersion), Util::toString(API_VERSION)));
 		}
 
 		if (minApiFeatureLevel > API_FEATURE_LEVEL) {
-			throw Exception(STRING_F(WEB_EXTENSION_API_FEATURES_UNSUPPORTED, Util::toString(minApiFeatureLevel) % Util::toString(API_FEATURE_LEVEL)));
+			throw Exception(STRING_F(WEB_EXTENSION_API_FEATURES_UNSUPPORTED, Util::toString(minApiFeatureLevel), Util::toString(API_FEATURE_LEVEL)));
 		}
 	}
 

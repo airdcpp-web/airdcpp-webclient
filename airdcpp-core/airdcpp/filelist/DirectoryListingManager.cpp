@@ -236,7 +236,7 @@ void DirectoryListingManager::processListHooked(const string& aFileName, const s
 			dl->loadFile();
 		}
 	} catch (const Exception& e) {
-		log(STRING_F(LIST_LOAD_FAILED, aFileName % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(LIST_LOAD_FAILED, aFileName, e.getError()), LogMessage::SEV_ERROR);
 		return;
 	}
 
@@ -251,7 +251,7 @@ void DirectoryListingManager::maybeReportDownloadError(const DirectoryDownloadPt
 	if (aDownloadInfo->getErrorMethod() == DirectoryDownload::ErrorMethod::LOG && !aError.empty()) {
 		auto nick = ClientManager::getInstance()->getFormattedNicks(aDownloadInfo->getUser());
 		auto fullTarget = PathUtil::joinDirectory(aDownloadInfo->getTarget(), aDownloadInfo->getBundleName());
-		log(STRING_F(ADD_BUNDLE_ERRORS_OCC, fullTarget % nick % aError), aSeverity);
+		log(STRING_F(ADD_BUNDLE_ERRORS_OCC, fullTarget,  nick, aError), aSeverity);
 	}
 }
 

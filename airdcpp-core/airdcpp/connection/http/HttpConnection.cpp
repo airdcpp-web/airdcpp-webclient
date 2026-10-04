@@ -21,13 +21,12 @@
 
 #include <airdcpp/connection/socket/BufferedSocket.h>
 #include <airdcpp/util/LinkUtil.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/util/SystemUtil.h>
 #include <airdcpp/core/version.h>
 
 #include <airdcpp/core/localization/ResourceManager.h>
-#include <airdcpp/core/header/format.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
@@ -205,7 +204,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 				error.pop_back(); // These would cause issues in HTTP messages
 			}
 
-			fire(HttpConnectionListener::Failed(), this, str(boost::format("%1% (%2%)") % error % currentUrl));
+			fire(HttpConnectionListener::Failed(), this, std::format("{} ({})", error, currentUrl));
 			if (isUnique) { delete this; return; }
 			connState = CONN_FAILED;
 		}
@@ -277,7 +276,7 @@ void HttpConnection::on(BufferedSocketListener::Failed, const string& aLine) noe
 	abortRequest(false);
 
 	connState = CONN_FAILED;
-	fire(HttpConnectionListener::Failed(), this, str(boost::format("%1% (%2%)") % aLine % currentUrl));
+	fire(HttpConnectionListener::Failed(), this, std::format("{} ({})", aLine, currentUrl));
 	if (isUnique) delete this;
 }
 

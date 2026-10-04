@@ -102,7 +102,7 @@ void HashStore::addFile(const string& aFileLower, const HashedFile& fi_) {
 	try {
 		fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
 	} catch (const DbException& e) {
-		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()));
+		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower(), e.getError()));
 	}
 
 	free(buf);
@@ -112,7 +112,7 @@ void HashStore::removeFile(const string& aFilePathLower) {
 	try {
 		fileDb->remove((void*)aFilePathLower.c_str(), aFilePathLower.length());
 	} catch (const DbException& e) {
-		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()));
+		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower(), e.getError()));
 	}
 }
 
@@ -172,12 +172,12 @@ void HashStore::addTree(const TigerTree& tt) {
 	if (treelen > 0)
 		memcpy(p, tt.getLeaves()[0].data, treelen);
 
-	//throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % "TEST"));
+	//throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower(), "TEST"));
 	try {
 		hashDb->put((void*)tt.getRoot().data, sizeof(TTHValue), buf, sz);
 	} catch (const DbException& e) {
 		free(buf);
-		throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower() % e.getError()));
+		throw HashException(STRING_F(WRITE_FAILED_X, hashDb->getNameLower(), e.getError()));
 	}
 
 	free(buf);
@@ -189,7 +189,7 @@ bool HashStore::getTree(const TTHValue& aRoot, TigerTree& tt_) {
 			return loadTree(aValue, valueLen, aRoot, tt_, true);
 		});
 	} catch (const DbException& e) {
-		log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(READ_FAILED_X, hashDb->getNameLower(), e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	return false;
@@ -200,7 +200,7 @@ bool HashStore::hasTree(const TTHValue& aRoot) {
 	try {
 		ret = hashDb->hasKey((void*)aRoot.data, sizeof(TTHValue));
 	} catch (const DbException& e) {
-		throw HashException(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()));
+		throw HashException(STRING_F(READ_FAILED_X, hashDb->getNameLower(), e.getError()));
 	}
 
 	return ret;
@@ -236,7 +236,7 @@ bool HashStore::loadTree(const void* src, size_t len, const TTHValue& aRoot, Tig
 		aTree = TigerTree(fileSize, blockSize, &buf[0]);
 		if (aTree.getRoot() != aRoot) {
 			if (aReportCorruption) {
-				log(STRING_F(TREE_LOAD_FAILED_DB, aRoot.toBase32() % STRING(INVALID_TREE) % "/verifydb"), LogMessage::SEV_ERROR);
+				log(STRING_F(TREE_LOAD_FAILED_DB, aRoot.toBase32(),  STRING(INVALID_TREE), "/verifydb"), LogMessage::SEV_ERROR);
 			}
 			return false;
 		}
@@ -320,7 +320,7 @@ int64_t HashStore::getRootInfo(const TTHValue& root, InfoType aType) noexcept {
 			return true;
 		});
 	} catch (const DbException& e) {
-		log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(READ_FAILED_X, hashDb->getNameLower(), e.getError()), LogMessage::SEV_ERROR);
 	}
 	return ret;
 }
@@ -344,7 +344,7 @@ bool HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) noexcept 
 			return loadFileInfo(aValue, valueLen, fi_);
 		});
 	} catch (const DbException& e) {
-		log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING_F(READ_FAILED_X, fileDb->getNameLower(), e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	return false;
@@ -391,7 +391,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 				}
 				}, fileSnapshot.get());
 		} catch (const DbException& e) {
-			log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+			log(STRING_F(READ_FAILED_X, fileDb->getNameLower(), e.getError()), LogMessage::SEV_ERROR);
 			log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
 			return;
 		}
@@ -422,7 +422,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 				return true;
 			}, hashSnapshot.get());
 		} catch (const DbException& e) {
-			log(STRING_F(READ_FAILED_X, hashDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+			log(STRING_F(READ_FAILED_X, hashDb->getNameLower(), e.getError()), LogMessage::SEV_ERROR);
 			log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
 			return;
 		}
@@ -443,7 +443,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 					return false;
 				}, fileSnapshot.get());
 			} catch (const DbException& e) {
-				log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+				log(STRING_F(READ_FAILED_X, fileDb->getNameLower(), e.getError()), LogMessage::SEV_ERROR);
 				log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
 				return;
 			}
@@ -466,7 +466,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 
 	string msg;
 	if (unusedFiles > 0 || unusedTrees > 0) {
-		msg = STRING_F(HASHDB_MAINTENANCE_UNUSED, unusedFiles % unusedTrees);
+		msg = STRING_F(HASHDB_MAINTENANCE_UNUSED, unusedFiles, unusedTrees);
 	} else {
 		msg = STRING(HASHDB_MAINTENANCE_NO_UNUSED);
 	}
@@ -475,7 +475,7 @@ void HashStore::optimize(bool doVerify) noexcept {
 
 	if (failedTrees > 0 || missingTrees > 0) {
 		if (doVerify) {
-			msg = STRING_F(REBUILD_FAILED_ENTRIES_VERIFY, missingTrees % failedTrees);
+			msg = STRING_F(REBUILD_FAILED_ENTRIES_VERIFY, missingTrees, failedTrees);
 		} else {
 			msg = STRING_F(REBUILD_FAILED_ENTRIES_OPTIMIZE, missingTrees);
 		}
