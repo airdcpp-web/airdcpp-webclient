@@ -699,10 +699,9 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 	string sk, sh;
 	if(type == "blom" && c.getParam("BK", 4, sk) && c.getParam("BH", 4, sh))  {
 		ByteVector v;
-		size_t m = Util::toUInt32(c.getParam(3)) * 8;
 		size_t k = Util::toUInt32(sk);
 		size_t h = Util::toUInt32(sh);
-				
+
 		if(k > 8 || k < 1) {
 			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
 				"Unsupported k", AdcCommand::TYPE_HUB));
@@ -713,6 +712,15 @@ void AdcHub::handle(AdcCommand::GET, AdcCommand& c) noexcept {
 				"Unsupported h", AdcCommand::TYPE_HUB));
 			return;
 		}
+
+		// Validate before multiplication to prevent overflow
+		size_t bm = Util::toUInt32(c.getParam(3));
+		if(bm > SIZE_MAX / 8) {
+			sendHooked(AdcCommand(AdcCommand::SEV_FATAL, AdcCommand::ERROR_TRANSFER_GENERIC,
+				"Bloom filter size too large", AdcCommand::TYPE_HUB));
+			return;
+		}
+		size_t m = bm * 8;
 
 		size_t n = ShareManager::getInstance()->getBloomFileCount(get(HubSettings::ShareProfile));
 		
