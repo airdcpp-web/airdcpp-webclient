@@ -79,7 +79,7 @@ void ShareManager::log(const string& aMsg, LogMessage::Severity aSeverity) noexc
 }
 
 void ShareManager::duplicateFilelistFileLogger(const StringList& aDirectoryPaths, int aDupeFileCount) noexcept {
-	log(STRING_F(DUPLICATE_FILES_DETECTED, aDupeFileCount % Util::toString(", ", aDirectoryPaths)), LogMessage::SEV_WARNING);
+	log(STRING_F(DUPLICATE_FILES_DETECTED, aDupeFileCount, Util::toString(", ", aDirectoryPaths)), LogMessage::SEV_WARNING);
 }
 
 
@@ -278,7 +278,7 @@ bool ShareManager::loadCache(const ProgressFunction& progressF) noexcept {
 				try {
 					SimpleXMLReader(&loader).parse(*loader.file);
 				} catch (SimpleXMLException& e) {
-					log(STRING_F(LOAD_FAILED_X, loader.xmlPath % e.getError()), LogMessage::SEV_ERROR);
+					log(STRING_F(LOAD_FAILED_X, loader.xmlPath, e.getError()), LogMessage::SEV_ERROR);
 					hasFailedCaches = true;
 					File::deleteFile(loader.xmlPath);
 				} catch (...) {
@@ -633,10 +633,10 @@ bool ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const bool& aStop
 	try {
 		buildTree(path, Text::toLower(path), newDirectory, optionalOldDirectory, aStopping);
 	} catch (const std::bad_alloc&) {
-		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
+		log(STRING_F(DIR_REFRESH_FAILED, path, STRING(OUT_OF_MEMORY)), LogMessage::SEV_ERROR);
 		return false;
 	} catch (...) {
-		log(STRING_F(DIR_REFRESH_FAILED, path % STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
+		log(STRING_F(DIR_REFRESH_FAILED, path, STRING(UNKNOWN_ERROR)), LogMessage::SEV_ERROR);
 		return false;
 	}
 
@@ -649,7 +649,7 @@ bool ShareManager::RefreshTaskHandler::ShareBuilder::validateFileItem(const File
 	} catch (const ShareValidatorException& e) {
 		if (SETTING(REPORT_BLOCKED_SHARE) && ShareValidatorException::isReportableError(e.getType())) {
 			if (aFileItem.isDirectory()) {
-				log(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath % e.getError()), LogMessage::SEV_INFO);
+				log(STRING_F(SHARE_DIRECTORY_BLOCKED, aPath, e.getError()), LogMessage::SEV_INFO);
 			} else {
 				aErrorCollector.add(e.getError(), PathUtil::getFileName(aPath), false);
 			}
@@ -756,7 +756,7 @@ void ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const string& aPa
 
 	auto msg = errors.getMessage();
 	if (!msg.empty()) {
-		log(STRING_F(SHARE_FILES_BLOCKED, aPath % msg), LogMessage::SEV_INFO);
+		log(STRING_F(SHARE_FILES_BLOCKED, aPath, msg), LogMessage::SEV_INFO);
 	}
 }
 
@@ -1083,7 +1083,7 @@ FileList* ShareManager::generateXmlList(ProfileToken aProfile, bool forced /*fal
 				fl->generationFinished(false);
 			} catch (const Exception& e) {
 				// No new file lists...
-				log(STRING_F(SAVE_FAILED_X, fl->getFileName() % e.getError()), LogMessage::SEV_ERROR);
+				log(STRING_F(SAVE_FAILED_X, fl->getFileName(), e.getError()), LogMessage::SEV_ERROR);
 				fl->generationFinished(true);
 
 				// do we have anything to send?
@@ -1166,7 +1166,7 @@ void ShareManager::saveShareCache(const ProgressFunction& progressF /*nullptr*/)
 					File::deleteFile(path);
 					File::renameFile(path + ".tmp", path);
 				} catch (Exception& e) {
-					log(STRING_F(SAVE_FAILED_X, path % e.getError()), LogMessage::SEV_WARNING);
+					log(STRING_F(SAVE_FAILED_X, path, e.getError()), LogMessage::SEV_WARNING);
 				}
 
 				d->getRoot()->setCacheDirty(false);

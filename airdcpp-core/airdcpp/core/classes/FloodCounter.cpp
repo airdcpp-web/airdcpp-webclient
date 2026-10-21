@@ -84,7 +84,7 @@ namespace dcpp {
 	string FloodCounter::appendFloodRate(const string& aRequester, const string& aMessage, bool aSevere) const noexcept {
 		auto rate = getRate(aRequester);
 
-		auto toAppend = STRING_F(X_REQUESTS_SECONDS, rate.attempts % Util::toString(static_cast<double>(rate.periodMs) / 1000));
+		auto toAppend = STRING_F(X_REQUESTS_SECONDS, rate.attempts, Util::toString(static_cast<double>(rate.periodMs) / 1000));
 		if (aSevere) {
 			toAppend += ", " + Text::toLower(STRING(SEVERE));
 		}

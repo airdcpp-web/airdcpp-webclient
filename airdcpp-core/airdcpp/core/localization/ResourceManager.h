@@ -20,7 +20,7 @@
 #define DCPLUSPLUS_DCPP_RESOURCE_MANAGER_H
 
 #include <airdcpp/core/Singleton.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 
 namespace dcpp {
 
@@ -30,11 +30,18 @@ namespace dcpp {
 #define STRING_I(x) ResourceManager::getInstance()->getString(x)
 #define CSTRING_I(x) ResourceManager::getInstance()->getString(x).c_str()
 
-#define STRING_F(x, args) (dcpp_fmt(ResourceManager::getString(ResourceManager::x)) % args).str()
-#define CSTRING_F(x, args) (dcpp_fmt(ResourceManager::getString(ResourceManager::x)) % args).str().c_str()
+namespace detail {
+	template<typename... Args>
+	inline std::string formatStr(const std::string& aFmt, const Args&... aArgs) {
+		return std::vformat(aFmt, std::make_format_args(aArgs...));
+	}
+}
 
-#define STRING_FI(x, args) (dcpp_fmt(ResourceManager::getString(x)) % args).str()
-#define CSTRING_FI(x, args) (dcpp_fmt(ResourceManager::getString(x)) % args).str().c_str()
+#define STRING_F(x, ...) detail::formatStr(ResourceManager::getString(ResourceManager::x), __VA_ARGS__)
+#define CSTRING_F(x, ...) detail::formatStr(ResourceManager::getString(ResourceManager::x), __VA_ARGS__).c_str()
+
+#define STRING_FI(x, ...) detail::formatStr(ResourceManager::getString(x), __VA_ARGS__)
+#define CSTRING_FI(x, ...) detail::formatStr(ResourceManager::getString(x), __VA_ARGS__).c_str()
 
 #ifdef UNICODE
 
@@ -44,11 +51,18 @@ namespace dcpp {
 #define WSTRING_I(x) ResourceManager::getInstance()->getStringW(x)
 #define CWSTRING_I(x) ResourceManager::getInstance()->getStringW(x).c_str()
 
-#define WSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str()
-#define CWSTRING_F(x, args) (dcpp_fmt(ResourceManager::getStringW(ResourceManager::x)) % args).str().c_str()
+namespace detail {
+	template<typename... Args>
+	inline std::wstring formatStr(const std::wstring& aFmt, const Args&... aArgs) {
+		return std::vformat(aFmt, std::make_wformat_args(aArgs...));
+	}
+}
 
-#define WSTRING_FI(x, args) (dcpp_fmt(ResourceManager::getStringW(x)) % args).str()
-#define CWSTRING_FI(x, args) (dcpp_fmt(ResourceManager::getStringW(x)) % args).str().c_str()
+#define WSTRING_F(x, ...) detail::formatStr(ResourceManager::getStringW(ResourceManager::x), __VA_ARGS__)
+#define CWSTRING_F(x, ...) detail::formatStr(ResourceManager::getStringW(ResourceManager::x), __VA_ARGS__).c_str()
+
+#define WSTRING_FI(x, ...) detail::formatStr(ResourceManager::getStringW(x), __VA_ARGS__)
+#define CWSTRING_FI(x, ...) detail::formatStr(ResourceManager::getStringW(x), __VA_ARGS__).c_str()
 
 #define TSTRING WSTRING
 #define TSTRING_I WSTRING_I

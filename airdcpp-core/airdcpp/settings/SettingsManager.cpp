@@ -1143,7 +1143,7 @@ void SettingsManager::ensureValidBindAddresses(const StartupLoader& aLoader) noe
 		if (!isDefault(aSetting)) {
 			auto adapters = NetworkUtil::getNetworkAdapters(v6);
 			auto p = ranges::find_if(adapters, [this, aSetting](const AdapterInfo& aInfo) { return aInfo.ip == get(aSetting); });
-			if (p == adapters.end() && aLoader.messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4") % get(aSetting)), true, false)) {
+			if (p == adapters.end() && aLoader.messageF(STRING_F(BIND_ADDRESS_MISSING, (v6 ? "IPv6" : "IPv4"), get(aSetting)), true, false)) {
 				unsetKey(aSetting);
 			}
 		}
@@ -1475,7 +1475,7 @@ bool SettingsManager::loadSettingFile(AppUtil::Paths aPath, const string& aFileN
 
 			aParseCallback(xml);
 		} catch (const Exception& e) {
-			settingXmlMessage(STRING_F(LOAD_FAILED_X, aPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
+			settingXmlMessage(STRING_F(LOAD_FAILED_X, aPath, e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
 			return false;
 		}
 
@@ -1508,18 +1508,18 @@ bool SettingsManager::loadSettingFile(AppUtil::Paths aPath, const string& aFileN
 			File::renameFile(fullPath, corruptedCopyPath);
 			File::copyFile(backupPath, fullPath);
 		} catch (const Exception& e) {
-			settingXmlMessage(STRING_F(UNABLE_TO_RENAME, fullPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
+			settingXmlMessage(STRING_F(UNABLE_TO_RENAME, fullPath, e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
 			return false;
 		}
 
-		settingXmlMessage(STRING_F(SETTING_FILE_RECOVERED, backupPath % Util::formatTime("%Y-%m-%d %H:%M", File::getLastModified(backupPath)) % corruptedCopyPath), LogMessage::SEV_INFO, aCustomReportF);
+		settingXmlMessage(STRING_F(SETTING_FILE_RECOVERED, backupPath,  Util::formatTime("%Y-%m-%d %H:%M", File::getLastModified(backupPath)), corruptedCopyPath), LogMessage::SEV_INFO, aCustomReportF);
 	} else {
 		// Succeeded, save the backup
 		File::deleteFile(backupPath);
 		try {
 			File::copyFile(fullPath, backupPath);
 		} catch (const Exception& e) {
-			settingXmlMessage(STRING_F(SAVE_FAILED_X, backupPath % e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
+			settingXmlMessage(STRING_F(SAVE_FAILED_X, backupPath, e.getError()), LogMessage::SEV_ERROR, aCustomReportF);
 		}
 	}
 
@@ -1544,7 +1544,7 @@ bool SettingsManager::saveSettingFile(const string& aContent, AppUtil::Paths aPa
 			File::renameFile(fname + ".tmp", fname);
 		}
 	} catch (const FileException& e) {
-		settingXmlMessage(STRING_F(SAVE_FAILED_X, fname % e.getError()), LogMessage::SEV_ERROR, aCustomErrorF);
+		settingXmlMessage(STRING_F(SAVE_FAILED_X, fname, e.getError()), LogMessage::SEV_ERROR, aCustomErrorF);
 		return false;
 	}
 

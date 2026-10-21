@@ -117,13 +117,11 @@ void PrivateChat::checkCCPMHubBlocked() noexcept {
 		return;
 	}
 
-	auto msg = boost::str(boost::format(
-"%s\r\n\r\n\
-%s")
-
-% STRING_F(CCPM_BLOCKED_WARNING, hubName)
-% (getUser()->isSet(User::CCPM) ? STRING(OTHER_CCPM_SUPPORTED) : STRING(OTHER_MEANS_COMMUNICATION))
-);
+	auto msg = std::format(
+		"{}\r\n\r\n{}",
+		STRING_F(CCPM_BLOCKED_WARNING, hubName),
+		(getUser()->isSet(User::CCPM) ? STRING(OTHER_CCPM_SUPPORTED) : STRING(OTHER_MEANS_COMMUNICATION))
+	);
 
 	statusMessage(msg, LogMessage::SEV_WARNING, LogMessage::Type::SYSTEM);
 }
@@ -389,7 +387,7 @@ void PrivateChat::checkUserHub(bool aWentOffline) noexcept {
 	if (ou->getHubUrl() != replyTo.hint) {
 		auto hubNameNew = ou->getClient()->getHubName();
 		if (!ccReady()) {
-			auto statusText = aWentOffline ? STRING_F(USER_OFFLINE_PM_CHANGE, hubName % hubNameNew) :
+			auto statusText = aWentOffline ? STRING_F(USER_OFFLINE_PM_CHANGE, hubName, hubNameNew) :
 				STRING_F(MESSAGES_SENT_THROUGH, hubNameNew);
 
 			statusMessage(statusText, LogMessage::SEV_INFO, LogMessage::Type::SERVER);

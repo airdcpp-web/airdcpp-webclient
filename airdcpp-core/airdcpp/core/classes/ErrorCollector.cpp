@@ -60,10 +60,10 @@ string ErrorCollector::getMessage() const noexcept {
 			}
 
 			auto pathStr = Util::toString(", ", paths);
-			msg.push_back(STRING_F(X_FILE_NAMES, errorName % pathStr));
+			msg.push_back(STRING_F(X_FILE_NAMES, errorName, pathStr));
 		} else {
 			// Too many errors, report the total failed count
-			msg.push_back(STRING_F(X_FILE_COUNT, errorName % errorCount % totalFileCount));
+			msg.push_back(STRING_F(X_FILE_COUNT, errorName,  errorCount, totalFileCount));
 		}
 	}
 

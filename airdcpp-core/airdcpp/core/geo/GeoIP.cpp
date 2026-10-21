@@ -22,7 +22,7 @@
 #include <airdcpp/core/classes/Exception.h>
 #include <airdcpp/core/io/File.h>
 #include <airdcpp/core/localization/Localization.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/util/Util.h>
 #include <airdcpp/core/io/compress/ZUtils.h>

@@ -29,7 +29,6 @@
 #include "WebUserManager.h"
 #include "IServerEndpoint.h"
 
-#include <airdcpp/core/header/format.h>
 #include <airdcpp/util/AppUtil.h>
 #include <airdcpp/util/Util.h>
 

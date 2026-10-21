@@ -21,7 +21,7 @@
 
 #include <airdcpp/connection/ConnectionManager.h>
 #include <airdcpp/connectivity/ConnectivityManager.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/events/LogManager.h>
 
 #include <airdcpp/connectivity/mappers/Mapper_MiniUPnPc.h>
@@ -103,7 +103,7 @@ bool MappingManager::getOpened() const {
 string MappingManager::getStatus() const {
 	if(working.get()) {
 		auto& mapper = *working;
-		return STRING_F(MAPPER_CREATING_SUCCESS, deviceString(mapper) % mapper.getName());
+		return STRING_F(MAPPER_CREATING_SUCCESS, deviceString(mapper), mapper.getName());
 	}
 	return STRING(MAPPER_CREATING_FAILED);
 }
@@ -130,8 +130,8 @@ int MappingManager::run() {
 		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) {
 			// just launch renewal requests - don't bother with possible failures.
 			if(!port.empty()) {
-				mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X,
-					description % port % Mapper::protocols[protocol]));
+				mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, 
+					description,  port, Mapper::protocols[protocol]));
 			}
 		};
 
@@ -169,8 +169,8 @@ int MappingManager::run() {
 		}
 
 		auto addRule = [this, &mapper](const string& port, Mapper::Protocol protocol, const string& description) {
-			if (!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME % description % port % Mapper::protocols[protocol]))) {
-				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description % port % Mapper::protocols[protocol] % mapper.getName()), LogMessage::SEV_WARNING);
+			if (!port.empty() && !mapper.open(port, protocol, STRING_F(MAPPER_X_PORT_X, APPNAME,  description,  port, Mapper::protocols[protocol]))) {
+				this->log(STRING_F(MAPPER_INTERFACE_FAILED, description,  port,  Mapper::protocols[protocol], mapper.getName()), LogMessage::SEV_WARNING);
 				mapper.close();
 				return false;
 			}
@@ -182,7 +182,7 @@ int MappingManager::run() {
 			addRule(search_port, Mapper::PROTOCOL_UDP, STRING(SEARCH))))
 			continue;
 
-		log(STRING_F(MAPPER_CREATING_SUCCESS_LONG, conn_port % secure_port % search_port % deviceString(mapper) % mapper.getName()), LogMessage::SEV_INFO);
+		log(STRING_F(MAPPER_CREATING_SUCCESS_LONG, conn_port,  secure_port,  search_port,  deviceString(mapper), mapper.getName()), LogMessage::SEV_INFO);
 
 		working = std::move(pMapper);
 
@@ -216,9 +216,9 @@ void MappingManager::close(Mapper& mapper) {
 		bool ret = mapper.init() && mapper.close();
 		mapper.uninit();
 		if (ret)
-			log(STRING_F(MAPPER_REMOVING_SUCCESS, deviceString(mapper) % mapper.getName()), LogMessage::SEV_INFO);
+			log(STRING_F(MAPPER_REMOVING_SUCCESS, deviceString(mapper), mapper.getName()), LogMessage::SEV_INFO);
 		else
-			log(STRING_F(MAPPER_REMOVING_FAILED, deviceString(mapper) % mapper.getName()), LogMessage::SEV_WARNING);
+			log(STRING_F(MAPPER_REMOVING_FAILED, deviceString(mapper), mapper.getName()), LogMessage::SEV_WARNING);
 	}
 }
 

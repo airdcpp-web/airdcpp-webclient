@@ -530,7 +530,7 @@ string CryptoManager::formatError(const X509_STORE_CTX *ctx, const string& messa
 		ByteVector kp = ssl::X509_digest(cert, EVP_sha256());
 		string keyp = keyprintToString(kp);
 
-		return STRING_F(VERIFY_CERT_FAILED, line % message % keyp);
+		return STRING_F(VERIFY_CERT_FAILED, line,  message, keyp);
 	}
 
 	return Util::emptyString;

@@ -19,7 +19,6 @@
 #include "stdinc.h"
 #include <airdcpp/DCPlusPlus.h>
 
-#include <airdcpp/core/header/format.h>
 #include <airdcpp/util/AppUtil.h>
 #include <airdcpp/core/io/File.h>
 #include <airdcpp/util/PathUtil.h>

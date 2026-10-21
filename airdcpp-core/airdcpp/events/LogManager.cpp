@@ -197,7 +197,7 @@ void LogManager::log(const string& area, const string& msg) noexcept {
 			f.write(msg + "\r\n");
 		} catch (const FileException& e) {
 			// Just don't try to write the error into a file...
-			message(STRING_F(WRITE_FAILED_X, aArea % e.what()), LogMessage::SEV_NOTIFY, STRING(APPLICATION));
+			message(STRING_F(WRITE_FAILED_X, aArea, e.what()), LogMessage::SEV_NOTIFY, STRING(APPLICATION));
 		}
 	});
 }

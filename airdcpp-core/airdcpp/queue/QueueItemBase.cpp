@@ -38,7 +38,7 @@ double QueueItemBase::getPercentage(int64_t aDownloadedBytes) const noexcept {
 }
 
 string QueueItemBase::SourceCount::format() const noexcept {
-	return total == 0 ? STRING(NONE) : STRING_F(USERS_ONLINE, online % total);
+	return total == 0 ? STRING(NONE) : STRING_F(USERS_ONLINE, online, total);
 }
 
 int QueueItemBase::SourceCount::compare(const SourceCount& a, const SourceCount& b) noexcept {

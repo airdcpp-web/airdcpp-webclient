@@ -22,7 +22,7 @@
 #include <airdcpp/events/LogManager.h>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/util/text/StringTokenizer.h>
 
 #include <openssl/err.h>

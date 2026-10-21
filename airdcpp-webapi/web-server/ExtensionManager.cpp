@@ -94,7 +94,7 @@ namespace webserver {
 				try {
 					ext->stopThrow();
 				} catch (const Exception& e) {
-					log(STRING_F(WEB_EXTENSION_STOP_FAILED, ext->getName() % e.what()), LogMessage::SEV_ERROR);
+					log(STRING_F(WEB_EXTENSION_STOP_FAILED, ext->getName(), e.what()), LogMessage::SEV_ERROR);
 				}
 			}
 		}
@@ -216,7 +216,7 @@ namespace webserver {
 
 		for (const auto& [ext, message] : toRemove) {
 			try {
-				log(STRING_F(WEB_EXTENSION_UNINSTALL_BLOCKED, ext->getName() % message), LogMessage::SEV_WARNING);
+				log(STRING_F(WEB_EXTENSION_UNINSTALL_BLOCKED, ext->getName(), message), LogMessage::SEV_WARNING);
 				uninstallLocalExtensionThrow(ext, true);
 			} catch (const Exception& e) {
 				log(e.what(), LogMessage::SEV_ERROR);
@@ -567,7 +567,7 @@ namespace webserver {
 
 		fire(ExtensionManagerListener::InstallationFailed(), aInstallId, msg);
 
-		log(STRING_F(WEB_EXTENSION_INSTALLATION_FAILED, aInstallId % msg), LogMessage::SEV_ERROR);
+		log(STRING_F(WEB_EXTENSION_INSTALLATION_FAILED, aInstallId, msg), LogMessage::SEV_ERROR);
 	}
 
 	ExtensionPtr ExtensionManager::registerRemoteExtensionThrow(const SessionPtr& aSession, const json& aPackageJson) {
@@ -643,7 +643,7 @@ namespace webserver {
 			}
 
 			log(
-				STRING_F(WEB_EXTENSION_EXITED, aExtension->getName() % aExtension->getErrorLogPath()),
+				STRING_F(WEB_EXTENSION_EXITED, aExtension->getName(), aExtension->getErrorLogPath()),
 				LogMessage::SEV_ERROR
 			);
 		 }
@@ -658,13 +658,13 @@ namespace webserver {
 				std::bind_front(&ExtensionManager::onExtensionFailed, this)
 			);
 		} catch (const Exception& e) {
-			log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath % e.what()), LogMessage::SEV_ERROR);
+			log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath, e.what()), LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
 		if (getExtension(ext->getName())) {
 			dcassert(0);
-			log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath % STRING(WEB_EXTENSION_EXISTS)), LogMessage::SEV_ERROR);
+			log(STRING_F(WEB_EXTENSION_LOAD_ERROR_X, aPath, STRING(WEB_EXTENSION_EXISTS)), LogMessage::SEV_ERROR);
 			return nullptr;
 		}
 
@@ -683,7 +683,7 @@ namespace webserver {
 			auto launchInfo = getStartCommandThrow(aExtension->getEngines(), aInstalledEngines);
 			aExtension->startThrow(launchInfo.command, wsm, launchInfo.arguments);
 		} catch (const Exception& e) {
-			log(STRING_F(WEB_EXTENSION_START_ERROR, aExtension->getName() % e.what()), LogMessage::SEV_ERROR);
+			log(STRING_F(WEB_EXTENSION_START_ERROR, aExtension->getName(), e.what()), LogMessage::SEV_ERROR);
 			return false;
 		}
 
@@ -706,7 +706,7 @@ namespace webserver {
 				return { parsedCommand, engineIter->arguments };
 			}
 
-			lastError = STRING_F(WEB_EXTENSION_ENGINE_NOT_INSTALLED, supportedExtEngine % engineIter->command);
+			lastError = STRING_F(WEB_EXTENSION_ENGINE_NOT_INSTALLED, supportedExtEngine, engineIter->command);
 		}
 
 		dcassert(!lastError.empty());

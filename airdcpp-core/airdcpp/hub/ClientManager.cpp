@@ -612,7 +612,7 @@ UserConnectResult ClientManager::connect(const HintedUser& aUser, const string& 
 		} else if (ret == AdcCommand::ERROR_PROTOCOL_GENERIC) {
 			result.onProtocolError(STRING(UNABLE_CONNECT_USER));
 		} else {
-			result.onMinorError(STRING_F(ERROR_CODE_X, STRING(UNKNOWN_ERROR) % ret));
+			result.onMinorError(STRING_F(ERROR_CODE_X, STRING(UNKNOWN_ERROR), ret));
 		}
 
 		return false;

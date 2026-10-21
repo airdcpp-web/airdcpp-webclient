@@ -21,7 +21,7 @@
 
 #include <airdcpp/core/classes/Exception.h>
 #include <airdcpp/core/io/File.h>
-#include <airdcpp/core/header/format.h>
+#include <format>
 #include <airdcpp/core/classes/ScopedFunctor.h>
 #include <airdcpp/settings/SettingsManager.h>
 

@@ -129,7 +129,7 @@ namespace webserver {
 				// Parse settings
 				aParseCallback(parsed.at("settings"), configVersion);
 			} catch (const std::exception& e) {
-				aCustomErrorF(STRING_F(LOAD_FAILED_X, aFilePath % e.what()));
+				aCustomErrorF(STRING_F(LOAD_FAILED_X, aFilePath, e.what()));
 				return false;
 			}
 
