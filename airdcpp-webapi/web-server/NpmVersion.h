@@ -41,19 +41,17 @@ namespace webserver {
 				continue;
 			}
 
-			if (aCurrentVersion) {
-				if (remoteSemver.major() > aCurrentVersion->major()) {
-					// Announce the newest major version without installing it.
-					if (!majorSemver || remoteSemver > *majorSemver) {
-						majorSemver = remoteSemver;
-						selection.majorVersion = elem.key();
-					}
-					continue;
+			if (aCurrentVersion && remoteSemver.major() > aCurrentVersion->major()) {
+				// Announce the newest major version without installing it.
+				if (!majorSemver || remoteSemver > *majorSemver) {
+					majorSemver = remoteSemver;
+					selection.majorVersion = elem.key();
 				}
+				continue;
+			}
 
-				if (remoteSemver.major() < aCurrentVersion->major() || remoteSemver <= *aCurrentVersion) {
-					continue;
-				}
+			if (aCurrentVersion && (remoteSemver.major() < aCurrentVersion->major() || remoteSemver <= *aCurrentVersion)) {
+				continue;
 			}
 
 			if (!selectedSemver || remoteSemver > *selectedSemver) {

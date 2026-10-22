@@ -14,6 +14,11 @@ namespace {
 
 	using json = nlohmann::json;
 
+	class TestFailure final : public std::runtime_error {
+	public:
+		using std::runtime_error::runtime_error;
+	};
+
 	struct TestCase {
 		std::string current;
 		std::vector<std::string> versions;
@@ -23,7 +28,7 @@ namespace {
 
 	void require(bool aCondition, const std::string& aMessage) {
 		if (!aCondition) {
-			throw std::runtime_error(aMessage);
+			throw TestFailure(aMessage);
 		}
 	}
 
@@ -37,7 +42,7 @@ namespace {
 		for (const auto reverse : { false, true }) {
 			auto keys = aCase.versions;
 			if (reverse) {
-				std::reverse(keys.begin(), keys.end());
+				std::ranges::reverse(keys);
 			}
 
 			std::string input = "{";
@@ -69,7 +74,7 @@ namespace {
 		} catch (const std::system_error&) {
 			return;
 		}
-		throw std::runtime_error("Invalid version was accepted");
+		throw TestFailure("Invalid version was accepted");
 	}
 }
 
