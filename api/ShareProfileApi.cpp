@@ -55,17 +55,15 @@ namespace webserver {
 	}
 
 	json ShareProfileApi::serializeShareProfile(const ShareProfilePtr& aProfile) noexcept {
-		size_t totalFiles = 0;
-		int64_t totalSize = 0;
-		ShareManager::getInstance()->getProfileInfo(aProfile->getToken(), totalSize, totalFiles);
+		auto profileInfo = ShareManager::getInstance()->getProfileInfo(aProfile->getToken());
 
 		return{
 			{ "id", aProfile->getToken() },
 			{ "name", aProfile->getPlainName() },
 			{ "str", aProfile->getDisplayName() },
 			{ "default", aProfile->isDefault() },
-			{ "size", totalSize },
-			{ "files", totalFiles },
+			{ "size", profileInfo.size },
+			{ "files", profileInfo.fileCount },
 		};
 	}
 
@@ -125,7 +123,9 @@ namespace webserver {
 
 	void ShareProfileApi::on(ShareProfileManagerListener::ProfileRemoved, ProfileToken aProfile) noexcept {
 		maybeSend("share_profile_removed", [&] {
-			return json({ "id", aProfile });
+			return json({ 
+				{ "id", aProfile } 
+			});
 		});
 	}
 

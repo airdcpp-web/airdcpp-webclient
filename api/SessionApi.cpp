@@ -24,15 +24,12 @@
 #include <api/common/Serializer.h>
 
 #include <web-server/JsonUtil.h>
-#include <web-server/WebSocket.h>
 #include <web-server/WebServerManager.h>
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebUserManager.h>
 
 #include <airdcpp/hub/activity/ActivityManager.h>
-#include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/settings/SettingsManager.h>
-#include <airdcpp/core/version.h>
 
 namespace webserver {
 	SessionApi::SessionApi(Session* aSession) : 

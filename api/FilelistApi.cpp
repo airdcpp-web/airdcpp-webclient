@@ -258,9 +258,7 @@ namespace webserver {
 	}
 
 	json FilelistApi::serializeList(const DirectoryListingPtr& aList) noexcept {
-		int64_t totalSize = -1;
-		size_t totalFiles = 0;
-		aList->getPartialListInfo(totalSize, totalFiles);
+		auto partialListInfo = aList->getPartialListInfo();
 
 		return {
 			{ "id", aList->getUser()->getCID().toBase32() },
@@ -268,8 +266,8 @@ namespace webserver {
 			{ "state", FilelistInfo::serializeState(aList) },
 			{ "location", FilelistInfo::serializeLocation(aList) },
 			{ "partial_list", aList->getPartialList() },
-			{ "total_files", totalFiles },
-			{ "total_size", totalSize },
+			{ "total_files", partialListInfo.fileCount },
+			{ "total_size", partialListInfo.size },
 			{ "read", aList->isRead() },
 			{ "share_profile", serializeShareProfile(aList) },
 		};

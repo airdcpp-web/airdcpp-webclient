@@ -29,13 +29,10 @@
 #include <web-server/WebServerSettings.h>
 #include <web-server/WebUserManager.h>
 
-#include <airdcpp/core/header/typedefs.h>
-
 #include <airdcpp/core/crypto/CryptoManager.h>
 #include <airdcpp/events/LogManager.h>
 #include <airdcpp/util/NetworkUtil.h>
 #include <airdcpp/settings/SettingsManager.h>
-#include <airdcpp/core/timer/TimerManager.h>
 
 #include "BeastServerAdapter.h"
 
