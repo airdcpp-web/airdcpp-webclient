@@ -27,11 +27,12 @@
 #include <airdcpp/core/version.h>
 
 #include <airdcpp/core/localization/ResourceManager.h>
-#include <airdcpp/core/header/format.h>
 
 #include <boost/algorithm/string/trim.hpp>
 
 namespace dcpp {
+
+static const int MAX_REDIRECTS = 5;
 
 HttpConnection::HttpConnection(bool aIsUnique, const HttpOptions& aOptions) :
 port("80"),
@@ -54,6 +55,13 @@ HttpConnection::~HttpConnection() {
  * @return A string with the content, or empty if download failed
  */
 void HttpConnection::downloadFile(const string& aFile) {
+	redirectCount = 0;
+	currentUrl = aFile;
+
+	prepareRequest(TYPE_GET);
+}
+
+void HttpConnection::followRedirect(const string& aFile) {
 	currentUrl = aFile;
 	prepareRequest(TYPE_GET);
 }
@@ -80,6 +88,7 @@ void HttpConnection::prepareRequest(RequestType type) {
 
 	size = -1;
 	done = 0;
+	headers.clear();
 	connState = CONN_UNKNOWN;
 	connType = type;
 
@@ -124,8 +133,8 @@ void HttpConnection::prepareRequest(RequestType type) {
 		);
 	}
 	catch (const Exception& e) {
-		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 		connState = CONN_FAILED;
+		fire(HttpConnectionListener::Failed(), this, e.getError() + " (" + currentUrl + ")");
 		if (isUnique) delete this;
 	}
 }
@@ -205,9 +214,9 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 				error.pop_back(); // These would cause issues in HTTP messages
 			}
 
+			connState = CONN_FAILED;
 			fire(HttpConnectionListener::Failed(), this, str(boost::format("%1% (%2%)") % error % currentUrl));
 			if (isUnique) { delete this; return; }
-			connState = CONN_FAILED;
 		}
 	} else if(connState == CONN_MOVED && Util::findSubString(aLine, "Location") != string::npos) {
 		abortRequest(true);
@@ -216,8 +225,8 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		LinkUtil::sanitizeUrl(location);
 
 		// make sure we can also handle redirects with relative paths
-		if(location.find("://") == string::npos) {
-			if(location[0] == '/') {
+		if (!location.empty() && location.find("://") == string::npos) {
+			if (location[0] == '/') {
 				//302 doesn't contain the query, use temp one
 				string proto, queryTmp, fragment;
 				LinkUtil::decodeUrl(currentUrl, proto, server, port, file, queryTmp, fragment);
@@ -232,7 +241,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			}
 		}
 
-		if(location == currentUrl) {
+		if (++redirectCount > MAX_REDIRECTS || location == currentUrl) {
 			connState = CONN_FAILED;
 			fire(HttpConnectionListener::Failed(), this, STRING_F(ENDLESS_REDIRECTION_LOOP, currentUrl));
 			if (isUnique) delete this;
@@ -243,7 +252,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 			location += "?" + query;
 		fire(HttpConnectionListener::Redirected(), this, location);
 
-		downloadFile(location);
+		followRedirect(location);
 	} else if(aLine[0] == 0x0d) {
 		if(size != -1) {
 			socket->setDataMode(size);
@@ -259,7 +268,7 @@ void HttpConnection::on(BufferedSocketListener::Line, const string& aLine) noexc
 		auto value = boost::algorithm::trim_copy(aLine.substr(separator + 1));
 
 		if (name == "Content-Length") {
-			size = Util::toInt(value);
+			size = Util::toInt64(value);
 		} else if (mimeType.empty()) {
 			if (name == "Content-Encoding") {
 				if (value == "x-bzip2")

@@ -24,13 +24,11 @@
 
 #include <airdcpp/core/io/compress/BZUtils.h>
 #include <airdcpp/hub/ClientManager.h>
-#include <airdcpp/util/DupeUtil.h>
 #include <airdcpp/core/io/stream/FilteredFile.h>
 #include <airdcpp/events/LogManager.h>
 #include <airdcpp/queue/QueueManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/share/ShareManager.h>
-#include <airdcpp/core/io/xml/SimpleXML.h>
 #include <airdcpp/core/io/xml/SimpleXMLReader.h>
 #include <airdcpp/core/io/stream/Streams.h>
 #include <airdcpp/util/text/StringTokenizer.h>
@@ -144,16 +142,17 @@ void DirectoryListing::setShareProfileImpl(ProfileToken aProfile) noexcept {
 	fire(DirectoryListingListener::ShareProfileChanged());
 }
 
-void DirectoryListing::getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept {
+ShareProfileContentInfo DirectoryListing::getPartialListInfo() const noexcept {
 	if (getShareProfile()) {
-		ShareManager::getInstance()->getProfileInfo(*getShareProfile(), totalSize_, totalFiles_);
+		return ShareManager::getInstance()->getProfileInfo(*getShareProfile());
 	}
 
 	auto si = ClientManager::getInstance()->getShareInfo(hintedUser);
 	if (si) {
-		totalSize_ = (*si).size;
-		totalFiles_ = (*si).fileCount;
+		return *si;
 	}
+
+	return ShareProfileContentInfo();
 }
 
 string DirectoryListing::getNickFromFilename(const string& fileName) noexcept {
@@ -323,12 +322,10 @@ DirectoryListing::Directory::Ptr DirectoryListing::findDirectoryUnsafe(const str
 	return nullptr;
 }
 
-int64_t DirectoryListing::getTotalListSizeUnsafe() const noexcept { 
-	return root->getTotalSize(false); 
-}
-
-size_t DirectoryListing::getTotalFileCountUnsafe() const noexcept { 
-	return root->getContentInfoRecursive(false).files; 
+ShareProfileContentInfo DirectoryListing::getFullListInfoUnsafe() const noexcept {
+	auto contentInfo = root->getContentInfoRecursive(false); 
+	auto size = root->getTotalSize(false);
+	return ShareProfileContentInfo{ size, static_cast<size_t>(contentInfo.files) };
 }
 
 void DirectoryListing::getLocalPathsUnsafe(const FilePtr& f, StringList& ret) const {
@@ -372,10 +369,13 @@ void DirectoryListing::addQueueMatchTask() noexcept {
 	addAsyncTask([this] { matchQueueImpl(); });
 }
 
-void DirectoryListing::close() noexcept {
+void DirectoryListing::close(Callback aCompletionF) noexcept {
 	closing = true;
-	tasks.stop([this] {
+	tasks.stop([this, completionF = std::move(aCompletionF)] {
 		fire(DirectoryListingListener::Close());
+		if (completionF) {
+			completionF();
+		}
 	});
 }
 
@@ -467,6 +467,10 @@ void DirectoryListing::onLoadingFinished(int64_t aStartTime, const string& aLoad
 		// Base path should have been validated while loading partial list
 		dcassert(!partialList);
 		loadedDir = root;
+	}
+
+	if (partialList && loadedDir) {
+		loadedDir->setLastUpdateDate(GET_TIME());
 	}
 
 	auto newCurrentDir = findDirectoryUnsafe(aCurrentPath.empty() ? aLoadedPath : aCurrentPath);

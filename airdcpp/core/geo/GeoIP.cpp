@@ -147,7 +147,7 @@ bool GeoIP::decompress() const {
 void GeoIP::open() {
 	geo = (MMDB_s*)malloc(sizeof(MMDB_s));
 
-	auto res = MMDB_open(Text::fromUtf8(path).c_str(), MMDB_MODE_MMAP, geo);
+	auto res = MMDB_open(path.c_str(), MMDB_MODE_MMAP, geo);
 	if (res != MMDB_SUCCESS) {
 		dcdebug("Failed to open MMDB database %s\n", MMDB_strerror(res));
 		if (geo) {

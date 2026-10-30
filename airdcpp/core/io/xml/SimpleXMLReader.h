@@ -20,11 +20,22 @@
 #define DCPLUSPLUS_DCPP_SIMPLEXMLREADER_H_
 
 #include <airdcpp/core/header/typedefs.h>
+#include <airdcpp/core/classes/Exception.h>
 #include <airdcpp/core/io/File.h>
 
-
+#include <boost/noncopyable.hpp>
 
 namespace dcpp {
+
+class SimpleXMLMaxSizeException : public SimpleXMLException {
+public:
+	explicit SimpleXMLMaxSizeException(size_t aMaxSize) :
+		SimpleXMLException("Greater than maximum allowed size"), maxSize(aMaxSize) { }
+
+	size_t getMaxSize() const noexcept { return maxSize; }
+private:
+	const size_t maxSize;
+};
 
 class SimpleXMLReader {
 public:
@@ -90,7 +101,7 @@ private:
 
 	static const size_t MAX_NAME_SIZE = 1024; 
 	static const size_t MAX_VALUE_SIZE = 96*1024;
-	static const size_t MAX_NESTING = 32;
+	static const size_t MAX_NESTING = 256;
 
 	enum ParseState {
 		/// Start of document

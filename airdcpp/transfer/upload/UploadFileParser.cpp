@@ -71,7 +71,11 @@ void UploadParser::parseFileInfo(const UploadRequest& aRequest, ProfileToken aPr
 
 		//check that we have a file
 		if (fullFilelist) {
-			tie(fileSize, sourceFile) = std::move(ShareManager::getInstance()->getFileListInfo(aRequest.file, aProfile));
+			try {
+				tie(fileSize, sourceFile) = std::move(ShareManager::getInstance()->getFileListInfo(aRequest.file, aProfile));
+			} catch (const ShareException& e) {
+				throw UploadParserException(e.getError(), false);
+			}
 			miniSlot = true;
 		} else {
 			toRealWithSize(aRequest, aProfile, aUser);
@@ -117,11 +121,20 @@ Upload* UploadParser::toUpload(UserConnection& aSource, const UploadRequest& aRe
 			startPos = 0;
 			fileSize = bytes = is->getSize();
 		} else {
+			// startPos is validated against the file size FIRST: with the -1 sentinel a
+			// start beyond the end would otherwise compute a negative length here.
+			if (startPos > fileSize) {
+				throw Exception("Bytes were requested beyond the end of the file");
+			}
+
 			if (bytes == -1) {
 				bytes = fileSize - startPos;
 			}
 
-			if ((startPos + bytes) > fileSize) {
+			// Both values come straight off the remote GET, and
+			// "startPos + bytes" overflows int64_t for values near 2^62 -- the sum wraps
+			// negative, the check passes, and the segment is built from it.
+			if (bytes < 0 || bytes > fileSize - startPos) {
 				throw Exception("Bytes were requested beyond the end of the file");
 			}
 

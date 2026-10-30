@@ -26,7 +26,6 @@
 #include <airdcpp/connection/ConnectionManager.h>
 #include <airdcpp/connectivity/ConnectivityManager.h>
 #include <airdcpp/core/crypto/CryptoManager.h>
-#include <airdcpp/favorites/FavoriteManager.h>
 #include <airdcpp/hub/HBRIValidation.h>
 #include <airdcpp/core/localization/Localization.h>
 #include <airdcpp/events/LogManager.h>
@@ -34,7 +33,6 @@
 #include <airdcpp/queue/partial_sharing/PartialSharingManager.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/core/localization/ResourceManager.h>
-#include <airdcpp/core/classes/ScopedFunctor.h>
 #include <airdcpp/search/SearchManager.h>
 #include <airdcpp/search/SearchQuery.h>
 #include <airdcpp/share/ShareManager.h>

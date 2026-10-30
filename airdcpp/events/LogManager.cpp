@@ -23,7 +23,6 @@
 #include <airdcpp/core/io/File.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/util/text/StringTokenizer.h>
-#include <airdcpp/core/timer/TimerManager.h>
 #include <airdcpp/user/User.h>
 
 namespace dcpp {
@@ -90,6 +89,7 @@ void LogManager::clearCache() noexcept {
 }
 
 void LogManager::removePmCache(const UserPtr& aUser) noexcept {
+	Lock l(pmPathsCS);
 	pmPaths.erase(aUser->getCID());
 }
 
@@ -98,16 +98,18 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool aAddCach
 		return getPath(PM, params);
 	}
 
-
-	//is it cached? NOTE: must only be called from the GUI thread (no locking)
-	auto p = pmPaths.find(aUser->getCID());
-	if (p != pmPaths.end()) {
-		//can we still use the same dir?
-		if (PathUtil::getFilePath(getPath(PM, params)) == PathUtil::getFilePath(p->second))
-			return p->second;
+	// Is it cached?
+	{
+		Lock l(pmPathsCS);
+		auto p = pmPaths.find(aUser->getCID());
+		if (p != pmPaths.end()) {
+			// Can we still use the same dir?
+			if (PathUtil::getFilePath(getPath(PM, params)) == PathUtil::getFilePath(p->second))
+				return p->second;
+		}
 	}
 
-	//check the directory
+	// Check the directory
 	auto fileName = getSetting(PM, FILE);
 	ensureParam("%[userCID]", fileName);
 	auto path = PathUtil::validatePath(SETTING(LOG_DIRECTORY) + 
@@ -118,8 +120,11 @@ string LogManager::getPath(const UserPtr& aUser, ParamMap& params, bool aAddCach
 		path = files.front();
 	}
 
-	if (aAddCache)
+	if (aAddCache) {
+		Lock l(pmPathsCS);
 		pmPaths.try_emplace(aUser->getCID(), path);
+	}
+
 	return path;
 }
 

@@ -168,6 +168,17 @@ public:
 		return buf;
 	}
 
+	bool isValid() const noexcept {
+		if (fileSize <= 0) {
+			return false;
+		}
+
+		if (leaves.size() != calcBlocks(fileSize, blockSize)) {
+			return false;
+		}
+
+		return true;
+	}
 
 private:	
 	typedef pair<MerkleValue, int64_t> MerkleBlock;

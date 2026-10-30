@@ -64,6 +64,32 @@ void initialize() {
 	systemCharset = string(nl_langinfo(CODESET));
 #endif
 	dcassert(sanitizeUtf8("A\xc3Name") == "A_Name");
+
+	// The aligned case above only exercises inputs where the source index and the
+	// destination length stay equal by accident. This one did not: U+1F30D is a 4-byte
+	// sequence, and on a 16-bit wchar_t utf8ToWc used to truncate it, report 4 bytes
+	// consumed, and let wcToUtf8 emit only 3 -- after which the trailing lone
+	// continuation byte took the insert path with a position past the end of the
+	// destination, throwing out of a noexcept function (i.e. std::terminate). Reachable
+	// from every raw ADC/NMDC line, so it is worth asserting the invariant directly.
+	{
+		const string astralThenBadByte = "\xF0\x9F\x8C\x8D\x80";
+		const auto sanitized = sanitizeUtf8(astralThenBadByte);
+
+		// Whatever the substitution policy, the pass must consume every input byte and
+		// never index past what it has produced.
+		dcassert(sanitized.length() == astralThenBadByte.length());
+	}
+
+	// validateUtf8 judges the wire encoding, not utf8ToWc's ability to represent the
+	// result: a 4-byte astral sequence is valid even where wchar_t is 16 bits. This
+	// regressed once (received ADC lines containing emoji were dropped with a
+	// validation error in the hub window), so pin the contract.
+	dcassert(validateUtf8("\xF0\x9F\x8C\x8D"));  // U+1F30D, valid astral
+	dcassert(!validateUtf8("\xF0\x9F\x8C"));     // truncated 4-byte sequence
+	dcassert(!validateUtf8("\xC0\x80"));         // overlong U+0000
+	dcassert(!validateUtf8("\xED\xA0\x80"));     // UTF-16 surrogate half
+	dcassert(!validateUtf8("\xF0\x9F\x8C\x8D\x80")); // valid astral + stray continuation
 }
 
 #ifdef _WIN32
@@ -98,7 +124,12 @@ int utf8ToWc(const char* str, wchar_t& c) {
 		if (c0 & check_bit)
 			return -1;
 
-		c = (check_bit - 1) & c0;
+		// Accumulate in 32 bits. Writing straight into c truncated silently on Windows,
+		// where wchar_t is 16 bits: a 4-byte sequence lost its high bits, the
+		// "c > 0x10ffff" test below could never fire, and the function reported 4 bytes
+		// consumed for a value wcToUtf8 then re-emitted as only 3. Every caller that
+		// assumes those two agree drifted by a byte per astral character.
+		uint32_t cp = (check_bit - 1) & c0;
 
 		// 2-4 total, or 1-3 additional, bytes
 		// Can't run off end of str so long as has sub-0x80-terminator
@@ -106,17 +137,43 @@ int utf8ToWc(const char* str, wchar_t& c) {
 			const auto ci = static_cast<uint8_t>(str[i]);
 			if ((ci & 0xc0) != 0x80)
 				return -i;
-			c = (c << 6) | (ci & 0x3f);
+			cp = (cp << 6) | (ci & 0x3f);
 		}
 
 		// Invalid UTF-8 code points
-		if (c > 0x10ffff || (c >= 0xd800 && c <= 0xdfff)) {
+		if (cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff)) {
 			// "REPLACEMENT CHARACTER": used to replace an incoming character
 			// whose value is unknown or unrepresentable in Unicode
 			c = 0xfffd;
 			return -bytes;
 		}
 
+		// Reject OVERLONG encodings -- a code point written with more bytes than it needs.
+		// These were decoded happily: "\xC0\x80" yielded U+0000 and reported 2 bytes
+		// consumed, while wcToUtf8 re-emits U+0000 as a single byte. That is the same
+		// consumed-vs-produced mismatch as the astral truncation below, and it reaches the
+		// same place (sanitizeUtf8's insert position running past its destination), so it
+		// has to be rejected here too. Minimum code point per length: 2 bytes -> U+0080,
+		// 3 -> U+0800, 4 -> U+10000.
+		static const uint32_t minCodePoint[] = { 0, 0, 0x80, 0x800, 0x10000 };
+		if (bytes >= 2 && bytes <= 4 && cp < minCodePoint[bytes]) {
+			c = 0xfffd;
+			return -bytes;
+		}
+
+		// Not representable in this platform's wchar_t. This function does not produce
+		// surrogate pairs (see the note above), so on a 16-bit wchar_t an astral code
+		// point cannot be returned faithfully. Report it as invalid rather than claiming
+		// a decode that cannot round-trip: the negative count matches the number of bytes
+		// the caller will substitute for, keeping input and output lengths in step.
+		if constexpr (sizeof(wchar_t) < 4) {
+			if (cp > 0xffff) {
+				c = 0xfffd;
+				return -bytes;
+			}
+		}
+
+		c = static_cast<wchar_t>(cp);
 		return bytes;
 	} else if ((c0 & 0x80) == 0) {             // 0xxx xxxx
 		c = static_cast<unsigned char>(str[0]);
@@ -172,13 +229,42 @@ string sanitizeUtf8(const string& str) noexcept {
 }
 
 bool validateUtf8(const string& str) noexcept {
-	string::size_type i = 0;
-	while (i < str.length()) {
-		wchar_t dummy = 0;
-		int j = utf8ToWc(&str[i], dummy);
-		if (j < 0)
+	// Deliberately not layered on utf8ToWc: on a 16-bit wchar_t that function must
+	// report valid astral code points (4-byte sequences: emoji and friends) as
+	// undecodable, because they cannot round-trip through a single wchar_t. That is
+	// a representation limit of the decoder, not a defect in the data — network
+	// lines carrying them are well-formed UTF-8 and must not be rejected here.
+	// This checks well-formedness per RFC 3629 only.
+	const auto n = str.length();
+	for (string::size_type i = 0; i < n;) {
+		const auto c0 = static_cast<uint8_t>(str[i]);
+		if (c0 < 0x80) {
+			i++;
+			continue;
+		}
+
+		int len;
+		uint32_t cp, min;
+		if ((c0 & 0xe0) == 0xc0)      { len = 2; cp = c0 & 0x1f; min = 0x80; }
+		else if ((c0 & 0xf0) == 0xe0) { len = 3; cp = c0 & 0x0f; min = 0x800; }
+		else if ((c0 & 0xf8) == 0xf0) { len = 4; cp = c0 & 0x07; min = 0x10000; }
+		else return false; // lone continuation byte, or an invalid lead (0xF8 and up)
+
+		if (n - i < static_cast<string::size_type>(len))
 			return false;
-		i += j;
+
+		for (int j = 1; j < len; ++j) {
+			const auto cj = static_cast<uint8_t>(str[i + j]);
+			if ((cj & 0xc0) != 0x80)
+				return false;
+			cp = (cp << 6) | (cj & 0x3f);
+		}
+
+		// Overlong encoding, UTF-16 surrogate, or beyond Unicode
+		if (cp < min || (cp >= 0xd800 && cp <= 0xdfff) || cp > 0x10ffff)
+			return false;
+
+		i += len;
 	}
 	return true;
 }
@@ -419,19 +505,23 @@ string Text::toDOS(string tmp) noexcept {
 	if (tmp.empty())
 		return Util::emptyString;
 
-	if (tmp[0] == '\r' && (tmp.size() == 1 || tmp[1] != '\n')) {
-		tmp.insert(1, "\n");
-	}
-
-	for (string::size_type i = 1; i < tmp.size() - 1; ++i) {
-		if (tmp[i] == '\r' && tmp[i + 1] != '\n') {
-			// Mac ending
-			tmp.insert(i + 1, "\n");
-			i++;
-		} else if (tmp[i] == '\n' && tmp[i - 1] != '\r') {
-			// Unix encoding
-			tmp.insert(i, "\r");
-			i++;
+	// Index 0 and the FINAL character are covered. The old loop ran [1, size()-1) behind a pre-pass
+	// that only handled a leading '\r', so a leading '\n' and any trailing bare line break survived
+	// untouched -- toDOS("abc\n") came back unchanged, which is exactly what a Unix-line-ending
+	// .nfo opened in the internal viewer looks like.
+	for (string::size_type i = 0; i < tmp.size(); ++i) {
+		if (tmp[i] == '\r') {
+			if (i + 1 >= tmp.size() || tmp[i + 1] != '\n') {
+				// Mac ending
+				tmp.insert(i + 1, "\n");
+				i++;
+			}
+		} else if (tmp[i] == '\n') {
+			if (i == 0 || tmp[i - 1] != '\r') {
+				// Unix ending
+				tmp.insert(i, "\r");
+				i++;
+			}
 		}
 	}
 	return tmp;
@@ -441,19 +531,20 @@ wstring Text::toDOS(wstring tmp) noexcept {
 	if (tmp.empty())
 		return Util::emptyStringW;
 
-	if (tmp[0] == L'\r' && (tmp.size() == 1 || tmp[1] != L'\n')) {
-		tmp.insert(1, L"\n");
-	}
-
-	for (string::size_type i = 1; i < tmp.size() - 1; ++i) {
-		if (tmp[i] == L'\r' && tmp[i + 1] != L'\n') {
-			// Mac ending
-			tmp.insert(i + 1, L"\n");
-			i++;
-		} else if (tmp[i] == L'\n' && tmp[i - 1] != L'\r') {
-			// Unix encoding
-			tmp.insert(i, L"\r");
-			i++;
+	// Same coverage fix as the narrow overload above.
+	for (string::size_type i = 0; i < tmp.size(); ++i) {
+		if (tmp[i] == L'\r') {
+			if (i + 1 >= tmp.size() || tmp[i + 1] != L'\n') {
+				// Mac ending
+				tmp.insert(i + 1, L"\n");
+				i++;
+			}
+		} else if (tmp[i] == L'\n') {
+			if (i == 0 || tmp[i - 1] != L'\r') {
+				// Unix ending
+				tmp.insert(i, L"\r");
+				i++;
+			}
 		}
 	}
 	return tmp;

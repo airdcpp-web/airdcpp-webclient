@@ -21,7 +21,6 @@
 #include "UploadQueueManager.h"
 
 #include <airdcpp/hub/ClientManager.h>
-#include <airdcpp/events/LogManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/connection/UserConnection.h>
 

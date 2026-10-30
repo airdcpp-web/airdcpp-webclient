@@ -101,7 +101,7 @@ namespace dcpp {
 		if (!queueInfo.queuedHubUrls.empty()) {
 			lastSearchTime = GET_TIME();
 
-			fire(SearchInstanceListener::HubSearchQueued(), currentSearchToken, queueInfo.queueTime, queuedHubUrls.size());
+			fire(SearchInstanceListener::HubSearchQueued(), currentSearchToken, queueInfo.queueTime, queueInfo.queuedHubUrls.size());
 			if (queueInfo.queueTime < 1000) {
 				fire(SearchInstanceListener::HubSearchSent(), currentSearchToken, queueInfo.queuedHubUrls.size());
 			} else {
@@ -195,16 +195,14 @@ namespace dcpp {
 		}
 
 		SearchResult::RelevanceInfo relevanceInfo;
+		bool relevant;
+
 		{
 			WLock l(cs);
-			if (!aResult->getRelevance(*matcher.get(), relevanceInfo, currentSearchToken)) {
-				filteredResultCount++;
-				fire(SearchInstanceListener::ResultFiltered());
-				return nullopt;
-			}
+			relevant = aResult->getRelevance(*matcher.get(), relevanceInfo, currentSearchToken);
 		}
 
-		if (freeSlotsOnly && aResult->getFreeSlots() < 1) {
+		if (!relevant || (freeSlotsOnly && aResult->getFreeSlots() < 1)) {
 			filteredResultCount++;
 			fire(SearchInstanceListener::ResultFiltered());
 			return nullopt;

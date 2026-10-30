@@ -70,7 +70,7 @@ namespace dcpp {
 		virtual void onStateChanged() noexcept = 0;
 
 	private:
-		void onRunningStateChanged(const Download* aDownload, bool aFailed) noexcept;
+		void onRunningStateChanged(const Download* aDownload, const string& aError) noexcept;
 
 		void on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept;
 		void on(DownloadManagerListener::Starting, const Download* aDownload) noexcept;

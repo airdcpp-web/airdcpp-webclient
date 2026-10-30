@@ -62,6 +62,13 @@ constexpr auto CONDWAIT_TIMEOUT = 250;
 		{
 			size_t slice = (getDownLimit() * 1024) / downs;
 			auto readSize = static_cast<int>(min(slice, min(len, downTokens)));
+
+			// don't issue a zero-length read: BufferedSocket treats a 0 return as a connection close
+			if (readSize <= 0) {
+				lock.unlock();
+				Thread::yield();
+				return -1;	// retry
+			}
 				
 			// read from socket
 			readSize = sock->read(buffer, readSize);
@@ -105,6 +112,12 @@ constexpr auto CONDWAIT_TIMEOUT = 250;
 
 			// write to socket			
 			int sent = sock->write(buffer, len);
+			if (sent < static_cast<int>(len)) {
+				// Refund the unsent remainder (all of it when the write failed outright).
+				lock.lock();
+				upTokens += len - max(sent, 0);
+				lock.unlock();
+			}
 
 			// give a chance to other transfers to get a token
 			Thread::yield();
@@ -138,7 +151,17 @@ constexpr auto CONDWAIT_TIMEOUT = 250;
 		if (SETTING(TIME_DEPENDENT_THROTTLE)) {
 			time_t currentTime;
 			time(&currentTime);
-			int currentHour = localtime(&currentTime)->tm_hour;
+			std::tm currentTm{};
+#ifdef _WIN32
+			if (localtime_s(&currentTm, &currentTime) != 0) {
+				return setting;
+			}
+#else
+			if (!localtime_r(&currentTime, &currentTm)) {
+				return setting;
+			}
+#endif
+			int currentHour = currentTm.tm_hour;
 			if ((SETTING(BANDWIDTH_LIMIT_START) < SETTING(BANDWIDTH_LIMIT_END) &&
 				currentHour >= SETTING(BANDWIDTH_LIMIT_START) && currentHour < SETTING(BANDWIDTH_LIMIT_END)) ||
 				(SETTING(BANDWIDTH_LIMIT_START) > SETTING(BANDWIDTH_LIMIT_END) &&

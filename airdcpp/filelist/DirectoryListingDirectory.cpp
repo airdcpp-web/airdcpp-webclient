@@ -20,15 +20,11 @@
 
 #include <airdcpp/filelist/DirectoryListingDirectory.h>
 
-#include <airdcpp/core/thread/concurrency.h>
-
 #include <airdcpp/util/DupeUtil.h>
 #include <airdcpp/core/classes/Exception.h>
 #include <airdcpp/util/PathUtil.h>
-#include <airdcpp/search/SearchQuery.h>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/share/ShareManager.h>
-#include <airdcpp/util/text/StringTokenizer.h>
 
 
 namespace dcpp {

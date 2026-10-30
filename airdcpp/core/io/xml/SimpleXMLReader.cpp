@@ -34,6 +34,13 @@ static bool inRange(int c, int a, int b) {
 	return c >= a && c <= b;
 }
 
+static bool isHexDigit(int c) {
+	return inRange(c, '0', '9')
+		|| inRange(c, 'a', 'f')
+		|| inRange(c, 'A', 'F')
+		;
+}
+
 static bool isNameStartChar(int c) {
 	return 	c == ':'
 		|| inRange(c, 'A', 'Z')
@@ -92,7 +99,7 @@ SimpleXMLReader::SimpleXMLReader(SimpleXMLReader::CallBack* callback, int aFlags
 }
 
 void SimpleXMLReader::append(std::string& str, size_t maxLen, int c) const {
-	if(str.size() > maxLen) {
+	if(str.size() >= maxLen) {
 		error("Buffer overflow");
 	}
 	str.append(1, (std::string::value_type)c);
@@ -355,7 +362,7 @@ bool SimpleXMLReader::declVersionNum() {
 				return true;
 			}
 
-			if(!inRange(c, 0, 9)) {
+			if(!inRange(c, '0', '9')) {
 				return false;
 			}
 		}
@@ -376,8 +383,14 @@ bool SimpleXMLReader::declEncodingValue() {
 			advancePos(1);
 			return true;
 		} else if(c == '&') {
+			const auto posBefore = bufPos;
 			if(!entref(encoding)) {
 				return false;
+			}
+
+			if(bufPos == posBefore) {
+				// No progress: hand control back so more data can be buffered.
+				return true;
 			}
 		} else {
 			append(encoding, MAX_VALUE_SIZE, c);
@@ -392,15 +405,21 @@ bool SimpleXMLReader::comment() {
 	while(bufSize() > 0) {
 		int c = charAt(0);
 
-		// TODO We shouldn't allow ---> to end a comment
+		// A comment ends only on the exact sequence "-->". The "--" pair
+		// is illegal inside comments, so when we see "--" it must be
+		// immediately followed by '>'; otherwise the comment is malformed
+		// (this prevents "--->" from ending a comment).
 		if(c == '-') {
 			if(!needChars(3)) {
 				return true;
 			}
-			if(charAt(1) == '-' && charAt(2) == '>') {
-				state = STATE_CONTENT;
-				advancePos(3);
-				return true;
+			if(charAt(1) == '-') {
+				if(charAt(2) == '>') {
+					state = STATE_CONTENT;
+					advancePos(3);
+					return true;
+				}
+				return error("Invalid \"--\" sequence inside comment");
 			}
 		}
 
@@ -458,36 +477,44 @@ bool SimpleXMLReader::entref(string& d) {
 			d.append(1, '\'');
 			advancePos(6);
 			return true;
-			
-		// Ignore &#00000 decimal and &#x0000 hex values to avoid error, they wouldn't be parsed anyway
-		} else if(charAt(1) == '#' && isdigit(charAt(2)) && charAt(3) == ';') {
-			advancePos(4);
-			return true;
-		} else if(charAt(1) == '#' && isdigit(charAt(2)) && isdigit(charAt(3)) && charAt(4) == ';') {
-			advancePos(5);
-			return true;
-		} else if(charAt(1) == '#' && isdigit(charAt(2)) && isdigit(charAt(3)) && isdigit(charAt(4)) && charAt(5) == ';') {
-			advancePos(6);
-			return true;
-		} else if(charAt(1) == '#' && isdigit(charAt(2)) && isdigit(charAt(3)) && isdigit(charAt(4)) && isdigit(charAt(5)) && charAt(6) == ';') {
-			advancePos(7);
-			return true;
-		} else if(charAt(1) == '#' && isdigit(charAt(2)) && isdigit(charAt(3)) && isdigit(charAt(4)) && isdigit(charAt(5)) && isdigit(charAt(6)) && charAt(7) == ';') {
-			advancePos(8);
-			return true;
-			
-		} else if(charAt(1) == '#' && (charAt(2) == 'x' ||  charAt(2) == 'X') && isxdigit(charAt(3)) && charAt(4) == ';') {
-			advancePos(5);
-			return true;
-		} else if(charAt(1) == '#' && (charAt(2) == 'x' ||  charAt(2) == 'X') && isxdigit(charAt(3)) && isxdigit(charAt(4)) && charAt(5) == ';') {
-			advancePos(6);
-			return true;
-		} else if(charAt(1) == '#' && (charAt(2) == 'x' ||  charAt(2) == 'X') && isxdigit(charAt(3)) && isxdigit(charAt(4)) && isxdigit(charAt(5)) && charAt(6) == ';') {
-			advancePos(7);
-			return true;
-		} else if(charAt(1) == '#' && (charAt(2) == 'x' ||  charAt(2) == 'X') && isxdigit(charAt(3)) && isxdigit(charAt(4)) && isxdigit(charAt(5)) && isxdigit(charAt(6)) && charAt(7) == ';') {
-			advancePos(8);
-			return true;
+
+		} else if(charAt(1) == '#') {
+			// Accept any XML charref that's syntactically well-formed and emit a placeholder
+			string::size_type n, nend = bufSize();
+			if(charAt(2) == 'x') {
+				// At least one hex digit
+				if(!isHexDigit(charAt(3))) {
+					return false;
+				}
+				// Now an unknown number of hex digits
+				for(n = 4; n < nend; ++n) {
+					if(!isHexDigit(charAt(n))) {
+						break;
+					}
+				}
+			} else {
+				// At least one decimal digit
+				if(!inRange(charAt(2), '0', '9')) {
+					return false;
+				}
+				// Now an unknown number of [0-9]
+				for(n = 3; n < nend; ++n) {
+					if(!inRange(charAt(n), '0', '9')) {
+						break;
+					}
+				}
+			}
+
+			if(n == nend) {
+				// The reference may continue past the buffered data; ask for more and retry
+				return true;
+			}
+
+			if(charAt(n) == ';') {
+				d.append(1, '_');
+				advancePos(n + 1);
+				return true;
+			}
 		}
 	} else {
 		return true;
@@ -583,8 +610,9 @@ void SimpleXMLReader::parse(InputStream& stream, size_t maxSize) {
 		size_t n = buf.size() - old;
 		size_t len = stream.read(&buf[old], n);
 
-		if(maxSize > 0 && (bytesRead + len) > maxSize) 
-			error("Greater than maximum allowed size");
+		// The caller needs to tell "the data was too big" apart from a syntax error
+		if (maxSize > 0 && (bytesRead + len) > maxSize)
+			throw SimpleXMLMaxSizeException(maxSize);
 
 		if(len == 0) {
 			if(elements.empty()) {
@@ -604,7 +632,13 @@ bool SimpleXMLReader::parse(const char* data, size_t len) {
 }
 
 bool SimpleXMLReader::parse(const string& str) {
-	return parse(str.c_str(), str.size());
+	auto ret = parse(str.c_str(), str.size());
+
+	if (!elements.empty()) {
+		error("Unexpected end of file");
+	}
+
+	return ret;
 }
 
 bool SimpleXMLReader::spaceOrError(const char* message) {

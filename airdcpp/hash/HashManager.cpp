@@ -28,7 +28,6 @@
 #include <airdcpp/hash/HashedFile.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/core/timer/TimerManager.h>
-#include <airdcpp/core/version.h>
 
 namespace dcpp {
 

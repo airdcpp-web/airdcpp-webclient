@@ -21,14 +21,10 @@
 
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/transfer/download/Download.h>
-#include <airdcpp/events/LogManager.h>
 #include <airdcpp/queue/QueueManager.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/user/User.h>
 #include <airdcpp/connection/UserConnection.h>
-
-#include <limits>
-#include <cmath>
 
 namespace dcpp {
 
@@ -449,8 +445,8 @@ void DownloadManager::endData(UserConnection* aSource) {
 		d->getTigerTree().setBlockSize(bl);
 		d->getTigerTree().calcRoot();
 
-		if(!(d->getTTH() == d->getTigerTree().getRoot())) {
-			// This tree is for a different file, remove from queue...
+		if (!(d->getTTH() == d->getTigerTree().getRoot()) || !d->getTigerTree().isValid()) {
+			// This tree is for a different file or corrupted, remove from queue...
 			fire(DownloadManagerListener::Failed(), d, STRING(INVALID_TREE));
 
 			QueueManager::getInstance()->removeFileSource(d->getPath(), aSource->getUser(), QueueItem::Source::FLAG_BAD_TREE, false);
@@ -645,9 +641,12 @@ void DownloadManager::on(AdcCommand::STA, UserConnection* aSource, const AdcComm
 				case AdcCommand::ERROR_FILE_ACCESS_DENIED:
 					fileNotAvailable(aSource, true);
 					return;
-				case AdcCommand::ERROR_UNKNOWN_USER:
-					failDownload(aSource, STRING(UNKNOWN_USER), !aSource->getDownload()->isFilelist());
-					return;
+				case AdcCommand::ERROR_UNKNOWN_USER: 
+					{
+						auto d = aSource->getDownload();
+						failDownload(aSource, STRING(UNKNOWN_USER), d && !d->isFilelist());
+						return;
+					}
 				default: {
 					//..
 				}
@@ -674,6 +673,12 @@ void DownloadManager::fileNotAvailable(UserConnection* aSource, bool aNoAccess, 
 	
 	Download* d = aSource->getDownload();
 	dcassert(d);
+	if (!d) {
+		dcdebug("DM::fileNotAvailable: no download (%s)\n", aSource->getConnectToken().c_str());
+		disconnect(aSource, true);
+		return;
+	}
+
 	dcdebug("File Not Available: %s\n", d->getPath().c_str());
 
 	string error;

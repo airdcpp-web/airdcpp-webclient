@@ -44,7 +44,7 @@ namespace dcpp {
 		static double getRelevanceScore(const SearchQuery& aSearch, int aLevel, bool aIsDirectory, const string& aName) noexcept;
 
 		// Count points per pattern based on the matching positions (based on the surrounding separators)
-		ResultPointsList toPointList(const string& aName) const noexcept;
+		ResultPointsList toPointList(const string& aNameLower) const noexcept;
 
 		// General initialization
 		static SearchQuery* fromSearch(const SearchPtr& aSearch) noexcept;
@@ -78,7 +78,7 @@ namespace dcpp {
 		// This struct will keep the positions from the upper levels
 		struct Recursion{
 			Recursion() noexcept = default;
-			Recursion(const SearchQuery& aSearch, const string& aName) noexcept;
+			Recursion(const SearchQuery& aSearch, const string& aNameLower) noexcept;
 
 			inline void increase(string::size_type aLen) noexcept { recursionLevel++; depthLen += aLen; }
 			inline void decrease(string::size_type aLen) noexcept { recursionLevel--; depthLen -= aLen; }

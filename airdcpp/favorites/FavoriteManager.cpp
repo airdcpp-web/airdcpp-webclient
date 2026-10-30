@@ -20,8 +20,6 @@
 #include <airdcpp/favorites/FavoriteManager.h>
 
 #include <airdcpp/hub/ClientManager.h>
-#include <airdcpp/user/HintedUser.h>
-#include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/share/ShareManager.h>
 #include <airdcpp/share/profiles/ShareProfileManager.h>
 #include <airdcpp/core/io/xml/SimpleXML.h>
@@ -464,9 +462,11 @@ void FavoriteManager::loadFavoriteDirectories(SimpleXML& aXml) {
 	aXml.resetCurrentChild();
 }
 
-FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& group) const noexcept {
+FavoriteHubEntryList FavoriteManager::getFavoriteHubs(const string& aGroup) const noexcept {
 	FavoriteHubEntryList ret;
-	copy_if(favoriteHubs.begin(), favoriteHubs.end(), back_inserter(ret), [&group](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getGroup(), group) == 0; });
+
+	RLock l(cs);
+	copy_if(favoriteHubs.begin(), favoriteHubs.end(), back_inserter(ret), [&aGroup](const FavoriteHubEntryPtr& f) { return Util::stricmp(f->getGroup(), aGroup) == 0; });
 	return ret;
 }
 
@@ -484,7 +484,7 @@ void FavoriteManager::setHubSetting(const string& aUrl, HubSettings::HubBoolSett
 	FavoriteHubEntryPtr hub;
 
 	{
-		RLock l(cs);
+		WLock l(cs);
 		auto p = getFavoriteHubUnsafe(aUrl);
 		if (p == favoriteHubs.end()) {
 			return;
@@ -515,6 +515,8 @@ FavoriteHubEntryPtr FavoriteManager::getFavoriteHubEntry(FavoriteHubToken aToken
 }
 
 void FavoriteManager::mergeHubSettings(const FavoriteHubEntryPtr& entry, HubSettings& settings) const noexcept {
+	RLock l(cs);
+
 	// apply group settings first.
 	if (const auto& name = entry->getGroup(); !name.empty()) {
 		auto group = favHubGroups.find(name);

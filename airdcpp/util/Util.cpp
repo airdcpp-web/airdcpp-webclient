@@ -22,9 +22,7 @@
 #include <airdcpp/core/types/DirectoryContentInfo.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/settings/SettingsManager.h>
-#include <airdcpp/util/SystemUtil.h>
 
-#include <locale.h>
 #include <iomanip>
 
 namespace dcpp {
@@ -261,7 +259,7 @@ wstring::size_type Util::findSubString(const wstring& aString, const wstring& aS
 }
 
 int Util::stricmp(const char* a, const char* b) noexcept {
-	while(*a) {
+	while(*a && *b) {
 		wchar_t ca = 0, cb = 0;
 		int na = Text::utf8ToWc(a, ca);
 		int nb = Text::utf8ToWc(b, cb);
@@ -282,7 +280,7 @@ int Util::stricmp(const char* a, const char* b) noexcept {
 
 int Util::strnicmp(const char* a, const char* b, size_t n) noexcept {
 	const char* end = a + n;
-	while(*a && a < end) {
+	while(*a && *b && a < end) {
 		wchar_t ca = 0, cb = 0;
 		int na = Text::utf8ToWc(a, ca);
 		int nb = Text::utf8ToWc(b, cb);
@@ -353,7 +351,7 @@ string Util::formatParams(const string& aMsg, const ParamMap& aParams, FilterF a
 	return result;
 }
 
-string Util::formatTime(const string &msg, time_t aTime) noexcept {
+string Util::formatTime(const string& msg, time_t aTime) noexcept {
 	if (msg.empty()) {
 		return Util::emptyString;
 	}
@@ -401,23 +399,33 @@ string Util::formatCurrentTime() noexcept {
 	char buf[64];
 	time_t _tt;
 	time(&_tt);
-	tm* _tm = localtime(&_tt);
-	if(_tm == NULL) {
+	std::tm tmv{};
+#ifdef _WIN32
+	if (localtime_s(&tmv, &_tt) != 0) {
+#else
+	if (!localtime_r(&_tt, &tmv)) {
+#endif
 		strcpy(buf, "xx:xx:xx");
 	} else {
-		strftime(buf, 64, "%X", _tm);
+		strftime(buf, 64, "%X", &tmv);
 	}
 	return buf;
 }
 
 string Util::getTimeStamp(time_t t) noexcept {
-	char buf[255];
-	tm* _tm = localtime(&t);
-	if (_tm == NULL) {
+	char buf[255] = { 0 };
+	std::tm tmv{};
+#ifdef _WIN32
+	if (localtime_s(&tmv, &t) != 0) {
+#else
+	if (!localtime_r(&t, &tmv)) {
+#endif
 		strcpy(buf, "xx:xx");
-	}
-	else {
-		strftime(buf, 254, SETTING(TIME_STAMPS_FORMAT).c_str(), _tm);
+	} else {
+		// strftime returns 0 and leaves the buffer INDETERMINATE when the result does not fit
+		if (strftime(buf, sizeof(buf), SETTING(TIME_STAMPS_FORMAT).c_str(), &tmv) == 0) {
+			strcpy(buf, "xx:xx");
+		}
 	}
 	return Text::toUtf8(buf);
 }
@@ -621,7 +629,7 @@ int Util::DefaultSort(const char* a, const char* b) noexcept {
 				v1 += *a - '0';
 
 				a += na;
-				na = Text::utf8ToWc(a, ca);
+				na = abs(Text::utf8ToWc(a, ca));
 			}
 
 			while (iswdigit(cb)) {
@@ -629,7 +637,7 @@ int Util::DefaultSort(const char* a, const char* b) noexcept {
 				v2 += *b - '0';
 
 				b += nb;
-				nb = Text::utf8ToWc(b, cb);
+				nb = abs(Text::utf8ToWc(b, cb));
 			}
 
 			if (v1 != v2)
@@ -653,7 +661,7 @@ tstring Util::replaceT(const tstring& aString, const tstring& fStr, const tstrin
 	tstring::size_type pos = 0;
 	while( (pos = tmp.find(fStr, pos)) != tstring::npos ) {
 		tmp.replace(pos, fStr.length(), rStr);
-		pos += rStr.length() - fStr.length();
+		pos += rStr.length();
 	}
 
 	return tmp;

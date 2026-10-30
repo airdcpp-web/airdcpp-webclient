@@ -93,7 +93,7 @@ int AutoLimitUtil::getSlotsPerUser(bool aIsDownload, double aOverrideConnectionS
 		slots=1;
 	}
 
-	if (slots > totalSlots)
+	if (totalSlots > 0 && slots > totalSlots)
 		slots = totalSlots;
 	//LogManager::getInstance()->message("Slots: " + Util::toString(slots) + " TotalSlots: " + Util::toString(totalSlots) + " Speed: " + Util::toString(speed));
 	return slots;

@@ -109,6 +109,7 @@ void BufferedSocket::accept(const Socket& srv, bool aSecure, bool aAllowUntruste
 	setOptions();
 
 	start();
+	threadStarted = true;
 
 	Lock l(cs);
 	addTask(ACCEPTED, nullptr);
@@ -135,6 +136,7 @@ void BufferedSocket::connect(const AddressInfo& aAddress, const SocketConnectOpt
 	setSocket(std::move(s));
 
 	start();
+	threadStarted = true;
 
 	auto proxy = aProxy && (CONNSETTING(OUTGOING_CONNECTIONS) == SettingsManager::OUTGOING_SOCKS5);
 
@@ -229,35 +231,35 @@ void BufferedSocket::threadRead() {
 	while (left > 0) {
 		switch (mode) {
 			case MODE_ZPIPE: {
-					const int BUF_SIZE = 1024;
-					// Special to autodetect nmdc connections...
-					boost::scoped_array<char> buffer(new char[BUF_SIZE]);
-					l = line;
-					// decompress all input data and store in l.
-					while (left) {
-						size_t in = BUF_SIZE;
-						size_t used = left;
-						bool ret = (*filterIn) (&inbuf[0] + total - left, used, &buffer[0], in);
-						left -= used;
-						l.append (&buffer[0], in);
-						// if the stream ends before the data runs out, keep remainder of data in inbuf
-						if (!ret) {
-							bufpos = total-left;
-							setMode (MODE_LINE, rollback);
-							break;
-						}
+				const int BUF_SIZE = 1024;
+				// Special to autodetect nmdc connections...
+				boost::scoped_array<char> buffer(new char[BUF_SIZE]);
+				l = line;
+				// decompress all input data and store in l.
+				while (left) {
+					size_t in = BUF_SIZE;
+					size_t used = left;
+					bool ret = (*filterIn) (&inbuf[0] + total - left, used, &buffer[0], in);
+					left -= used;
+					l.append (&buffer[0], in);
+					// if the stream ends before the data runs out, keep remainder of data in inbuf
+					if (!ret) {
+						bufpos = total-left;
+						setMode (MODE_LINE, rollback);
+						break;
 					}
-					// process all lines
-					while ((pos = l.find(separator)) != string::npos) {
-                       	if(pos > 0) // check empty (only pipe) command and don't waste cpu with it ;o)
-							fire(BufferedSocketListener::Line(), l.substr(0, pos));
-						l.erase (0, pos + 1 /* separator char */);
-					}
-					// store remainder
-					line = l;
-
-					break;
 				}
+				// process all lines
+				while ((pos = l.find(separator)) != string::npos) {
+                    if(pos > 0) // check empty (only pipe) command and don't waste cpu with it ;o)
+						fire(BufferedSocketListener::Line(), l.substr(0, pos));
+					l.erase (0, pos + 1 /* separator char */);
+				}
+				// store remainder
+				line = l;
+
+				break;
+			}
 			case MODE_LINE:
 				// Special to autodetect nmdc connections...
 				if(separator == 0) {
@@ -288,6 +290,11 @@ void BufferedSocket::threadRead() {
 				while(left > 0) {
 					if(dataBytes == -1) {
 						fire(BufferedSocketListener::Data(), &inbuf[bufpos], left);
+						// rollback must never exceed the bytes just handed out: (left - rollback)
+						// is evaluated in size_t, so rollback > left would wrap bufpos to a huge
+						// value and the next Data() would fire on an out-of-range pointer.
+						if (rollback > static_cast<size_t>(left))
+							rollback = left;
 						bufpos += (left - rollback);
 						left = static_cast<int>(rollback);
 						rollback = 0;
@@ -309,7 +316,8 @@ void BufferedSocket::threadRead() {
 		}
 	}
 
-	if(mode == MODE_LINE && line.size() > static_cast<size_t>(SETTING(MAX_COMMAND_LENGTH))) {
+	// MODE_ZPIPE and MODE_LINE: check for command length overflow
+	if (line.size() > static_cast<size_t>(SETTING(MAX_COMMAND_LENGTH))) {
 		throw SocketException(STRING(COMMAND_TOO_LONG));
 	}
 }
@@ -369,14 +377,14 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 			// File uploads can take a really long time so we don't want to wait for it to finish
 			checkEvents();
 
-			if(written == -1) {
+			if (written == -1) {
 				// workaround for OpenSSL (crashes when previous write failed and now retrying with different writeSize)
 				written = sock->write(&writeBufTmp[writePos], writeSize);
 			} else {
 				writeSize = min(sockSize / 2, writeBufTmp.size() - writePos);
 				written = useLimiter ? 
 					ThrottleManager::getInstance()->write(sock.get(), &writeBufTmp[writePos], writeSize) : 
-					sock->read(&inbuf[0], inbuf.size());
+					sock->write(&writeBufTmp[writePos], writeSize);
 			}
 			
 			if(written > 0) {
@@ -400,7 +408,7 @@ void BufferedSocket::threadSendFile(InputStream* file) {
 						readPos += actual;
 					}
 				} else {
-					while(!disconnecting) {
+					while (!disconnecting) {
 						auto [read, write] = sock->wait(POLL_TIMEOUT, true, true);
 						if (read) {
 							threadRead();
@@ -545,9 +553,15 @@ void BufferedSocket::fail(const string& aError) {
 }
 
 void BufferedSocket::shutdown(const Callback& f) {
-	Lock l(cs);
-	disconnecting = true;
-	addTask(SHUTDOWN, f ? make_unique<CallData>(f) : nullptr);
+	{
+		Lock l(cs);
+		disconnecting = true;
+		addTask(SHUTDOWN, f ? make_unique<CallData>(f) : nullptr);
+	}
+
+	if (!threadStarted) {
+		delete this;
+	}
 }
 
 void BufferedSocket::addTask(Tasks task, unique_ptr<TaskData>&& data) {

@@ -24,13 +24,11 @@
 #include <airdcpp/connection/ConnectionManager.h>
 #include <airdcpp/transfer/download/Download.h>
 #include <airdcpp/core/io/File.h>
-#include <airdcpp/events/LogManager.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/queue/QueueItem.h>
 #include <airdcpp/core/io/xml/SimpleXML.h>
 #include <airdcpp/core/io/stream/Streams.h>
 #include <airdcpp/core/timer/TimerManager.h>
-#include <airdcpp/connection/UserConnection.h>
 #include <airdcpp/util/ValueGenerator.h>
 
 #include <boost/range/numeric.hpp>
@@ -182,11 +180,11 @@ void Bundle::finishBundle() noexcept {
 }
 
 int64_t Bundle::getDownloadedBytes() const noexcept {
-	return currentDownloaded + finishedSegments; 
+	return min(currentDownloaded + finishedSegments, size);;
 }
 
 int64_t Bundle::getSecondsLeft() const noexcept {
-	return (speed > 0) ? (size - (currentDownloaded+finishedSegments)) / speed : 0;
+	return (speed > 0) ? (size - getDownloadedBytes()) / speed : 0;
 }
 
 string Bundle::getName() const noexcept  {
@@ -318,7 +316,7 @@ void Bundle::addUserQueue(const QueueItemPtr& qi) noexcept {
 		addUserQueue(qi, s.getUser());
 }
 
-bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool isBad /*false*/) noexcept {
+bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool aIsBadSource /*false*/) noexcept {
 	auto& l = userQueue[static_cast<int>(qi->getPriority())][aUser.user];
 	dcassert(ranges::find(l, qi) == l.end());
 
@@ -335,7 +333,7 @@ bool Bundle::addUserQueue(const QueueItemPtr& qi, const HintedUser& aUser, bool 
 		l.push_back(qi);
 	}
 
-	if (isBad) {
+	if (aIsBadSource) {
 		auto i = ranges::find(badSources, aUser, &BundleSource::getUser);
 		dcassert(i != badSources.end());
 		if (i != badSources.end()) {
@@ -496,51 +494,46 @@ Priority Bundle::calculateProgressPriority() const noexcept {
 	return getPriority();
 }
 
-pair<int64_t, double> Bundle::getPrioInfo() const noexcept {
-	int64_t bundleSpeed = 0;
-	double bundleSources = 0;
+QueueItemBase::SpeedSourceInfo Bundle::getPrioInfo() const noexcept {
+	dcassert(!queueItems.empty());
+
+	QueueItemBase::SpeedSourceInfo prioInfo;
 	for (const auto& s: sources) {
 		if (s.getUser().user->isOnline()) {
-			bundleSpeed += s.getUser().user->getSpeed();
+			prioInfo.speed += s.getUser().user->getSpeed();
 		}
 
-		bundleSources += s.files;
+		prioInfo.sourceFraction += s.files;
 	}
 
-	bundleSources = bundleSources / queueItems.size();
-	return { bundleSpeed, bundleSources };
+	prioInfo.sourceFraction = prioInfo.sourceFraction / queueItems.size();
+	return prioInfo;
 }
 
-multimap<QueueItemPtr, pair<int64_t, double>> Bundle::getQIBalanceMaps() const noexcept {
-	multimap<QueueItemPtr, pair<int64_t, double>> speedSourceMap;
+QueueItemBase::SpeedSourceMap<QueueItemPtr> Bundle::getQIBalanceMaps() const noexcept {
+	QueueItemBase::SpeedSourceMap<QueueItemPtr> speedSourceMap;
 
 	for (const auto& q: queueItems) {
 		if(q->getAutoPriority()) {
-			int64_t qiSpeed = 0;
-			double qiSources = 0;
+			QueueItemBase::SpeedSourceInfo speedSourceInfo;
 			for (const auto& s: q->getSources()) {
 				if (s.getUser().user->isOnline()) {
-					qiSpeed += s.getUser().user->getSpeed();
-					qiSources++;
+					speedSourceInfo.speed += s.getUser().user->getSpeed();
+					speedSourceInfo.sourceFraction++;
 				} else {
-					qiSources += 2;
+					speedSourceInfo.sourceFraction += 2;
 				}
 			}
-			speedSourceMap.emplace(q, make_pair(qiSpeed, qiSources));
+			speedSourceMap.emplace(q, speedSourceInfo);
 		}
 	}
 	return speedSourceMap;
 }
 
 int Bundle::countOnlineUsers() const noexcept {
-	int files=0, users=0;
-	for(const auto& s: sources) {
-		if(s.getUser().user->isOnline()) {
-			users++;
-			files += s.files;
-		}
-	}
-	return (queueItems.size() == 0 ? 0 : (files / queueItems.size()));
+	return static_cast<int>(ranges::count_if(sources, [](const BundleSource& s) {
+		return s.getUser().user->isOnline();
+	}));
 }
 
 bool Bundle::allowAutoSearch() const noexcept {
@@ -598,10 +591,9 @@ bool Bundle::onDownloadTick() noexcept {
 		}
 	}
 
-
+	speed = bundleSpeed;
 	if (bundleSpeed > 0) {
 		setDownloadedBytes(bundlePos);
-		speed = bundleSpeed;
 
 		bundleRatio = bundleRatio / down;
 		actual = ((int64_t)((double)(finishedSegments+bundlePos) * (bundleRatio == 0 ? 1.00 : bundleRatio)));

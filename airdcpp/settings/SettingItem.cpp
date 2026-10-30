@@ -53,9 +53,9 @@ SettingItem::SettingValue SettingItem::getDefaultValue() const noexcept {
 	if (key >= SettingsManager::STR_FIRST && key < SettingsManager::STR_LAST) {
 		return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::StrSetting>(key));
 	} else if (key >= SettingsManager::INT_FIRST && key < SettingsManager::INT_LAST) {
-		return SettingsManager::getInstance()->get(static_cast<SettingsManager::IntSetting>(key));
+		return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::IntSetting>(key));
 	} else if (key >= SettingsManager::BOOL_FIRST && key < SettingsManager::BOOL_LAST) {
-		return SettingsManager::getInstance()->get(static_cast<SettingsManager::BoolSetting>(key));
+		return SettingsManager::getInstance()->getDefault(static_cast<SettingsManager::BoolSetting>(key));
 	} else {
 		dcassert(0);
 	}

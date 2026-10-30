@@ -214,7 +214,7 @@ public:
 	// Count the recursive total size for the directory
 	int64_t getTotalSize() const noexcept;
 
-	void getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_t& filesCount_) const noexcept;
+	void getContentInfo(int64_t& totalSize_, size_t& filesCount_) const noexcept;
 
 	void search(SearchResultInfo::Set& aResults, SearchQuery& aStrings, int aLevel) const noexcept;
 

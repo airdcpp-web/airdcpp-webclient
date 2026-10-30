@@ -44,6 +44,12 @@ public:
 			s.signal();
 			join();
 		}
+
+		// Drain any remaining queued callbacks to avoid leaking them
+		Callback* leftover = nullptr;
+		while (queue.try_pop(leftover)) {
+			delete leftover;
+		}
 	}
 
 	void start() {

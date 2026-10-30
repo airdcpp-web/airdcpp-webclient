@@ -171,7 +171,7 @@ string DupeUtil::getReleaseDir(const string& aDir, bool aCut, const char aSepara
 
 pair<string, string::size_type> DupeUtil::getDirectoryName(const string& aPath, char aSeparator) noexcept {
 	if (aPath.size() < 3)
-		return { aPath, false };
+		return { aPath, string::npos };
 
 	//get the directory to search for
 	bool isSub = false;

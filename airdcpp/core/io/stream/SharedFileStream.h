@@ -22,18 +22,18 @@
 
 #include <airdcpp/core/thread/CriticalSection.h>
 #include <airdcpp/core/io/File.h>
-#include <airdcpp/core/types/GetSet.h>
 
 namespace dcpp {
 
 struct SharedFileHandle : File {
-	SharedFileHandle(const string& aPath, int access, int mode);
+	SharedFileHandle(const string& aPath, int aAccess, int aMode);
 	~SharedFileHandle() noexcept = default;
 
 	CriticalSection cs;
 	int	ref_cnt;
-	string path;
-	int mode;
+	const string path;
+	const int mode;
+	int access;
 };
 
 class SharedFileStream : public IOStream
@@ -60,7 +60,7 @@ public:
 	void setPos(int64_t aPos) noexcept override;
 private:
 	SharedFileHandle* sfh;
-	int64_t pos;
+	int64_t pos = 0;
 };
 
 }

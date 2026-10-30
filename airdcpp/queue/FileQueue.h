@@ -25,7 +25,6 @@
 
 #include <airdcpp/filelist/DirectoryListingDirectory.h>
 #include <airdcpp/core/types/DupeType.h>
-// #include <airdcpp/hash/value/HashBloom.h>
 #include <airdcpp/queue/QueueItem.h>
 
 namespace dcpp {
@@ -35,8 +34,6 @@ class FileQueue {
 public:
 	FileQueue() { }
 	~FileQueue();
-
-	// void getBloom(HashBloom& bloom) const noexcept;
 
 	pair<QueueItem::StringMap::const_iterator, bool> add(QueueItemPtr& qi) noexcept;
 	pair<QueueItemPtr, bool> add(const string& aTarget, int64_t aSize, Flags::MaskType aFlags, Priority p, const string& aTempTarget, time_t aAdded, const TTHValue& root) noexcept;

@@ -21,7 +21,6 @@
 
 #include <airdcpp/queue/QueueManagerListener.h>
 #include <airdcpp/search/SearchManagerListener.h>
-#include <airdcpp/core/timer/TimerManagerListener.h>
 
 #include <airdcpp/protocol/AdcCommand.h>
 #include <airdcpp/core/thread/CriticalSection.h>
@@ -58,6 +57,7 @@ private:
 	void sendBundleCompletedNotifications(const BundlePtr& aBundle) noexcept;
 
 	void on(QueueManagerListener::BundleStatusChanged, const BundlePtr& aBundle) noexcept override;
+	void on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept override;
 	void on(QueueManagerListener::ItemStatus, const QueueItemPtr& aQI) noexcept override;
 
 	void on(SearchManagerListener::IncomingSearch, Client* aClient, const OnlineUserPtr& aAdcUser, const SearchQuery& aQuery, const SearchResultList&, bool aIsUdpActive) noexcept override;

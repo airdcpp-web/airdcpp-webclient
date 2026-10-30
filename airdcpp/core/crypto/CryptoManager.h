@@ -102,7 +102,7 @@ private:
 	}
 
 	static string formatError(const X509_STORE_CTX *ctx, const string& message);
-	static string getNameEntryByNID(X509_NAME* name, int nid) noexcept;
+	static string getNameEntryByNID(const X509_NAME* name, int nid) noexcept;
 
 	void loadKeyprint(const string& file) noexcept;
 

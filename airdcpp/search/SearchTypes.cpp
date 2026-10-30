@@ -23,7 +23,6 @@
 #include <airdcpp/core/classes/Exception.h>
 #include <airdcpp/search/Search.h>
 #include <airdcpp/settings/SettingsManager.h>
-#include <airdcpp/core/classes/ScopedFunctor.h>
 #include <airdcpp/core/io/xml/SimpleXML.h>
 #include <airdcpp/util/text/StringTokenizer.h>
 #include <airdcpp/util/ValueGenerator.h>

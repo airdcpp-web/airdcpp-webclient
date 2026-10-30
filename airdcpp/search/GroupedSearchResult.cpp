@@ -69,6 +69,7 @@ namespace dcpp {
 	}
 
 	int GroupedSearchResult::getHits() const noexcept {
+		FastLock l(cs);
 		return static_cast<int>(children.size());
 	}
 

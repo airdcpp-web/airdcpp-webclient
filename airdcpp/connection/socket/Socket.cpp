@@ -149,7 +149,7 @@ inline socket_t readable(socket_t sock0, socket_t sock1) {
 	FD_SET(sock1, &rfd);
 
     if(::select(static_cast<int>(std::max(sock0, sock1)) + 1, &rfd, NULL, NULL, &tv) > 0) {
-        return static_cast<int>(FD_ISSET(sock0, &rfd) ? sock0 : sock1);
+        return FD_ISSET(sock0, &rfd) ? sock0 : sock1;
     }
 
 	return sock0;
@@ -431,6 +431,10 @@ namespace {
 }
 void Socket::appendSocksAddress(const string& aAddr, const string& aPort, ByteVector& connStr_) const {
 	if (SETTING(SOCKS_RESOLVE)) {
+		if (aAddr.size() > 255) {
+			throw SocketException(STRING(SOCKS_FAILED));
+		}
+
 		connStr_.push_back(SocksAddrType::TYPE_DOMAIN);
 		connStr_.push_back((uint8_t)aAddr.size());
 		connStr_.insert(connStr_.end(), aAddr.begin(), aAddr.end());
@@ -896,7 +900,9 @@ Socket::addrinfo_p Socket::resolveAddr(const string& name, const string& port, i
 
 	addrinfo *result = 0;
 
-	if (auto err = ::getaddrinfo(name.c_str(), port.empty() ? NULL : port.c_str(), &hints, &result)) {
+	const char* node = name.empty() && (flags & AI_PASSIVE) ? nullptr : name.c_str();
+
+	if (auto err = ::getaddrinfo(node, port.empty() ? NULL : port.c_str(), &hints, &result)) {
 		throw SocketException(err);
 	}
 

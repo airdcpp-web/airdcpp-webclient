@@ -187,8 +187,8 @@ public:
 	int countOnlineUsers() const noexcept;
 
 	Priority calculateProgressPriority() const noexcept;
-	multimap<QueueItemPtr, pair<int64_t, double>> getQIBalanceMaps() const noexcept;
-	pair<int64_t, double> getPrioInfo() const noexcept;
+	QueueItemBase::SpeedSourceMap<QueueItemPtr> getQIBalanceMaps() const noexcept;
+	QueueItemBase::SpeedSourceInfo getPrioInfo() const noexcept;
 
 	void increaseSize(int64_t aSize) noexcept;
 	void decreaseSize(int64_t aSize) noexcept;
@@ -236,8 +236,10 @@ private:
 	bool dirty = false;
 	bool recent = false;
 
+	typedef deque<QueueItemPtr> UserFileQueue;
+
 	/** QueueItems by priority and user (this is where the download order is determined) */
-	unordered_map<UserPtr, deque<QueueItemPtr>, User::Hash> userQueue[static_cast<int>(Priority::LAST)];
+	unordered_map<UserPtr, UserFileQueue, User::Hash> userQueue[static_cast<int>(Priority::LAST)];
 	/** Currently running downloads, a QueueItem is always either here or in the userQueue */
 	unordered_map<UserPtr, QueueItemList, User::Hash> runningItems;
 };

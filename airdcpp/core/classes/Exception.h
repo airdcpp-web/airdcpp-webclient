@@ -48,7 +48,7 @@ public:
 	virtual const int& getErrorCode() const noexcept { return errorCode; }
 protected:
 	string errorString;
-	int errorCode;
+	int errorCode = 0;
 };
 
 #ifdef _DEBUG

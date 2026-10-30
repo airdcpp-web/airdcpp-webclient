@@ -30,7 +30,6 @@
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/core/io/xml/SimpleXML.h>
-#include <airdcpp/util/text/StringTokenizer.h>
 #include <airdcpp/util/SystemUtil.h>
 #include <airdcpp/util/Util.h>
 #include <airdcpp/core/version.h>

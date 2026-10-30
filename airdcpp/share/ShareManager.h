@@ -24,6 +24,7 @@
 #include <airdcpp/settings/SettingsManagerListener.h>
 #include <airdcpp/share/ShareManagerListener.h>
 #include <airdcpp/core/timer/TimerManagerListener.h>
+#include <airdcpp/core/types/ShareProfileContentInfo.h> 
 
 #include <airdcpp/core/types/DupeType.h>
 #include <airdcpp/core/classes/Exception.h>
@@ -156,7 +157,7 @@ public:
 	int64_t getTotalShareSize(ProfileToken aProfile) const noexcept;
 
 	// Get share size and number of files for a specified profile
-	void getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_t& fileCount_) const noexcept;
+	ShareProfileContentInfo getProfileInfo(ProfileToken aProfile) const noexcept;
 
 	// If allowFallback is true, the default profile will be returned if the requested one is not found
 	ShareProfilePtr getShareProfile(ProfileToken aProfile, bool allowFallback = false) const noexcept;
@@ -166,7 +167,7 @@ public:
 	size_t getBloomFileCount(ProfileToken aProfile) const noexcept;
 
 	// Removes path characters from virtual name
-	string validateVirtualName(const string& aName) const noexcept;
+	static string validateVirtualName(const string& aName) noexcept;
 
 	// Generate own full filelist on disk
 	// Throws ShareException

@@ -220,8 +220,10 @@ void DirectoryListingManager::processListHooked(const string& aFileName, const s
 		auto p = viewedLists.find(aUser.user);
 		if (p != viewedLists.end()) {
 			if (p->second->getPartialList() && isPartialList) {
-				//we don't want multiple threads to load those simultaneously. load in the list thread and return here after that
-				p->second->addPartialListLoadTask(aXml, aRemotePath, true, [=, this] { processListActionHooked(p->second, aRemotePath, aFlags); });
+				// We don't want multiple threads to load those simultaneously
+				// Load in the list thread and return here after that
+				auto list = p->second;
+				list->addPartialListLoadTask(aXml, aRemotePath, true, [=, this] { processListActionHooked(list, aRemotePath, aFlags); });
 				return;
 			}
 		}
@@ -569,8 +571,10 @@ bool DirectoryListingManager::removeList(const UserPtr& aUser) noexcept {
 			viewedLists.erase(aUser);
 		}
 
-		dl->close();
-		fire(DirectoryListingManagerListener::ListingClosed(), dl);
+		dl->close([this, dl] {
+			// Fire only after the threaded tasks have been completed
+			fire(DirectoryListingManagerListener::ListingClosed(), dl);
+		});
 	}
 
 	return true;

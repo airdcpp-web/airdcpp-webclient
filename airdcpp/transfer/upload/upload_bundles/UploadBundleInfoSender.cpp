@@ -80,6 +80,8 @@ void UploadBundleInfoSender::on(QueueManagerListener::BundleSize, const BundlePt
 	}
 
 	dbgMsg("send size update for bundle " + ubnBundle->getBundle()->getName(), LogMessage::SEV_VERBOSE);
+
+	RLock l(cs);
 	ubnBundle->sendSizeUpdate();
 }
 
@@ -193,6 +195,7 @@ void UploadBundleInfoSender::on(DownloadManagerListener::BundleTick, const Bundl
 			continue;
 		}
 
+		RLock l(cs);
 		ubnBundle->onDownloadTick();
 	}
 }
@@ -249,7 +252,7 @@ void UploadBundleInfoSender::UBNBundle::onDownloadTick() noexcept {
 	}
 
 	string speedStr, percentStr;
-	getTickParams(speedStr, speedStr);
+	getTickParams(percentStr, speedStr);
 
 	if (!speedStr.empty() || !percentStr.empty()) {
 		for (const auto& user: uploadReports | views::keys) {

@@ -169,7 +169,7 @@ private:
 
 	std::unique_ptr<Socket> sock;
 	State state = STARTING;
-	bool disconnecting = false;
+	atomic<bool> disconnecting = false;
 	bool v4only;
 
 	int run() override;
@@ -190,6 +190,8 @@ private:
 	void setOptions();
 	void shutdown(const Callback& f);
 	void addTask(Tasks task, unique_ptr<TaskData>&& data);
+
+	std::atomic<bool> threadStarted{ false };
 };
 
 } // namespace dcpp

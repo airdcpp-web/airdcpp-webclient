@@ -20,24 +20,24 @@
 
 #include <airdcpp/queue/partial_sharing/PartialSharingManager.h>
 
-#include <airdcpp/user/HintedUser.h>
 #include <airdcpp/queue/QueueManager.h>
-#include <airdcpp/search/SearchResult.h>
 #include <airdcpp/share/ShareManager.h>
-#include <airdcpp/core/timer/TimerManager.h>
 #include <airdcpp/transfer/upload/Upload.h>
 #include <airdcpp/transfer/upload/UploadFileParser.h>
 #include <airdcpp/transfer/upload/UploadManager.h>
 #include <airdcpp/connection/UserConnection.h>
-#include <airdcpp/util/Util.h>
-#include <airdcpp/util/ValueGenerator.h>
 
 namespace dcpp {
 
 PartialSharingManager::PartialSharingManager() {
 	ShareManager::getInstance()->registerUploadFileProvider(this);
+	UploadManager::getInstance()->addListener(this);
 
 	UploadManager::getInstance()->slotTypeHook.addSubscriber(ActionHookSubscriber(providerName, "Partial sharing", nullptr), HOOK_CALLBACK(PartialSharingManager::onSlotType));
+}
+
+PartialSharingManager::~PartialSharingManager() {
+	UploadManager::getInstance()->removeListener(this);
 }
 
 ActionHookResult<OptionalTransferSlot> PartialSharingManager::onSlotType(const UserConnection& aUserConnection, const ParsedUpload& aUpload, const ActionHookResultGetter<OptionalTransferSlot>& aResultGetter) const noexcept {

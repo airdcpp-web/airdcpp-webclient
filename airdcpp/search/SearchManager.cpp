@@ -21,7 +21,6 @@
 
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/util/CryptoUtil.h>
-#include <airdcpp/events/LogManager.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/core/classes/ScopedFunctor.h>
 #include <airdcpp/search/SearchInstance.h>
@@ -259,9 +258,14 @@ void SearchManager::onSR(const string& x, const string& aRemoteIP /*Util::emptyS
 	}
 
 	auto adcPath = PathUtil::toAdcFile(Text::toUtf8(file, hubEncoding));
+
+	// Directories don't have TTH, so we generate one for grouping purposes 
+	auto th = type == SearchResult::Type::DIRECTORY ?
+		ValueGenerator::generateDirectoryTTH(PathUtil::getAdcLastDir(adcPath), size) : TTHValue(tth);
+
 	auto sr = make_shared<SearchResult>(
 		user, type, slots, freeSlots, size,
-		adcPath, aRemoteIP, TTHValue(tth), Util::emptyString, 0, connection, DirectoryContentInfo::uninitialized()
+		adcPath, aRemoteIP, th, Util::emptyString, 0, connection, DirectoryContentInfo::uninitialized()
 	);
 
 	fire(SearchManagerListener::SR(), sr);
@@ -379,7 +383,7 @@ void SearchManager::respond(const AdcCommand& adc, Client* aClient, const Online
 
 		string tmp;
 		if (adc.getParam("MR", 0, tmp)) 
-			maxResults = min(aIsUdpActive ? 20 : 10, Util::toInt(tmp));
+			maxResults = min(aIsUdpActive ? 20 : 10, max(0, Util::toInt(tmp)));
 	}
 
 	SearchResultList results;
