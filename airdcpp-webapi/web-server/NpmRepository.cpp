@@ -18,9 +18,8 @@
 
 #include "stdinc.h"
 
-#include <semver/semver.hpp>
-
 #include <web-server/NpmRepository.h>
+#include <web-server/NpmVersion.h>
 
 #include <airdcpp/connection/http/HttpDownload.h>
 #include <airdcpp/core/localization/ResourceManager.h>
@@ -103,59 +102,25 @@ namespace webserver {
 
 	// https://github.com/npm/registry/blob/master/docs/responses/package-metadata.md
 	void NpmRepository::checkPackageData(const string& aPackageData, const string& aName, const string& aCurrentVersion) const {
-		optional<semver::version> curSemver = !aCurrentVersion.empty() ? optional(semver::version(aCurrentVersion)) : nullopt;
+		const auto curSemver = !aCurrentVersion.empty() ? optional(semver::from_string(aCurrentVersion)) : nullopt;
 
 		const auto packageJson = json::parse(aPackageData);
-		auto versions = packageJson.at("versions");
+		const auto& versions = packageJson.at("versions");
+		const auto selection = selectNpmVersion(versions, curSemver);
 
-		bool majorVersionAnnounced = false;
+		if (!selection.majorVersion.empty()) {
+			loggerF(STRING_F(WEB_EXTENSION_MAJOR_UPDATE, selection.majorVersion % aName), LogMessage::SEV_INFO);
+		}
 
-		// Versions are listed from oldest to newest, start with the newest ones
-		for (auto elem = versions.rbegin(); elem != versions.rend(); ++elem) {
-			semver::version remoteSemver { elem.key() };
-
-			auto isRemotePrerelease = remoteSemver.prerelease_type != semver::prerelease::none;
-			if (curSemver) {
-				if (isRemotePrerelease && (*curSemver).prerelease_type == semver::prerelease::none) {
-					// Don't update to pre-release versions
-					continue;
-				}
-
-				if (remoteSemver.major > (*curSemver).major) {
-					if (!majorVersionAnnounced) {
-						loggerF(STRING_F(WEB_EXTENSION_MAJOR_UPDATE, elem.key() % aName), LogMessage::SEV_INFO);
-						majorVersionAnnounced = true;
-					}
-
-					// Don't perform major upgrades automatically
-					continue;
-				} else if (remoteSemver.major == (*curSemver).major) {
-					// Same major version, compare normally
-					auto comp = (*curSemver).compare(remoteSemver);
-					if (comp >= 0) {
-						// No new version available
-						dcdebug("No updates available for extension %s\n", aName.c_str());
-						return;
-					} else {
-						dcdebug("New update available for extension %s (current version %s, available version %s)\n", aName.c_str(), aCurrentVersion.c_str(), elem.key().c_str());
-					}
-				} else {
-					// Old major version, we shouldn't really be here
-					continue;
-				}
-			} else if (isRemotePrerelease) {
-				// Don't install pre-release version for now
-				continue;
-			}
-
-			// Install
-			const auto dist = elem.value().at("dist");
-
-			const auto url = dist.at("tarball");
-			const auto sha = dist.at("shasum");
-
-			installF(aName, url, sha);
+		if (selection.version.empty()) {
+			dcdebug("No updates available for extension %s\n", aName.c_str());
 			return;
 		}
+
+		dcdebug("New update available for extension %s (current version %s, available version %s)\n", aName.c_str(), aCurrentVersion.c_str(), selection.version.c_str());
+		const auto& dist = versions.at(selection.version).at("dist");
+		const auto url = dist.at("tarball");
+		const auto sha = dist.at("shasum");
+		installF(aName, url, sha);
 	}
 }

@@ -12,6 +12,10 @@ find_package (nlohmann_json 3.0.0 REQUIRED)
 
 file (GLOB_RECURSE webapi_hdrs ${PROJECT_SOURCE_DIR}/*.h)
 file (GLOB_RECURSE webapi_srcs ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.c)
+# Tests are built as separate executables
+file (GLOB_RECURSE webapi_test_files ${PROJECT_SOURCE_DIR}/test/*)
+list (REMOVE_ITEM webapi_srcs ${webapi_test_files})
+list (REMOVE_ITEM webapi_hdrs ${webapi_test_files})
 
 add_library (${PROJECT_NAME} ${webapi_srcs} ${webapi_hdrs} )
 
@@ -71,4 +75,12 @@ if (BUILD_SHARED_LIBS)
   install (TARGETS ${PROJECT_NAME}
             LIBRARY DESTINATION "${LIBDIR}" NAMELINK_SKIP
             BUNDLE DESTINATION ${LIBDIR1})
+endif ()
+
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  include (CTest)
+endif ()
+
+if (BUILD_TESTING)
+  add_subdirectory (test)
 endif ()

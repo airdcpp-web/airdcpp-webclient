@@ -168,6 +168,8 @@ endif()
 execute_process(COMMAND rm airdcpp-core/airdcpp/StringDefs.cpp OUTPUT_QUIET ERROR_QUIET)
 execute_process(COMMAND rm airdcpp-core/airdcpp/version.inc OUTPUT_QUIET ERROR_QUIET)
 
+include (CTest)
+
 add_subdirectory (airdcpp-core)
 add_subdirectory (airdcpp-webapi)
 add_subdirectory (airdcppd)
