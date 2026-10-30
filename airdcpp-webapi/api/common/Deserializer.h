@@ -21,7 +21,6 @@
 
 #include <airdcpp/core/header/typedefs.h>
 #include <airdcpp/user/HintedUser.h>
-#include <airdcpp/hash/value/MerkleTree.h>
 #include <airdcpp/message/Message.h>
 #include <airdcpp/core/types/Priority.h>
 

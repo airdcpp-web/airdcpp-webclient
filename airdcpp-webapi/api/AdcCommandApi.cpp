@@ -152,7 +152,7 @@ boost::regex AdcCommandApi::supportReg(R"([A-Z][A-Z0-9]{3})");
 			}
 
 			auto excludedFeatures = Deserializer::deserializeList<string>("excluded_features", aJson, deserializeSupportString, true);
-			for (const auto& f : requiredFeatures) {
+			for (const auto& f : excludedFeatures) {
 				aCmd.addFeature(f, AdcCommand::FeatureType::EXCLUDED);
 			}
 

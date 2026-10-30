@@ -27,7 +27,6 @@
 #include <web-server/WebServerSettings.h>
 
 #include <airdcpp/hub/ClientManager.h>
-#include <airdcpp/favorites/HubEntry.h>
 
 namespace webserver {
 

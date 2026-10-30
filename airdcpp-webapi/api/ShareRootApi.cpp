@@ -20,7 +20,6 @@
 
 #include <api/ShareRootApi.h>
 #include <api/common/Serializer.h>
-#include <api/common/Deserializer.h>
 
 #include <web-server/JsonUtil.h>
 
@@ -86,7 +85,7 @@ namespace webserver {
 
 		auto info = std::make_shared<ShareDirectoryInfo>(path);
 
-		parseRoot(info, reqJson);
+		parseRoot(info, reqJson, true);
 
 		ShareManager::getInstance()->addRootDirectory(info);
 
@@ -97,7 +96,7 @@ namespace webserver {
 	api_return ShareRootApi::handleUpdateRoot(ApiRequest& aRequest) {
 		auto info = getRoot(aRequest);
 
-		parseRoot(info, aRequest.getRequestBody());
+		parseRoot(info, aRequest.getRequestBody(), false);
 		ShareManager::getInstance()->updateRootDirectory(info);
 
 		aRequest.setResponseBody(Serializer::serializeItem(info, ShareUtils::propertyHandler));
@@ -204,14 +203,14 @@ namespace webserver {
 		return *i;
 	}
 
-	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j) {
-		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j);
+	void ShareRootApi::parseRoot(ShareDirectoryInfoPtr& aInfo, const json& j, bool aIsNew) {
+		auto virtualName = JsonUtil::getOptionalField<string>("virtual_name", j, aIsNew);
 		if (virtualName) {
 			aInfo->virtualName = *virtualName;
 		}
 
 		// Default profile is added for new roots if profiles are not specified
-		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j);
+		auto profiles = JsonUtil::getOptionalField<ProfileTokenSet>("profiles", j, aIsNew);
 		if (profiles) {
 			auto newProfiles = *profiles;
 			for (const auto& p : newProfiles) {
