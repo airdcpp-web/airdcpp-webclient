@@ -105,7 +105,8 @@ string SearchResult::getSlotString() const noexcept {
 }
 
 int64_t SearchResult::getConnectionInt() const noexcept {
-	return isNMDC() ? static_cast<int64_t>(Util::toDouble(connection)*1024.0*1024.0/8.0) : Util::toInt64(connection);
+	auto connectionInt = isNMDC() ? static_cast<int64_t>(Util::toDouble(connection)*1024.0*1024.0/8.0) : Util::toInt64(connection);
+	return max(connectionInt, static_cast<int64_t>(0));
 }
 
 int64_t SearchResult::getSpeedPerSlot() const noexcept {
@@ -130,7 +131,12 @@ bool SearchResult::SpeedSortOrder::operator()(const SearchResultPtr& lhs, const 
 }
 
 bool SearchResult::DateOrder::operator()(const SearchResultPtr& a, const SearchResultPtr& b) const noexcept {
-	return a->getDate() > 0 && a->getDate() < b->getDate();
+	const auto dateA = a->getDate(), dateB = b->getDate();
+	if ((dateA > 0) != (dateB > 0)) {
+		return dateA > 0; // a dated result always precedes an undated one
+	}
+
+	return dateA < dateB;
 }
 
 string SearchResult::formatSlots(size_t aFree, size_t aTotal) noexcept {

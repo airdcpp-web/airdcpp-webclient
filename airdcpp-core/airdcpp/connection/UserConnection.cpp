@@ -23,14 +23,9 @@
 #include <airdcpp/core/localization/ResourceManager.h>
 
 #include <airdcpp/protocol/AdcCommand.h>
-#include <airdcpp/transfer/Transfer.h>
 #include <airdcpp/protocol/ProtocolCommandManager.h>
-#include <airdcpp/favorites/FavoriteManager.h>
 #include <airdcpp/message/Message.h>
 #include <airdcpp/util/text/StringTokenizer.h>
-
-
-#include <airdcpp/transfer/download/Download.h>
 
 namespace dcpp {
 

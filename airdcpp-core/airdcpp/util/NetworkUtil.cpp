@@ -120,7 +120,6 @@ AdapterInfoList NetworkUtil::getNetworkAdapters(bool v6) {
 	{
 		PIP_ADAPTER_ADDRESSES adapterInfo = (PIP_ADAPTER_ADDRESSES)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, len);
 		ULONG ret = GetAdaptersAddresses(v6 ? AF_INET6 : AF_INET, GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST, NULL, adapterInfo, &len);
-		bool freeObject = true;
 
 		if (ret == ERROR_SUCCESS)
 		{
@@ -143,14 +142,11 @@ AdapterInfoList NetworkUtil::getNetworkAdapters(bool v6) {
 
 						adapterInfos.emplace_back(Text::fromT(tstring(pAdapterInfo->FriendlyName)), buf, ua->OnLinkPrefixLength);
 					}
-					freeObject = false;
 				}
 			}
 		}
 
-		if (freeObject)
-			HeapFree(GetProcessHeap(), 0, adapterInfo);
-
+		HeapFree(GetProcessHeap(), 0, adapterInfo);
 		if (ret != ERROR_BUFFER_OVERFLOW)
 			break;
 	}

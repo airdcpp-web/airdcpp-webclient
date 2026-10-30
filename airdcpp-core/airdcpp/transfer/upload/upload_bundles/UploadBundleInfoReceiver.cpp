@@ -326,7 +326,7 @@ void UploadBundleInfoReceiver::handleAddBundleConnection(const string& aConnecti
 	auto oldBundle = findByConnectionToken(aConnectionToken);
 	if (oldBundle && oldBundle != aBundle) {
 		dbgMsg("add connection, removing connection " + aConnectionToken + " from the previous bundle " + formatDebugBundle(oldBundle), LogMessage::SEV_VERBOSE);
-		handleRemoveBundleConnection(aConnectionToken, aBundle);
+		handleRemoveBundleConnection(aConnectionToken, oldBundle);
 	} else if (oldBundle == aBundle) {
 		dbgMsg("add connection, connection " + aConnectionToken + " exist in bundle " + formatDebugBundle(aBundle), LogMessage::SEV_VERBOSE);
 	}

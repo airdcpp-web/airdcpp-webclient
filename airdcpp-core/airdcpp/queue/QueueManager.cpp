@@ -24,7 +24,6 @@
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/connection/ConnectionManager.h>
 #include <airdcpp/DCPlusPlus.h>
-#include <airdcpp/protocol/ProtocolCommandManager.h>
 #include <airdcpp/filelist/DirectoryListing.h>
 #include <airdcpp/filelist/DirectoryListingManager.h>
 #include <airdcpp/transfer/download/Download.h>
@@ -49,7 +48,6 @@
 #include <airdcpp/connection/UserConnection.h>
 #include <airdcpp/util/ValueGenerator.h>
 #include <airdcpp/core/io/compress/ZUtils.h>
-#include <airdcpp/core/version.h>
 
 #include <boost/range/algorithm_ext/for_each.hpp>
 
@@ -724,7 +722,10 @@ optional<DirectoryBundleAddResult> QueueManager::createDirectoryBundleHooked(con
 	{
 		// There can't be existing bundles inside this directory
 		BundleList subBundles;
-		bundleQueue.getSubBundles(target, subBundles);
+		{
+			RLock l(cs);
+			bundleQueue.getSubBundles(target, subBundles);
+		}
 		if (!subBundles.empty()) {
 			StringList subPaths;
 			for (const auto& b : subBundles) {
@@ -1080,8 +1081,10 @@ string QueueManager::checkTarget(const string& toValidate, const string& aParent
 
 	if (aParentDir.empty()) {
 		// Check that target starts with a drive or is an UNC path
-		if( (toValidate[1] != ':' || toValidate[2] != '\\') &&
-			(toValidate[0] != '\\' && toValidate[1] != '\\') ) {
+		if (toValidate.length() < 3 || (
+			(toValidate[1] != ':' || toValidate[2] != '\\') &&
+			(toValidate[0] != '\\' && toValidate[1] != '\\'))
+		) {
 			throw QueueException(STRING(INVALID_TARGET_FILE));
 		}
 	}
@@ -1175,6 +1178,11 @@ QueueManager::DownloadResult QueueManager::getDownload(UserConnection& aSource, 
 
 			// Check partial sources
 			auto source = q->getSource(user);
+			if (source == q->getSources().end()) {
+				result.lastError = STRING(NO_NEEDED_PART);
+				return result;
+			}
+
 			if (source->isSet(QueueItem::Source::FLAG_PARTIAL)) {
 				auto segment = q->getNextSegment(q->getBlockSize(), aSource.getChunkSize(), aSource.getSpeed(), source->getPartsInfo(), false);
 				if (segment.getStart() != -1 && segment.getSize() == 0) {
@@ -1512,8 +1520,6 @@ void QueueManager::renameDownloadedFile(const string& source, const string& targ
 }
 
 bool QueueManager::checkBundleFinishedHooked(const BundlePtr& aBundle) noexcept {
-	bool isPrivate = false;
-
 	if (aBundle->getStatus() == Bundle::STATUS_SHARED)
 		return true;
 
@@ -1531,11 +1537,6 @@ bool QueueManager::checkBundleFinishedHooked(const BundlePtr& aBundle) noexcept 
 		// Check if there are queued or non-moved files remaining
 		if (!aBundle->filesCompleted()) {
 			return false;
-		}
-
-		// In order to avoid notifications about adding the file in share...
-		if (aBundle->isFileBundle() && !aBundle->getFinishedFiles().empty()) {
-			isPrivate = aBundle->getFinishedFiles().front()->isSet(QueueItem::FLAG_PRIVATE);
 		}
 	}
 
@@ -2097,7 +2098,7 @@ void QueueManager::setBundlePriority(const BundlePtr& aBundle, Priority p, bool 
 	}
 
 	Priority oldPrio = aBundle->getPriority();
-	if (oldPrio == p) {
+	if (oldPrio == p && (aKeepAutoPrio || !aBundle->getAutoPriority())) {
 		if (aBundle->getResumeTime() != aResumeTime) {
 			aBundle->setResumeTime(aResumeTime);
 			fire(QueueManagerListener::BundlePriority(), aBundle);
@@ -2698,7 +2699,7 @@ void QueueLoader::loadSegment(StringPairList& attribs, bool) {
 	auto start = Util::toInt64(getAttrib(attribs, sStart, 0));
 	auto size = Util::toInt64(getAttrib(attribs, sSize, 1));
 
-	if (size > 0 && start >= 0 && (start + size) <= curFile->getSize()) {
+	if (size > 0 && start >= 0 && start <= curFile->getSize() && size <= curFile->getSize() - start) {
 		curFile->addFinishedSegment(Segment(start, size));
 		if (curFile->getAutoPriority() && SETTING(AUTOPRIO_TYPE) == SettingsManager::PRIO_PROGRESS) {
 			curFile->setPriority(curFile->calculateAutoPriority());
@@ -2738,7 +2739,9 @@ void QueueLoader::endTag(const string& name) {
 			// Directory bundle
 			ScopedFunctor([this] { curBundle = nullptr; });
 			inDirBundle = false;
-			if (!curBundle || curBundle->isEmpty()) {
+			if (!curBundle) {
+				throw Exception(STRING(NO_FILES_FROM_FILE));
+			} else if (curBundle->isEmpty()) {
 				throw Exception(STRING_F(NO_FILES_WERE_LOADED, curBundle->getTarget()));
 			} else {
 				qm->addLoadedBundle(curBundle);
@@ -2914,19 +2917,24 @@ void QueueManager::on(ClientManagerListener::UserConnected, const OnlineUser& aU
 			RLock l(cs);
 			userQueue.getUserQIs(aUser.getUser(), ql);
 			auto i = userQueue.getBundleList().find(aUser.getUser());
-			if (i != userQueue.getBundleList().end())
+			if (i != userQueue.getBundleList().end()) {
 				bl = i->second;
-		}
+			}
 
-		for(const auto& q: ql) {
-			fire(QueueManagerListener::ItemSources(), q);
-			if (!hasDown && !q->isPausedPrio() && q->validateHub(aUser.getUser(), aUser.getHubUrl())) {
-				hasDown = true;
+			for (const auto& q : ql) {
+				if (!hasDown && !q->isPausedPrio() && q->validateHub(aUser.getUser(), aUser.getHubUrl())) {
+					hasDown = true;
+				}
 			}
 		}
 
-		for (const auto& b : bl) 
+		for (const auto& q : ql) {
+			fire(QueueManagerListener::ItemSources(), q);
+		}
+
+		for (const auto& b : bl) {
 			fire(QueueManagerListener::BundleSources(), b);
+		}
 	}
 
 	if(hasDown) { 
@@ -3011,7 +3019,7 @@ void QueueManager::calculatePriorities(uint64_t aTick) noexcept {
 			setBundlePriority(b, p, true);
 
 		for (const auto& [q, p] : qiPriorities)
-			setQIPriority(q, p);
+			setQIPriority(q, p, true);
 	}
 
 	lastAutoPrio = aTick;
@@ -3084,18 +3092,22 @@ void QueueManager::on(TimerManagerListener::Minute, uint64_t aTick) noexcept {
 }
 
 template<class T>
-static void calculateBalancedPriorities(vector<pair<T, Priority>>& priorities, multimap<T, pair<int64_t, double>>& speedSourceMap, bool verbose) noexcept {
+static void calculateBalancedPriorities(vector<pair<T, Priority>>& priorities, QueueItemBase::SpeedSourceMap<T>& speedSourceMap, bool verbose) noexcept {
 	if (speedSourceMap.empty())
 		return;
 
 	//scale the priorization maps
 	double factorSpeed=0, factorSource=0;
-	auto maxSpeed = static_cast<double>(ranges::max_element(speedSourceMap)->second.first);
+	auto maxSpeed = static_cast<double>(ranges::max_element(speedSourceMap, {}, [](const auto& aPair) {
+		return aPair.second.speed;
+	})->second.speed);
 	if (maxSpeed > 0) {
 		factorSpeed = 100 / maxSpeed;
 	}
 
-	auto maxSources = ranges::max_element(speedSourceMap)->second.second;
+	auto maxSources = ranges::max_element(speedSourceMap, {}, [](const auto& aPair) {
+		return aPair.second.sourceFraction;
+	})->second.sourceFraction;
 	if (maxSources > 0) {
 		factorSource = 100 / maxSources;
 	}
@@ -3103,7 +3115,7 @@ static void calculateBalancedPriorities(vector<pair<T, Priority>>& priorities, m
 	multimap<double, T> finalMap;
 	int uniqueValues = 0;
 	for (auto& [item, speedSourcePair] : speedSourceMap) {
-		auto points = (static_cast<double>(speedSourcePair.first) * factorSpeed) + (speedSourcePair.second * factorSource);
+		auto points = (static_cast<double>(speedSourcePair.speed) * factorSpeed) + (speedSourcePair.sourceFraction * factorSource);
 		if (!finalMap.contains(points)) {
 			uniqueValues++;
 		}
@@ -3166,10 +3178,10 @@ static void calculateBalancedPriorities(vector<pair<T, Priority>>& priorities, m
 }
 
 void QueueManager::calculateBundlePriorities(bool verbose) noexcept {
-	multimap<BundlePtr, pair<int64_t, double>> bundleSpeedSourceMap;
+	QueueItemBase::SpeedSourceMap<BundlePtr> bundleSpeedSourceMap;
 
 	/* Speed and source maps for files in each bundle */
-	vector<multimap<QueueItemPtr, pair<int64_t, double>>> qiMaps;
+	vector<QueueItemBase::SpeedSourceMap<QueueItemPtr>> qiMaps;
 
 	{
 		RLock l (cs);

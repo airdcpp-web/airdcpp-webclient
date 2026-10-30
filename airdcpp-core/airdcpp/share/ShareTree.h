@@ -64,7 +64,7 @@ public:
 	AdcCommand getFileInfo(const TTHValue& aTTH) const;
 
 	// Removes path characters from virtual name
-	string validateVirtualName(const string& aName) const noexcept;
+	static string validateVirtualName(const string& aName) noexcept;
 
 	// Get real paths for an ADC virtual path
 	// Throws ShareException

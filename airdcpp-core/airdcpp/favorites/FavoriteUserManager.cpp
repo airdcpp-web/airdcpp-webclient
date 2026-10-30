@@ -76,9 +76,11 @@ FavoriteUser FavoriteUserManager::createUser(const UserPtr& aUser, const string&
 			seen = ofu->getLastSeen();
 			hubUrl = ofu->getUrl();
 		}
-	}
-	else {
+	} else {
 		nick = ou->getIdentity().getNick();
+		if (hubUrl.empty()) {
+			hubUrl = ou->getHubUrl();
+		}
 	}
 
 	auto fu = FavoriteUser(aUser, nick, hubUrl, aUser->getCID().toBase32());
@@ -105,6 +107,7 @@ void FavoriteUserManager::addFavoriteUser(const HintedUser& aUser) noexcept {
 
 	aUser.user->setFlag(User::FAVORITE);
 	fire(FavoriteUserManagerListener::FavoriteUserAdded(), fu);
+	setDirty();
 }
 
 void FavoriteUserManager::addSavedUser(const UserPtr& aUser) noexcept {
@@ -126,17 +129,22 @@ void FavoriteUserManager::addSavedUser(const UserPtr& aUser) noexcept {
 }
 
 void FavoriteUserManager::removeFavoriteUser(const UserPtr& aUser) noexcept {
+	optional<FavoriteUser> fu;
+
 	{
 		WLock l(cs);
 		auto i = users.find(aUser->getCID());
-		if(i != users.end()) {
+		if (i != users.end()) {
 			aUser->unsetFlag(User::FAVORITE);
-			fire(FavoriteUserManagerListener::FavoriteUserRemoved(), i->second);
+			fu = i->second;
 			users.erase(i);
 		}
 	}
 
-	setDirty();
+	if (fu) {
+		fire(FavoriteUserManagerListener::FavoriteUserRemoved(), *fu);
+		setDirty();
+	}
 }
 
 optional<FavoriteUser> FavoriteUserManager::getFavoriteUser(const UserPtr &aUser) const noexcept {
@@ -340,7 +348,7 @@ ActionHookResult<MessageHighlightList> FavoriteUserManager::formatFavoriteUsers(
 
 			size_t start = string::npos;
 			size_t pos = 0;
-			while ((start = (long)aMessage->getText().find(nick, pos)) != tstring::npos) {
+			while ((start = aMessage->getText().find(nick, pos)) != string::npos) {
 				auto lMyNickEnd = start + nick.size();
 				pos = lMyNickEnd;
 

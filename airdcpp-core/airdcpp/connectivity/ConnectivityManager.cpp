@@ -367,15 +367,20 @@ void ConnectivityManager::close() {
 void ConnectivityManager::editAutoSettings() {
 	SettingsManager::getInstance()->set(SettingsManager::AUTO_DETECT_CONNECTION, false);
 
+	decltype(autoSettings) snapshot;
+	{
+		WLock l(cs);
+		snapshot.swap(autoSettings);
+	}
+
 	auto sm = SettingsManager::getInstance();
-	for(auto i = autoSettings.cbegin(), iend = autoSettings.cend(); i != iend; ++i) {
+	for(auto i = snapshot.cbegin(), iend = snapshot.cend(); i != iend; ++i) {
 		if(i->first >= SettingsManager::STR_FIRST && i->first < SettingsManager::STR_LAST) {
 			sm->set(static_cast<SettingsManager::StrSetting>(i->first), std::get<string>(i->second));
 		} else if(i->first >= SettingsManager::INT_FIRST && i->first < SettingsManager::INT_LAST) {
 			sm->set(static_cast<SettingsManager::IntSetting>(i->first), std::get<int>(i->second));
 		}
 	}
-	autoSettings.clear();
 
 	fire(ConnectivityManagerListener::SettingChanged());
 }

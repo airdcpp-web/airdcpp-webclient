@@ -19,12 +19,10 @@
 #include "stdinc.h"
 #include <airdcpp/hub/ClientManager.h>
 
-#include <airdcpp/connectivity/ConnectivityManager.h>
 #include <airdcpp/connection/ConnectionManager.h>
 #include <airdcpp/util/CryptoUtil.h>
 #include <airdcpp/protocol/ProtocolCommandManager.h>
 #include <airdcpp/util/LinkUtil.h>
-#include <airdcpp/events/LogManager.h>
 #include <airdcpp/search/RelevanceSearch.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 
@@ -523,10 +521,10 @@ void ClientManager::userUpdated(const UserPtr& aUser) const noexcept {
 	}
 }
 
-optional<ClientManager::ShareInfo> ClientManager::getShareInfo(const HintedUser& aUser) const noexcept {
+optional<ShareProfileContentInfo> ClientManager::getShareInfo(const HintedUser& aUser) const noexcept {
 	auto ou = findOnlineUser(aUser);
 	if (ou) {
-		return ShareInfo({ Util::toInt64(ou->getIdentity().getShareSize()), Util::toInt(ou->getIdentity().getSharedFiles()) });
+		return ShareProfileContentInfo({ Util::toInt64(ou->getIdentity().getShareSize()), Util::toSizeT(ou->getIdentity().getSharedFiles()) });
 	}
 
 	return nullopt;

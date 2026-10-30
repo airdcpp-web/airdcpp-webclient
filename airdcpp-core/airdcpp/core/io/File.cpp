@@ -342,8 +342,14 @@ int64_t File::getDeviceId(const string& aPath) noexcept {
 }
 
 string File::getMountPath(const string& aPath) noexcept {
-	unique_ptr<TCHAR[]> buf(new TCHAR[aPath.length()+1]);
-	GetVolumePathName(Text::toT(PathUtil::formatPath(aPath)).c_str(), buf.get(), aPath.length());
+	const auto formatted = Text::toT(PathUtil::formatPath(aPath));
+	const auto bufLen = formatted.length() + 2;
+
+	unique_ptr<TCHAR[]> buf(new TCHAR[bufLen]());
+	if (GetVolumePathName(formatted.c_str(), buf.get(), static_cast<DWORD>(bufLen)) == 0) {
+		return Util::emptyString;
+	}
+
 	return Text::fromT(buf.get());
 }
 
@@ -360,15 +366,15 @@ int64_t File::getBlockSize(const string& aFileName) noexcept {
 }
 
 std::string File::makeAbsolutePath(const std::string& aPath, const std::string& aFilename) {
-	auto ret = Text::toT(aPath);
-	ret.reserve(UNC_MAX_PATH);
-	auto res = _wfullpath(&ret[0], Text::toT(aFilename).c_str(), UNC_MAX_PATH);
-	if (!res) {
+	const auto input = Text::toT(isAbsolutePath(aFilename) ? aFilename : aPath + aFilename);
+
+	unique_ptr<TCHAR[]> buf(new TCHAR[UNC_MAX_PATH]());
+	if (!_wfullpath(buf.get(), input.c_str(), UNC_MAX_PATH)) {
 		dcassert(0);
 		return aPath + aFilename;
 	}
 
-	return Text::fromT(res);
+	return Text::fromT(buf.get());
 }
 
 
@@ -438,12 +444,19 @@ string File::getRealPath() const {
 	ret = fcntl(h, F_GETPATH, buf);
 #else
 	auto procPath = "/proc/self/fd/" + Util::toString(h);
-	ret = ::readlink(procPath.c_str(), buf, sizeof(buf));
+	// Leave room for the terminator readlink() never writes.
+	ret = ::readlink(procPath.c_str(), buf, sizeof(buf) - 1);
 #endif
 
 	if (ret == -1) {
 		throw FileException(SystemUtil::translateError(errno));
 	}
+
+#ifndef F_GETPATH
+	// readlink() returns a byte count and does not NUL-terminate; without this
+	// the string(buf) below would read past the end of the buffer.
+	buf[ret] = '\0';
+#endif
 
 	return string(buf);
 }
@@ -705,13 +718,16 @@ time_t File::getLastWriteTime(const string& aPath) noexcept {
 }
 
 std::string File::makeAbsolutePath(const std::string& aPath, const std::string& aFilename) {
-	string ret;
-	ret.reserve(PATH_MAX + 1);
+	// Operand order matters: this used to build aFilename + aPath, which is the join backwards. It
+	// only ever appeared to work because realpath() then failed and the correct fallback below was
+	// returned instead. Buffer is its own allocation rather than a reserve()d string written
+	// through &ret[0] past size(), matching the Windows branch.
+	const string input = isAbsolutePath(aFilename) ? aFilename : aPath + aFilename;
 
-	string input = aFilename + aPath;
+	unique_ptr<char[]> buf(new char[PATH_MAX + 1]());
 
 	// Note: realpath fails with non-existing files/directories but there's no better alternative
-	auto res = realpath(input.c_str(), &ret[0]);
+	auto res = realpath(input.c_str(), buf.get());
 	if (!res) {
 		return aPath + aFilename;
 	}

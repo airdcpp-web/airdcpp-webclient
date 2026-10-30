@@ -31,7 +31,6 @@
 #include <airdcpp/core/classes/ScopedFunctor.h>
 #include <airdcpp/settings/SettingsManager.h>
 #include <airdcpp/core/io/xml/SimpleXML.h>
-#include <airdcpp/util/text/Text.h>
 #include <airdcpp/core/timer/TimerManager.h>
 #include <airdcpp/core/version.h>
 
@@ -245,6 +244,7 @@ void UpdateManager::completeVersionDownload(bool aManualCheck) {
 	auto verified = !versionSig.empty() && verifyVersionData(conn->buf, versionSig);
 	if (!verified) {
 		failVersionDownload(STRING(VERSION_VERIFY_FAILED), aManualCheck);
+		return;
 	}
 
 	try {

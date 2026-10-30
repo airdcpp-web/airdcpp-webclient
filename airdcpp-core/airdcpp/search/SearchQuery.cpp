@@ -114,7 +114,9 @@ double SearchQuery::getRelevanceScore(const SearchQuery& aSearch, int aLevel, bo
 	return scores;
 }
 
-SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) const noexcept {
+SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aNameLower) const noexcept {
+	dcassert(Text::isLower(aNameLower));
+
 	ResultPointsList ret(lastIncludePositions.size());
 	for (size_t j = 0; j < lastIncludePositions.size(); ++j) {
 		int points = 0;
@@ -122,14 +124,14 @@ SearchQuery::ResultPointsList SearchQuery::toPointList(const string& aName) cons
 		if (pos != string::npos) {
 			if (pos == 0) {
 				points += 20;
-			} else if (!Text::isSeparator(include.getPatterns()[j].str().front()) && Text::isSeparator(aName[pos - 1])) {
+			} else if (!Text::isSeparator(include.getPatterns()[j].str().front()) && Text::isSeparator(aNameLower[pos - 1])) {
 				points += 10;
 			}
 
 			auto endPos = pos + include.getPatterns()[j].size();
-			if (endPos == aName.size()) {
+			if (endPos == aNameLower.size()) {
 				points += 20;
-			} else if (!Text::isSeparator(include.getPatterns()[j].str().back()) && Text::isSeparator(aName[endPos])) {
+			} else if (!Text::isSeparator(include.getPatterns()[j].str().back()) && Text::isSeparator(aNameLower[endPos])) {
 				points += 10;
 			}
 		}
@@ -261,9 +263,15 @@ SearchQuery::SearchQuery(const StringList& params, size_t aMaxResults) noexcept 
 		} else if(toCode('E', 'Q') == cmd) {
 			lt = gt = Util::toInt64(p.substr(2));
 		} else if(toCode('T', 'Y') == cmd) {
-			itemType = static_cast<ItemType>(Util::toInt(p.substr(2)));
+			const auto itemTypeValue = Util::toInt(p.substr(2));
+			if (itemTypeValue >= static_cast<int>(ItemType::ANY) && itemTypeValue <= static_cast<int>(ItemType::DIRECTORY)) {
+				itemType = static_cast<ItemType>(itemTypeValue);
+			}
 		} else if(toCode('M', 'T') == cmd) {
-			matchType = static_cast<Search::MatchType>(Util::toInt(p.substr(2)));
+			const auto matchTypeValue = Util::toInt(p.substr(2));
+			if (matchTypeValue >= Search::MATCH_PATH_PARTIAL && matchTypeValue <= Search::MATCH_NAME_EXACT) {
+				matchType = static_cast<Search::MatchType>(matchTypeValue);
+			}
 		} else if(toCode('O', 'T') == cmd) {
 			maxDate = Util::toTimeT(p.substr(2));
 		} else if(toCode('N', 'T') == cmd) {
@@ -323,8 +331,10 @@ bool SearchQuery::matchesFileLower(const string& aName, int64_t aSize, uint64_t 
 	}
 
 	// Validate exact matches first
-	if (matchType == Search::MATCH_NAME_EXACT && compare(include.getPatterns().front().str(), aName) != 0) {
-		return false;
+	if (matchType == Search::MATCH_NAME_EXACT) {
+		if (include.getPatterns().empty() || compare(include.getPatterns().front().str(), aName) != 0) {
+			return false;
+		}
 	}
 
 	// Matching and positions
@@ -356,12 +366,14 @@ bool SearchQuery::matchesAdcPath(const string& aPath, Recursion& recursion_) noe
 	for (;;) {
 		const auto& s = sl[level];
 		resetPositions();
-		lastIncludeMatches = include.matchLower(Text::toLower(s), true, &lastIncludePositions);
+
+		auto strLower = Text::toLower(s);
+		lastIncludeMatches = include.matchLower(strLower, true, &lastIncludePositions);
 
 		level++;
 		if (lastIncludeMatches > 0 && (level < sl.size())) { // no recursion if this is the last one
 			// we got something worth of saving
-			recursion_ = Recursion(*this, s);
+			recursion_ = Recursion(*this, strLower);
 			recursion = &recursion_;
 		}
 
@@ -370,7 +382,7 @@ bool SearchQuery::matchesAdcPath(const string& aPath, Recursion& recursion_) noe
 
 		// moving to an upper level
 		if (recursion) {
-			recursion->increase(s.size());
+			recursion->increase(strLower.size());
 		}
 	}
 
@@ -379,7 +391,7 @@ bool SearchQuery::matchesAdcPath(const string& aPath, Recursion& recursion_) noe
 
 SearchQuery::ResultPointsList SearchQuery::getResultPositions(const string& aName) const noexcept {
 	// Do we need to use matches from a lower level?
-	auto ret = toPointList(aName);
+	auto ret = toPointList(Text::toLower(aName));
 	if (recursion && ranges::find(lastIncludePositions, string::npos) != lastIncludePositions.end()) {
 		Recursion::merge(ret, recursion);
 		return ret;
@@ -416,7 +428,7 @@ bool SearchQuery::matchesAnyDirectoryLower(const string& aName) noexcept {
 	return lastIncludeMatches > 0;
 }
 
-SearchQuery::Recursion::Recursion(const SearchQuery& aSearch, const string& aName) noexcept : positions(aSearch.toPointList(aName)) {
+SearchQuery::Recursion::Recursion(const SearchQuery& aSearch, const string& aNameLower) noexcept : positions(aSearch.toPointList(aNameLower)) {
 	if (aSearch.recursion && merge(positions, aSearch.recursion)) {
 		depthLen = aSearch.recursion->depthLen;
 		recursionLevel = aSearch.recursion->recursionLevel;

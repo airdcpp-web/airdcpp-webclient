@@ -39,6 +39,7 @@ public:
 	PartialFileSharingManager files;
 
 	PartialSharingManager();
+	~PartialSharingManager() override;
 
 	bool toRealWithSize(const UploadFileQuery& aQuery, string& path_, int64_t& size_, bool& noAccess_) const noexcept override;
 	void getRealPaths(const TTHValue& root, StringList& paths_) const noexcept override;

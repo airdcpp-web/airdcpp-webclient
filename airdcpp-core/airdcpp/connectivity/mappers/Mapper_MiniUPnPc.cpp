@@ -54,10 +54,10 @@ uint32_t IPToUInt(const string& ip) {
     if (sscanf(ip.c_str(), "%d.%d.%d.%d", &a, &b, &c, &d) != 4)
         return 0;
 	
-	addr = a << 24;
-	addr |= b << 16;
-	addr |= c << 8;
-    addr |= d;
+	addr = static_cast<uint32_t>(a) << 24;
+	addr |= static_cast<uint32_t>(b) << 16;
+	addr |= static_cast<uint32_t>(c) << 8;
+	addr |= static_cast<uint32_t>(d);
     return addr;
 }
 
@@ -73,22 +73,34 @@ bool isIPInRange(const string& aIP1, const string& aIP2, uint8_t mask, bool v6) 
 
 		return result1 == result2;
 	} else {
-		if (mask & 16)
+		if (mask < 0 || mask > 128)
 			return false;
 
-		in6_addr addr1, addr2;
+		in6_addr addr1 = {}, addr2 = {};
 
 		auto p = aIP1.find('%');
-		inet_pton(AF_INET6, (p != string::npos ? aIP1.substr(0, p) : aIP1).c_str(), &addr1);
+		if (inet_pton(AF_INET6, (p != string::npos ? aIP1.substr(0, p) : aIP1).c_str(), &addr1) != 1) {
+			return false;
+		}
 
 		p = aIP2.find('%');
-		inet_pton(AF_INET6, (p != string::npos ? aIP2.substr(0, p) : aIP2).c_str(), &addr2);
+		if (inet_pton(AF_INET6, (p != string::npos ? aIP2.substr(0, p) : aIP2).c_str(), &addr2) != 1) {
+			return false;
+		}
 
-		//reset the non-common bytes
-		int resetPos = 16-((128-mask) / 16);
-		for (int i = resetPos; i < 16; ++i) {
+		// Reset everything past the prefix
+		const int fullBytes = mask / 8;
+		const int spareBits = mask % 8;
+
+		for (int i = fullBytes + (spareBits ? 1 : 0); i < 16; ++i) {
 			addr1.u.Byte[i] = 0;
 			addr2.u.Byte[i] = 0;
+		}
+
+		if (spareBits) {
+			const uint8_t partial = static_cast<uint8_t>(0xFF << (8 - spareBits));
+			addr1.u.Byte[fullBytes] &= partial;
+			addr2.u.Byte[fullBytes] &= partial;
 		}
 
 		return memcmp(addr1.u.Byte, addr2.u.Byte, 16) == 0;

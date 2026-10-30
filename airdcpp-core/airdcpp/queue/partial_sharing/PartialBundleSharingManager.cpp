@@ -24,7 +24,6 @@
 #include <airdcpp/queue/QueueManager.h>
 #include <airdcpp/search/SearchManager.h>
 #include <airdcpp/search/SearchQuery.h>
-#include <airdcpp/util/text/StringTokenizer.h>
 
 const auto ENABLE_DEBUG = false;
 
@@ -235,6 +234,10 @@ void PartialBundleSharingManager::on(QueueManagerListener::BundleStatusChanged, 
 	if (aBundle->getStatus() == Bundle::STATUS_COMPLETED) {
 		sendBundleCompletedNotifications(aBundle);
 	}
+}
+
+void PartialBundleSharingManager::on(QueueManagerListener::BundleRemoved, const BundlePtr& aBundle) noexcept {
+	sendBundleCompletedNotifications(aBundle);
 }
 
 void PartialBundleSharingManager::on(QueueManagerListener::ItemStatus, const QueueItemPtr& aQI) noexcept {

@@ -19,8 +19,6 @@
 #include "stdinc.h"
 #include <airdcpp/core/timer/TimerManager.h>
 
-#include <boost/date_time/posix_time/ptime.hpp>
-
 #ifndef _WIN32
 #include <sys/time.h>
 #endif
@@ -31,8 +29,7 @@ namespace dcpp {
 using namespace boost::posix_time;
 
 TimerManager::TimerManager() {
-	// This mutex will be unlocked only upon shutdown
-	mtx.lock();
+
 }
 
 TimerManager::~TimerManager() {
@@ -40,46 +37,44 @@ TimerManager::~TimerManager() {
 }
 
 void TimerManager::shutdown() {
-	mtx.unlock();
+	{
+		std::lock_guard<std::mutex> l(mtx);
+		stopping = true;
+	}
+
+	cv.notify_all();
 	join();
 }
 
 int TimerManager::run() {
+	auto nextMinTick = getTick() + 60 * 1000;
 
-	//https://bugs.launchpad.net/dcplusplus/+bug/713742
-	
-	auto now = microsec_clock::universal_time();
-	auto nextSecond = now + seconds(1);
-	auto nextMin = now + minutes(1);
-
-
-	while(!mtx.timed_lock(nextSecond)) {
-		nextSecond += seconds(1);
-		now = microsec_clock::universal_time();
-		if (nextSecond <= now)
+	for (;;) {
 		{
-			nextSecond = now + seconds(1);
+			// Scoped so the listeners below run with the lock released.
+			std::unique_lock<std::mutex> l(mtx);
+			if (cv.wait_for(l, std::chrono::seconds(1), [this] { return stopping; })) {
+				break;
+			}
 		}
 
 		const auto t = getTick();
 		fire(TimerManagerListener::Second(), t);
 
-		if (nextMin <= now)
-		{
-			nextMin += minutes(1);
+		if (nextMinTick <= t) {
+			nextMinTick = t + 60 * 1000;
 			fire(TimerManagerListener::Minute(), t);
 		}
 	}
-
-	mtx.unlock();
 
 	dcdebug("TimerManager done\n");
 	return 0;
 }
 
 uint64_t TimerManager::getTick() {
-	static ptime start = microsec_clock::universal_time();
-	return (microsec_clock::universal_time() - start).total_milliseconds();
+	using clock = std::chrono::steady_clock;
+	static const auto start = clock::now();
+	return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - start).count());
 }
 
 time_t TimerManager::getTime() {

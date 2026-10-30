@@ -51,10 +51,6 @@ public:
 	bool isNotifiedUserUnsafe(const UserPtr& aUser) const noexcept;
 	using SlotQueue = vector<WaitingUser>;
 	SlotQueue getUploadQueue() const noexcept;
-		
-	IGETSET(uint8_t, extraPartial, ExtraPartial, 0);
-	IGETSET(uint8_t, extra, Extra, 0);
-	IGETSET(uint64_t, lastGrant, LastGrant, 0);
 
 	bool allowUser(const UserPtr& aUser) const noexcept;
 	optional<UserConnectResult> connectUser(const HintedUser& aUser) noexcept;

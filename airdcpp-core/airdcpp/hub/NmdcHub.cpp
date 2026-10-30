@@ -32,9 +32,6 @@
 #include <airdcpp/connection/socket/Socket.h>
 #include <airdcpp/hub/user_command/UserCommand.h>
 #include <airdcpp/util/text/StringTokenizer.h>
-#include <airdcpp/protocol/ProtocolCommandManager.h>
-#include <airdcpp/queue/QueueManager.h>
-#include <airdcpp/core/io/compress/ZUtils.h>
 #include <airdcpp/connection/ThrottleManager.h>
 #include <airdcpp/transfer/upload/UploadManager.h>
 #include <airdcpp/hub/activity/ActivityManager.h>

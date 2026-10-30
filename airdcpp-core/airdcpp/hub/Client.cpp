@@ -22,7 +22,6 @@
 #include <airdcpp/connection/socket/BufferedSocket.h>
 #include <airdcpp/hub/ClientManager.h>
 #include <airdcpp/connection/ConnectionManager.h>
-#include <airdcpp/connectivity/ConnectivityManager.h>
 #include <airdcpp/protocol/ProtocolCommandManager.h>
 #include <airdcpp/favorites/FavoriteManager.h>
 #include <airdcpp/util/LinkUtil.h>
@@ -68,7 +67,6 @@ void Client::reconnect() noexcept {
 	disconnect(true);
 	setAutoReconnect(true);
 	setReconnDelay(0);
-	supports.clear();
 }
 
 void Client::setActive() noexcept {
@@ -211,6 +209,7 @@ void Client::connect(bool withKeyprint) noexcept {
 	}
 
 	redirectUrl = Util::emptyString;
+	supports.clear();
 	setAutoReconnect(true);
 	setReconnDelay(120 + ValueGenerator::rand(0, 60));
 	reloadSettings(true);

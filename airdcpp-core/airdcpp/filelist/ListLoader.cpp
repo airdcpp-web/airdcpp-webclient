@@ -20,10 +20,8 @@
 
 #include <airdcpp/filelist/ListLoader.h>
 
-#include <airdcpp/util/DupeUtil.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/core/localization/ResourceManager.h>
-#include <airdcpp/core/io/xml/SimpleXML.h>
 
 
 namespace dcpp {
@@ -127,6 +125,8 @@ void ListLoader::loadDirectory(StringPairList& attribs, bool) {
 		d = DirectoryListing::Directory::create(cur, name, type, listDownloadDate, contentInfo, size, Util::parseRemoteFileItemDate(date));
 	} else {
 		if (!incomplete) {
+			d->files.clear();
+
 			d->setComplete();
 		}
 		d->setRemoteDate(Util::parseRemoteFileItemDate(date));

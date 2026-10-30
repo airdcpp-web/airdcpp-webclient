@@ -76,6 +76,7 @@ constexpr auto BUFSIZE = 8192;
 int UDPServer::run() {
 	int len;
 	string remoteAddr;
+	vector<uint8_t> readBuffer(BUFSIZE);
 
 	while(!stop) {
 		try {
@@ -83,11 +84,13 @@ int UDPServer::run() {
 				continue;
 			}
 
-			auto buffer = vector<uint8_t>(BUFSIZE);
-			if((len = socket->read(buffer.data(), BUFSIZE, remoteAddr)) > 0) {
-				pp.addTask([buf = std::move(buffer), len, remoteAddr, this] { handlePacket(buf, len, remoteAddr); });
-				continue;
+			string remotePort;
+			if ((len = socket->read(readBuffer.data(), BUFSIZE, remoteAddr)) > 0) {
+				auto buf = vector<uint8_t>(readBuffer.begin(), readBuffer.begin() + len);
+				pp.addTask([buf = std::move(buf), len, remoteAddr, remotePort, this] { handlePacket(buf, len, remoteAddr); });
 			}
+
+			continue;
 		} catch(const SocketException& e) {
 			dcdebug("SearchManager::run Error: %s\n", e.getError().c_str());
 		}

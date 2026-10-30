@@ -120,7 +120,7 @@ namespace dcpp {
 		return ret;
 	}
 
-	void TrackableDownloadItem::onRunningStateChanged(const Download* aDownload, bool aFailed) noexcept {
+	void TrackableDownloadItem::onRunningStateChanged(const Download* aDownload, const string& aError) noexcept {
 		{
 			RLock l(cs);
 			auto d = downloads.find(aDownload->getPath());
@@ -129,7 +129,9 @@ namespace dcpp {
 			}
 
 			auto& di = d->second;
-			di.running = !aFailed;
+			di.running = aError.empty();
+			
+			lastError = aError;
 		}
 
 		onStateChanged();
@@ -179,13 +181,11 @@ namespace dcpp {
 	}
 
 	void TrackableDownloadItem::on(DownloadManagerListener::Failed, const Download* aDownload, const string& aReason) noexcept {
-		lastError = aReason;
-		onRunningStateChanged(aDownload, true);
+		onRunningStateChanged(aDownload, aReason);
 	}
 
 	void TrackableDownloadItem::on(DownloadManagerListener::Starting, const Download* aDownload) noexcept {
-		lastError = Util::emptyString;
-		onRunningStateChanged(aDownload, false);
+		onRunningStateChanged(aDownload, Util::emptyString);
 	}
 
 	void TrackableDownloadItem::onProgress(const string& aDir, int64_t aDownloadedBytes) noexcept {

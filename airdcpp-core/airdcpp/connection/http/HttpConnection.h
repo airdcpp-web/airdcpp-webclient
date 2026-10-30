@@ -72,11 +72,15 @@ private:
 	string mimeType;
 	int64_t size = -1;
 	int64_t done = 0;
+	int redirectCount = 0;
 
 	ConnectionStates connState = CONN_UNKNOWN;
 	RequestType connType = TYPE_UNKNOWN;
 
 	BufferedSocket* socket = nullptr;
+
+	// Like downloadFile, but keeps the redirect count so a chain cannot run for ever.
+	void followRedirect(const string& aUrl);
 
 	void prepareRequest(RequestType type);
 	void abortRequest(bool disconnect);

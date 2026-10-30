@@ -298,11 +298,19 @@ void QueueItem::addSource(const HintedUser& aUser) noexcept {
 void QueueItem::blockSourceHub(const HintedUser& aUser) noexcept {
 	dcassert(isSource(aUser.user));
 	auto s = getSource(aUser.user);
+	if (s == sources.end()) {
+		return;
+	}
+
 	s->addBlockedHub(aUser.hint);
 }
 
 bool QueueItem::validateHub(const UserPtr& aUser, const string& aUrl) const noexcept {
 	auto s = getSource(aUser);
+	if (s == sources.end()) {
+		return false;
+	}
+
 	return s->validateHub(aUrl, allowUrlChange());
 }
 
@@ -583,7 +591,7 @@ void QueueItem::addFinishedSegment(const Segment& aSegment) noexcept {
 			auto prev = i;
 			prev--;
 			if(prev->getEnd() >= i->getStart()) {
-				Segment big(prev->getStart(), i->getEnd() - prev->getStart());
+				Segment big(prev->getStart(), max(prev->getEnd(), i->getEnd()) - prev->getStart());
 				auto newBytes = big.getSize() - (*prev == aSegment ? i->getSize() : prev->getSize()); //minus the part that has been counted before...
 
 				done.erase(prev);
@@ -845,7 +853,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) const {
 		f.write(LIT("\" TimeFinished=\""));
 		f.write(Util::toString(timeFinished));
 		f.write(LIT("\" LastSource=\""));
-		f.write(lastSource);
+		f.write(SimpleXML::escape(lastSource, tmp, true));
 		f.write(LIT("\"/>\r\n"));
 		return;
 	}
@@ -886,7 +894,7 @@ void QueueItem::save(OutputStream &f, string tmp, string b32tmp) const {
 		f.write(SimpleXML::escape(ClientManager::getInstance()->getNick(j.getUser(), hint), tmp, true));
 		if(!hint.empty()) {
 			f.write(LIT("\" HubHint=\""));
-			f.write(hint);
+			f.write(SimpleXML::escape(hint, tmp, true));
 		}
 
 		/*if (SettingsManager::lanMode) {

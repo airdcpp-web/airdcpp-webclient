@@ -211,12 +211,12 @@ bool ConnectionManager::allowNewMCNUnsafe(const UserPtr& aUser, bool aSmallSlot,
 	int runningNormal = 0;
 	auto supportMcn = false;
 
-	for(const auto& i: downloads) {
-		cqi = i;
-		if (cqi->getUser() != aUser) {
+	for (const auto& i: downloads) {
+		if (i->getUser() != aUser) {
 			continue;
 		}
 
+		cqi = i;
 		if (!cqi->isMcn()) {
 			// We already have a connection, no need to continue
 			return false;

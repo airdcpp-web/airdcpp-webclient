@@ -32,6 +32,7 @@
 #include <airdcpp/protocol/AdcSupports.h>
 #include <airdcpp/connection/ConnectionType.h>
 #include <airdcpp/core/thread/CriticalSection.h>
+#include <airdcpp/core/types/ShareProfileContentInfo.h>
 #include <airdcpp/user/OfflineUser.h>
 #include <airdcpp/core/Singleton.h>
 #include <airdcpp/core/timer/TimerManager.h>
@@ -98,11 +99,7 @@ public:
 	string getHubName(const string& aHubUrl) const noexcept;
 	StringList getNicks(const CID& aCID, bool aAllowCID = true) const noexcept;
 
-	struct ShareInfo {
-		const int64_t size;
-		const int fileCount;
-	};
-	optional<ShareInfo> getShareInfo(const HintedUser& aUser) const noexcept;
+	optional<ShareProfileContentInfo> getShareInfo(const HintedUser& aUser) const noexcept;
 
 	User::UserInfoList getUserInfoList(const UserPtr& aUser) const noexcept;
 

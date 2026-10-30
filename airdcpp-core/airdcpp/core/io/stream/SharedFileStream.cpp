@@ -21,10 +21,6 @@
 
 #include <airdcpp/core/io/stream/SharedFileStream.h>
 
-#ifdef _WIN32
-# include "Winioctl.h"
-#endif
-
 namespace dcpp {
 
 CriticalSection SharedFileStream::cs;
@@ -32,7 +28,7 @@ SharedFileStream::SharedFileHandleMap SharedFileStream::readpool;
 SharedFileStream::SharedFileHandleMap SharedFileStream::writepool;
 
 SharedFileHandle::SharedFileHandle(const string& aPath, int aAccess, int aMode) : 
-	File(aPath, aAccess, aMode), ref_cnt(1), path(aPath), mode(aMode)
+	File(aPath, aAccess, aMode), ref_cnt(1), path(aPath), mode(aMode), access(aAccess)
 { }
 
 SharedFileStream::SharedFileStream(const string& aFileName, int aAccess, int aMode) {
@@ -53,7 +49,7 @@ SharedFileStream::~SharedFileStream() {
 
 	sfh->ref_cnt--;
 	if(sfh->ref_cnt == 0) {
-		auto& pool = sfh->mode == File::READ ? readpool : writepool;
+		auto& pool = sfh->access == File::READ ? readpool : writepool;
 		pool.erase(sfh->path);
     }
 }

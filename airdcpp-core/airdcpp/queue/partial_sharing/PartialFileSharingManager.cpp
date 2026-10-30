@@ -107,10 +107,19 @@ void PartialFileSharingManager::onPSR(const AdcCommand& aCmd, UserPtr from, cons
 		return;
 	}
 
+	// Validate partial info
 	if (partialInfo.size() != partialCount) {
 		dbgMsg("invalid size", LogMessage::SEV_WARNING);
 		// what to do now ? just ignore partial search result :-/
 		return;
+	}
+
+	for (size_t i = 0; i + 1 < partialInfo.size(); i += 2) {
+		// Each PI pair is a half-open range and must ascend
+		if (partialInfo[i] >= partialInfo[i + 1]) {
+			dbgMsg("invalid part range", LogMessage::SEV_WARNING);
+			return;
+		}
 	}
 
 	auto hintedUser = HintedUser(from, hubUrl);
@@ -149,7 +158,9 @@ bool PartialFileSharingManager::handlePartialResultHooked(const QueueItemPtr& aQ
 	if (QueueManager::getInstance()->addPartialSourceHooked(aPartialSource->getHintedUser(), aQI, aInPartialInfo)) {
 		{
 			WLock l(cs);
-			sources.insert(aPartialSource);
+			auto [stored, inserted] = sources.insert(aPartialSource);
+
+			(*stored)->setPendingQueryCount(0);
 		}
 
 		dbgMsg("added partial source", LogMessage::SEV_VERBOSE);

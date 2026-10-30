@@ -35,14 +35,15 @@ DualString::DualString(const string& aStr) : str(dcpp::Text::toLower(aStr)) {
 void DualString::init(const string& aNormalStr) noexcept {
 	int arrayPos = 0, bitPos = 0;
 	auto iNormal = aNormalStr.c_str();
+	const auto normalEnd = iNormal + aNormalStr.size();
 	auto iLower = str.c_str();
-	while (*iLower) {
+	while (*iLower && iNormal < normalEnd) {
 		wchar_t cNormal = 0, cLower = 0;
 		int nNormal = dcpp::Text::utf8ToWc(iNormal, cNormal);
 		int nLower = dcpp::Text::utf8ToWc(iLower, cLower);
 		if (cNormal != cLower) {
 			if (!charSizes) {
-				initSizeArray(aNormalStr.size());
+				initSizeArray(str.size());
 			}
 			charSizes.get()[arrayPos] |= (1 << bitPos);
 		}

@@ -66,6 +66,14 @@ public:
 		string format() const noexcept;
 		static int compare(const SourceCount& a, const SourceCount& b) noexcept;
 	};
+
+	struct SpeedSourceInfo {
+		int64_t speed = 0;
+		double sourceFraction = 0;
+	};
+
+	template<typename QueueItemT>
+	using SpeedSourceMap = multimap<QueueItemT, QueueItemBase::SpeedSourceInfo>;
 protected:
 	QueueToken token;
 	const string target;

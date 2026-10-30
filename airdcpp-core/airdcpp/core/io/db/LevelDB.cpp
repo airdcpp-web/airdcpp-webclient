@@ -168,7 +168,7 @@ string LevelDB::getStats() {
 bool LevelDB::hasKey(void* aKey, size_t keyLen, DbSnapshot* /*aSnapshot*/ /*nullptr*/) {
 	string value;
 	leveldb::Slice key((const char*)aKey, keyLen);
-	auto ret = db->Get(iteroptions, key, &value);
+	auto ret = DBACTION(db->Get(iteroptions, key, &value));
 	return ret.ok();
 }
 

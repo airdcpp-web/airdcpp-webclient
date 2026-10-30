@@ -31,6 +31,7 @@
 #include <airdcpp/core/queue/DispatcherQueue.h>
 #include <airdcpp/core/types/DupeType.h>
 #include <airdcpp/core/types/GetSet.h>
+#include <airdcpp/core/types/ShareProfileContentInfo.h>
 #include <airdcpp/user/HintedUser.h>
 #include <airdcpp/message/Message.h>
 #include <airdcpp/hash/value/MerkleTree.h>
@@ -92,9 +93,9 @@ public:
 
 	HintedUser getDownloadSourceUser() const noexcept;
 
-	int64_t getTotalListSizeUnsafe() const noexcept;
+	ShareProfileContentInfo getFullListInfoUnsafe() const noexcept;
+
 	int64_t getDirectorySizeUnsafe(const string& aDir) const noexcept;
-	size_t getTotalFileCountUnsafe() const noexcept;
 
 	DirectoryPtr getRoot() const noexcept { return root; }
 
@@ -114,7 +115,7 @@ public:
 	void addShareProfileChangeTask(ProfileToken aProfile) noexcept;
 	void addHubUrlChangeTask(const string& aHubUrl) noexcept;
 
-	void getPartialListInfo(int64_t& totalSize_, size_t& totalFiles_) const noexcept;
+	ShareProfileContentInfo getPartialListInfo() const noexcept;
 	
 	const UserPtr& getUser() const noexcept override { return hintedUser.user; }
 	const HintedUser& getHintedUser() const noexcept { return hintedUser; }
@@ -133,7 +134,7 @@ public:
 	void addQueueMatchTask() noexcept;
 
 	void addAsyncTask(Callback&& f) noexcept;
-	void close() noexcept;
+	void close(Callback aCompletionF = nullptr) noexcept;
 
 	DirectoryPtr findDirectoryUnsafe(const string& aName) const noexcept { return findDirectoryUnsafe(aName, root.get()); }
 	DirectoryPtr findDirectoryUnsafe(const string& aName, const Directory* current) const noexcept;

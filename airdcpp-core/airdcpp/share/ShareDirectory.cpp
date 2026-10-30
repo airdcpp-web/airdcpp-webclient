@@ -22,7 +22,6 @@
 #include <airdcpp/util/AppUtil.h>
 #include <airdcpp/core/io/File.h>
 #include <airdcpp/hash/HashedFile.h>
-#include <airdcpp/message/Message.h>
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/search/SearchQuery.h>
 #include <airdcpp/search/SearchResult.h>
@@ -266,12 +265,12 @@ void ShareDirectory::getContentInfo(int64_t& size_, DirectoryContentInfo& conten
 
 
 // PROFILES
-void ShareDirectory::getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_t& filesCount_) const noexcept {
+void ShareDirectory::getContentInfo(int64_t& totalSize_, size_t& filesCount_) const noexcept {
 	totalSize_ += size;
 	filesCount_ += files.size();
 
 	for (const auto& d : directories) {
-		d->getProfileInfo(aProfile, totalSize_, filesCount_);
+		d->getContentInfo(totalSize_, filesCount_);
 	}
 }
 
@@ -383,7 +382,7 @@ void ShareDirectory::addDirName(const ShareDirectory::Ptr& aDir, ShareDirectory:
 void ShareDirectory::removeDirName(const ShareDirectory& aDir, ShareDirectory::MultiMap& aDirNames) noexcept {
 	auto directories = aDirNames.equal_range(const_cast<string*>(&aDir.getVirtualNameLower()));
 	auto p = ranges::find_if(directories | pair_to_range | views::values, [&aDir](const ShareDirectory::Ptr& d) { return d.get() == &aDir; });
-	if (p.base() == aDirNames.end()) {
+	if (p.base() == directories.second) {
 		dcassert(0);
 		return;
 	}
@@ -434,8 +433,8 @@ ShareDirectory::SearchResultInfo::SearchResultInfo(const ShareDirectory* d, cons
 */
 
 void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrings, int aLevel) const noexcept {
-	const auto& dirName = getVirtualNameLower();
-	if (aStrings.isExcludedLower(dirName)) {
+	const auto& dirNameLower = getVirtualNameLower();
+	if (aStrings.isExcludedLower(dirNameLower)) {
 		return;
 	}
 
@@ -445,7 +444,7 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 
 	// Find any matches in the directory name
 	// Subdirectories of fully matched items won't match anything
-	if (aStrings.matchesAnyDirectoryLower(dirName)) {
+	if (aStrings.matchesAnyDirectoryLower(dirNameLower)) {
 		bool positionsComplete = aStrings.positionsComplete();
 		if (aStrings.itemType != SearchQuery::ItemType::FILE && positionsComplete && aStrings.gt == 0 && aStrings.matchesDate(lastWrite)) {
 			// Full match
@@ -466,7 +465,7 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 			}
 
 			if (hasValidResult) {
-				rec.reset(new SearchQuery::Recursion(aStrings, dirName));
+				rec.reset(new SearchQuery::Recursion(aStrings, dirNameLower));
 				aStrings.recursion = rec.get();
 			}
 		}
@@ -475,7 +474,7 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 	// Moving up
 	aLevel++;
 	if (aStrings.recursion) {
-		aStrings.recursion->increase(dirName.length());
+		aStrings.recursion->increase(dirNameLower.length());
 	}
 
 	// Match files
@@ -498,7 +497,7 @@ void ShareDirectory::search(SearchResultInfo::Set& results_, SearchQuery& aStrin
 
 	// Moving to a lower level
 	if (aStrings.recursion) {
-		aStrings.recursion->decrease(dirName.length());
+		aStrings.recursion->decrease(dirNameLower.length());
 	}
 
 	aStrings.recursion = old;

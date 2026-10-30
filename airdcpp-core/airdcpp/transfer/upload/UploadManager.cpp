@@ -19,8 +19,6 @@
 #include "stdinc.h"
 #include <airdcpp/transfer/upload/UploadManager.h>
 
-#include <cmath>
-
 #include <airdcpp/protocol/AdcCommand.h>
 #include <airdcpp/util/AutoLimitUtil.h>
 #include <airdcpp/hub/ClientManager.h>

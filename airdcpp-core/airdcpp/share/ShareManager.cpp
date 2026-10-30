@@ -30,7 +30,6 @@
 #include <airdcpp/util/PathUtil.h>
 #include <airdcpp/core/localization/ResourceManager.h>
 #include <airdcpp/search/SearchQuery.h>
-#include <airdcpp/search/SearchResult.h>
 #include <airdcpp/share/SharePathValidator.h>
 #include <airdcpp/share/profiles/ShareProfileManager.h>
 #include <airdcpp/share/ShareTasks.h>
@@ -39,8 +38,6 @@
 #include <airdcpp/core/io/stream/Streams.h>
 #include <airdcpp/transfer/Transfer.h>
 #include <airdcpp/connection/UserConnection.h>
-
-#include <airdcpp/core/version.h>
 
 #include <airdcpp/core/thread/concurrency.h>
 
@@ -345,7 +342,7 @@ void ShareManager::loadProfile(SimpleXML& aXml, bool aIsDefault) {
 			auto lastRefreshTime = aXml.getTimeChildAttrib("LastRefreshTime");
 
 			// Validate in case we have changed the rules
-			auto vName = validateVirtualName(loadedVirtualName.empty() ? PathUtil::getLastDir(realPath) : loadedVirtualName);
+			auto vName = loadedVirtualName.empty() ? PathUtil::getLastDir(realPath) : loadedVirtualName;
 			tree->addShareRoot(realPath, vName, { shareProfile->getToken()}, incoming, 0, lastRefreshTime);
 		}
 	}
@@ -415,25 +412,27 @@ ShareProfileList ShareManager::getProfiles() const noexcept {
 	return profiles->getProfiles();
 }
 
-void ShareManager::getProfileInfo(ProfileToken aProfile, int64_t& totalSize_, size_t& filesCount_) const noexcept {
+ShareProfileContentInfo ShareManager::getProfileInfo(ProfileToken aProfile) const noexcept {
+	ShareProfileContentInfo info;
 	if (aProfile == SP_HIDDEN) {
-		return;
+		return info;
 	}
 
 	auto sp = getShareProfile(aProfile);
 	if (!sp)
-		return;
+		return info;
 
 	if (sp->getProfileContentInfoDirty()) {
-		tree->getProfileInfo(aProfile, totalSize_, filesCount_);
+		tree->getProfileInfo(aProfile, info.size, info.fileCount);
 
-		sp->setSharedFiles(filesCount_);
-		sp->setShareSize(totalSize_);
+		sp->setSharedFiles(info.fileCount);
+		sp->setShareSize(info.size);
 		sp->setProfileContentInfoDirty(false);
 	}
 
-	totalSize_ = sp->getShareSize();
-	filesCount_ = sp->getSharedFiles();
+	info.size = sp->getShareSize();
+	info.fileCount = sp->getSharedFiles();
+	return info;
 }
 
 
@@ -520,13 +519,18 @@ MemoryInputStream* ShareManager::getTree(const string& aVirtualFile, ProfileToke
 	} else {
 		try {
 			TTHValue tth = profiles->getListTTH(aVirtualFile, aProfile);
-			HashManager::getInstance()->getTree(tth, tigerTree);
+			if (!HashManager::getInstance()->getTree(tth, tigerTree))
+				return nullptr;
 		} catch (const Exception&) {
 			return nullptr;
 		}
 	}
 
-	ByteVector buf = tigerTree.getLeafData();
+	auto buf = tigerTree.getLeafData();
+	if (buf.empty()) {
+		return nullptr;
+	}
+
 	return new MemoryInputStream(&buf[0], buf.size());
 }
 
@@ -539,10 +543,8 @@ string ShareManager::realToVirtualAdc(const string& aPath, const OptionalProfile
 }
 
 int64_t ShareManager::getTotalShareSize(ProfileToken aProfile) const noexcept {
-	int64_t totalSize = 0;
-	size_t fileCount = 0;
-	getProfileInfo(aProfile, totalSize, fileCount);
-	return totalSize;
+	auto profileInfo = getProfileInfo(aProfile);
+	return profileInfo.size;
 }
 
 DupeType ShareManager::getAdcDirectoryDupe(const string& aAdcPath, int64_t aSize) const noexcept {
@@ -1251,16 +1253,6 @@ void ShareManager::validatePathHooked(const string& aRealPath, bool aSkipQueueCh
 	}
 }
 
-string ShareManager::validateVirtualName(const string& aVirt) const noexcept {
-	string tmp = aVirt;
-	string::size_type idx = 0;
-
-	while ((idx = tmp.find_first_of("\\/"), idx) != string::npos) {
-		tmp[idx] = '_';
-	}
-	return tmp;
-}
-
 void ShareManager::validateRootPath(const string& aRealPath, bool aMatchCurrentRoots) const {
 	validator->validateRootPath(aRealPath);
 
@@ -1273,6 +1265,10 @@ void ShareManager::validateRootPath(const string& aRealPath, bool aMatchCurrentR
 
 		tree->validateRootPath(aRealPath, formatProfiles);
 	}
+}
+
+string ShareManager::validateVirtualName(const string& aName) noexcept {
+	return ShareTree::validateVirtualName(aName);
 }
 
 

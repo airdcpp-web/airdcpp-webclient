@@ -78,6 +78,8 @@ private:
 	static void ensureParam(const string& aParam, string& aFile) noexcept;
 
 	DispatcherQueue tasks;
+
+	mutable CriticalSection pmPathsCS;
 };
 
 #define LOG(area, msg) LogManager::getInstance()->log(area, msg)
