@@ -14,7 +14,7 @@ ctest --test-dir build --output-on-failure -R npm_version_selection
 To run only these tests without the daemon's other dependencies:
 
 ```sh
-cmake -S test -B build-tests
+cmake -S airdcpp-webapi/test -B build-tests
 cmake --build build-tests
 ctest --test-dir build-tests --output-on-failure
 ```
@@ -33,5 +33,4 @@ is serialized in both key orders before parsing. Invalid version keys propagate
 errors, including keys that the old early return did not visit.
 
 These are selector tests; they do not exercise HTTP callbacks, translated log
-messages, downloading, or installation. `initial_run.sh` is a separate daemon
-startup test and modifies the user's application configuration.
+messages, downloading, or installation.

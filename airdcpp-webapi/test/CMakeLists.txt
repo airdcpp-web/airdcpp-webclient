@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  project(airdcpp-webclient-tests LANGUAGES CXX)
+  project(airdcpp-webapi-tests LANGUAGES CXX)
   enable_testing()
 endif()
 
 add_executable(npm_version_test NpmVersionTest.cpp)
 target_compile_features(npm_version_test PRIVATE cxx_std_20)
-target_include_directories(npm_version_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../airdcpp-webapi")
+target_include_directories(npm_version_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 if(TARGET nlohmann_json::nlohmann_json)
   target_link_libraries(npm_version_test PRIVATE nlohmann_json::nlohmann_json)
