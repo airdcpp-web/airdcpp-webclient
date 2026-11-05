@@ -40,7 +40,7 @@ namespace dcpp {
 
 		Hasher(bool isPaused, int aHasherID, HasherManager* aManager);
 
-		bool hashFile(const string& filePath, const string& filePathLower, int64_t size, devid aDeviceId) noexcept;
+		bool hashFile(const string& filePath, int64_t size, devid aDeviceId) noexcept;
 
 		/// @return whether hashing was already paused
 		bool pause() noexcept;
@@ -72,8 +72,8 @@ namespace dcpp {
 
 		class WorkItem {
 		public:
-			WorkItem(const string& aFilePathLower, const string& aFilePath, int64_t aSize, devid aDeviceId) noexcept
-				: filePath(aFilePath), fileSize(aSize), deviceId(aDeviceId), filePathLower(aFilePathLower) { 
+			WorkItem(const string& aFilePath, int64_t aSize, devid aDeviceId) noexcept
+				: filePath(aFilePath), fileSize(aSize), deviceId(aDeviceId) {
 
 				dcassert(aDeviceId >= 0);
 			}
@@ -88,17 +88,16 @@ namespace dcpp {
 			string filePath;
 			int64_t fileSize = 0;
 			devid deviceId = -1;
-			string filePathLower;
 
-			struct NameLower {
-				const string& operator()(const WorkItem& a) const { return a.filePathLower; }
+			struct NamePath {
+				const string& operator()(const WorkItem& a) const { return a.filePath; }
 			};
 		};
 
 		void processQueue() noexcept;
 		optional<HashedFile> hashFile(const WorkItem& aItem, HasherStats& stats_, const DirSFVReader& aSFV) noexcept;
 
-		SortedVector<WorkItem, std::deque, string, PathUtil::PathSortOrderInt, WorkItem::NameLower> w;
+		SortedVector<WorkItem, std::deque, string, PathUtil::PathSortOrderInt, WorkItem::NamePath> w;
 
 		Semaphore s;
 		void removeDevice(devid aDevice) noexcept;

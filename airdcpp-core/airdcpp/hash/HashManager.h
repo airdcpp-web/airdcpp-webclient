@@ -46,9 +46,9 @@ public:
 	~HashManager() override;
 
 	/**
-	 * Check if the TTH tree associated with the filename is current.
+	 * Check if the TTH tree associated with the path is current.
 	 */
-	bool checkTTH(const string& aFileLower, const string& aFileName, HashedFile& fi_);
+	bool checkTTH(const string& aFilePath, HashedFile& fi_);
 
 	void stopHashing(const string& aBaseDir) noexcept;
 	void setPriority(Thread::Priority p) noexcept;
@@ -56,7 +56,10 @@ public:
 
 	// @return HashedFileInfo
 	// Throws HashException
-	void getFileInfo(const string& aFileLower, const string& aFileName, HashedFile& aFileInfo);
+	void getFileInfo(const string& aFilePath, HashedFile& aFileInfo);
+
+	// Migrate FileIndex keys to case-sensitive paths (call only after share tree load)
+	void migrateFileIndexCaseKeys() noexcept;
 
 	bool getTree(const TTHValue& root, TigerTree& tt) noexcept;
 
@@ -127,7 +130,7 @@ public:
 	bool maintenanceRunning() const noexcept;
 
 	// Throws HashException
-	bool addFile(const string& aFilePathLower, const HashedFile& fi_);
+	bool addFile(const string& aFilePath, const HashedFile& fi_);
 
 	// Throws HashException
 	void addTree(const TigerTree& tree);
@@ -147,9 +150,9 @@ private:
 
 	Hasher* createHasher() noexcept;
 	Hasher* getFileHasher(int64_t aDeviceId, int64_t aSize) const noexcept;
-	bool isPathQueued(const string& aPathLower) const noexcept;
+	bool isPathQueued(const string& aFilePath) const noexcept;
 
-	bool hashFile(const string& filePath, const string& pathLower, int64_t size);
+	bool hashFile(const string& filePath, int64_t size);
 	bool isShutdown = false;
 
 	using HasherList = vector<Hasher *>;

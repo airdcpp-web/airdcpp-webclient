@@ -131,9 +131,9 @@ void Hasher::logFailedFile(const string& aPath, const string& aError) const noex
 	logHasher(message, LogMessage::SEV_ERROR, true);
 }
 
-bool Hasher::hashFile(const string& fileName, const string& filePathLower, int64_t size, devid aDeviceId) noexcept {
+bool Hasher::hashFile(const string& fileName, int64_t size, devid aDeviceId) noexcept {
 	// always locked
-	auto [wi, added] = w.emplace_sorted(filePathLower, fileName, size, aDeviceId);
+	auto [wi, added] = w.emplace_sorted(fileName, size, aDeviceId);
 	if (added) {
 		devices[wi->deviceId]++;
 		totalBytesLeft += size;

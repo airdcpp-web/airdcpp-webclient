@@ -228,6 +228,22 @@ void LevelDB::remove_if(std::function<bool(void* aKey, size_t key_len, void* aVa
 	DBACTION(db->Write(writeoptions, &wb));
 }
 
+void LevelDB::forEach(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/) {
+	leveldb::ReadOptions options;
+	options.fill_cache = false;
+	options.verify_checksums = false;
+	if (aSnapshot)
+		options.snapshot = static_cast<LevelSnapshot*>(aSnapshot)->snapshot;
+
+	auto it = unique_ptr<leveldb::Iterator>(db->NewIterator(options));
+	for (it->SeekToFirst(); it->Valid(); it->Next()) {
+		checkDbError(it->status());
+		if (!f((void*)it->key().data(), it->key().size(), (void*)it->value().data(), it->value().size())) {
+			break;
+		}
+	}
+}
+
 // free up some space, https://code.google.com/p/leveldb/issues/detail?id=158
 // LevelDB will perform some kind of compaction on every startup but it's not as comprehensive as manual one
 // The issue has been "fixed" in version 1.13 but it still won't match the manual one (possibly because only ranges that are iterated
