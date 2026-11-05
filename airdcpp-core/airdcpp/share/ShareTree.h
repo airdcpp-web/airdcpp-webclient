@@ -252,7 +252,7 @@ private:
 			throw ShareException(UserConnection::FILE_NOT_AVAILABLE);
 		}
 	}
-#if defined(_DEBUG) && defined(_WIN32)
+#if defined(_DEBUG)
 	static void testDualString();
 #endif
 
