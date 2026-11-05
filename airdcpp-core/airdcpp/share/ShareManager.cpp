@@ -91,12 +91,18 @@ void ShareManager::startup(StartupLoader& aLoader) noexcept {
 
 	bool refreshScheduled = false;
 	if (!loadCache(aLoader.progressF)) {
+		// Failed/missing cache: tree is empty — do not migrate FileIndex (would drop every entry)
 		aLoader.addPostLoadTask([this, &aLoader] {
 			aLoader.stepF(STRING(REFRESHING_SHARE));
 			refresh(ShareRefreshType::STARTUP, ShareRefreshPriority::BLOCKING, aLoader.progressF);
 		});
 
 		refreshScheduled = true;
+	} else if (!tree->getRootPathsUnsafe().empty()) {
+		// Share roots are loaded: one-shot rewrite of legacy lowercase FileIndex keys (issue #545).
+		// loadCache() also returns true with zero roots (fresh install / all roots removed);
+		// migrating then would treat every entry as non-shared and wipe the index.
+		HashManager::getInstance()->migrateFileIndexCaseKeys();
 	}
 
 	aLoader.addPostLoadTask([refreshScheduled, this] {
@@ -187,7 +193,7 @@ struct ShareManager::ShareLoader : public SimpleXMLReader::ThreadedCallBack, pub
 			try {
 				DualString name(fname);
 				HashedFile fi;
-				HashManager::getInstance()->getFileInfo(curDirPathLower + name.getLower(), curDirPath + fname, fi);
+				HashManager::getInstance()->getFileInfo(curDirPath + fname, fi);
 				cur->addFile(std::move(name), fi, *this, stats.addedSize);
 			} catch(Exception& e) {
 				stats.hashSize += File::getSize(curDirPath + fname);
@@ -746,7 +752,7 @@ void ShareManager::RefreshTaskHandler::ShareBuilder::buildTree(const string& aPa
 			auto size = i->getSize();
 			try {
 				HashedFile fi(i->getLastWriteTime(), size);
-				if(HashManager::getInstance()->checkTTH(aPathLower + dualName.getLower(), aPath + name, fi)) {
+				if(HashManager::getInstance()->checkTTH(aPath + name, fi)) {
 					aParent->addFile(std::move(dualName), fi, *this, stats.addedSize);
 				} else {
 					stats.hashSize += size;
@@ -1192,7 +1198,7 @@ void ShareManager::shareBundle(const BundlePtr& aBundle) noexcept {
 	if (aBundle->isFileBundle()) {
 		try {
 			HashedFile fi;
-			HashManager::getInstance()->getFileInfo(Text::toLower(aBundle->getTarget()), aBundle->getTarget(), fi);
+			HashManager::getInstance()->getFileInfo(aBundle->getTarget(), fi);
 			onFileHashed(aBundle->getTarget(), fi);
 
 			log(STRING_F(SHARED_FILE_ADDED, aBundle->getTarget()), LogMessage::SEV_INFO);

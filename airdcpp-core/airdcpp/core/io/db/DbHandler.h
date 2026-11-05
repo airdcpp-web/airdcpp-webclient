@@ -54,6 +54,9 @@ public:
 	virtual int64_t getSizeOnDisk() = 0;
 
 	virtual void remove_if(std::function<bool(void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot = nullptr) = 0;
+	// Iterate entries under an optional snapshot; return false to stop early.
+	// Mutations (put/remove) are the caller's responsibility.
+	virtual void forEach(std::function<bool(void* aKey, size_t keyLen, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot = nullptr) = 0;
 	virtual void compact() {}
 
 	virtual string getStats() { return "Not supported"; }

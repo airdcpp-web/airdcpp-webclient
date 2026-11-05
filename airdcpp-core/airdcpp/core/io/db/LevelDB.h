@@ -47,6 +47,7 @@ public:
 	int64_t getSizeOnDisk();
 
 	void remove_if(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/);
+	void forEach(std::function<bool(void* aKey, size_t key_len, void* aValue, size_t valueLen)> f, DbSnapshot* aSnapshot /*nullptr*/);
 	void compact();
 	void repair(StepFunction stepF, MessageFunction messageF);
 	void open(StepFunction stepF, MessageFunction messageF);

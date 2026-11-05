@@ -55,7 +55,7 @@ void HashManager::onFileHashed(const string& aPath, HashedFile& aFile, const Tig
 
 	HashManager::getInstance()->fire(HashManagerListener::FileHashed(), aPath, aFile, aHasherId);
 	try {
-		store->addHashedFile(Text::toLower(aPath), aTree, aFile);
+		store->addHashedFile(aPath, aTree, aFile);
 	} catch (const Exception& e) {
 		logHasher(STRING_F(HASHING_FAILED_X, e.getError()), aHasherId, LogMessage::SEV_ERROR, true);
 	}
@@ -112,23 +112,21 @@ bool HashManager::isRepairScheduled() const noexcept {
 	return store->isRepairScheduled();
 }
 
-bool HashManager::checkTTH(const string& aFileLower, const string& aFileName, HashedFile& fi_) {
-	dcassert(Text::isLower(aFileLower));
-	if (!store->checkTTH(aFileLower, fi_)) {
-		hashFile(aFileName, aFileLower, fi_.getSize());
+bool HashManager::checkTTH(const string& aFilePath, HashedFile& fi_) {
+	if (!store->checkTTH(aFilePath, fi_)) {
+		hashFile(aFilePath, fi_.getSize());
 		return false;
 	}
 
 	return true;
 }
 
-void HashManager::getFileInfo(const string& aFileLower, const string& aFileName, HashedFile& fi_) {
-	dcassert(Text::isLower(aFileLower));
-	auto found = store->getFileInfo(aFileLower, fi_);
+void HashManager::getFileInfo(const string& aFilePath, HashedFile& fi_) {
+	auto found = store->getFileInfo(aFilePath, fi_);
 	if (!found) {
-		auto size = File::getSize(aFileName);
+		auto size = File::getSize(aFilePath);
 		if (size >= 0) {
-			hashFile(aFileName, aFileLower, size);
+			hashFile(aFilePath, size);
 		}
 
 		throw HashException();
@@ -136,6 +134,11 @@ void HashManager::getFileInfo(const string& aFileLower, const string& aFileName,
 }
 void HashManager::renameFileThrow(const string& aOldPath, const string& aNewPath) {
 	return store->renameFileThrow(aOldPath, aNewPath);
+}
+
+void HashManager::migrateFileIndexCaseKeys() noexcept {
+	HashPauser pauser;
+	store->migrateCaseKeys();
 }
 
 bool HashManager::getTree(const TTHValue& aRoot, TigerTree& tt_) noexcept {
@@ -150,10 +153,10 @@ int64_t HashManager::getMinBlockSize() noexcept {
 	return Hasher::MIN_BLOCK_SIZE;
 }
 
-bool HashManager::isPathQueued(const string& aPathLower) const noexcept {
-	auto p = find_if(hashers, [&aPathLower](const Hasher* aHasher) { return aHasher->hasFile(aPathLower); });
+bool HashManager::isPathQueued(const string& aFilePath) const noexcept {
+	auto p = find_if(hashers, [&aFilePath](const Hasher* aHasher) { return aHasher->hasFile(aFilePath); });
 	if (p != hashers.end()) {
-		dcdebug("Hash: ignoring file %s (queued already for hasher %d)\n", aPathLower.c_str(), (*p)->hasherID);
+		dcdebug("Hash: ignoring file %s (queued already for hasher %d)\n", aFilePath.c_str(), (*p)->hasherID);
 		return true;
 	}
 
@@ -208,13 +211,13 @@ Hasher* HashManager::getFileHasher(int64_t aDeviceId, int64_t aSize) const noexc
 	return h;
 }
 
-bool HashManager::hashFile(const string& aPath, const string& aPathLower, int64_t aSize) {
+bool HashManager::hashFile(const string& aPath, int64_t aSize) {
 	if (isShutdown) { //we cant allow adding more hashers if we are shutting down, it will result in infinite loop
 		return false;
 	}
 
 	WLock l(Hasher::hcs);
-	if (isPathQueued(aPathLower)) {
+	if (isPathQueued(aPath)) {
 		return false;
 	}
 
@@ -235,14 +238,13 @@ bool HashManager::hashFile(const string& aPath, const string& aPathLower, int64_
 
 	// Queue the file for hashing
 	dcdebug("Hash: choosing hasher #%d for file %s\n", h->hasherID, aPath.c_str());
-	return h->hashFile(aPath, aPathLower, aSize, deviceId);
+	return h->hashFile(aPath, aSize, deviceId);
 }
 
 void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool aAddStore, TTHValue& tth_, int64_t& sizeLeft_, const bool& aCancel, std::function<void(int64_t, const string&)> updateF/*nullptr*/) {
-	auto pathLower = Text::toLower(aFile);
 	HashedFile fi(File::getLastModified(aFile), aSize);
 
-	if (!store->checkTTH(pathLower, fi)) {
+	if (!store->checkTTH(aFile, fi)) {
 		File f(aFile, File::READ, File::OPEN);
 		auto timestamp = f.getLastModified();
 		if (timestamp < 0) {
@@ -281,7 +283,7 @@ void HashManager::getFileTTH(const string& aFile, int64_t aSize, bool aAddStore,
 
 		if (aAddStore && !aCancel) {
 			fi = HashedFile(tth_, timestamp, aSize);
-			store->addHashedFile(pathLower, tt, fi);
+			store->addHashedFile(aFile, tt, fi);
 		}
 	} else {
 		tth_ = fi.getRoot();
@@ -302,7 +304,7 @@ bool HashManager::addFile(const string& aPath, const HashedFile& fi_) {
 		return false;
 	}
 
-	store->addFile(Text::toLower(aPath), fi_);
+	store->addFile(aPath, fi_);
 	return true;
 }
 void HashManager::stopHashing(const string& aBaseDir) noexcept {

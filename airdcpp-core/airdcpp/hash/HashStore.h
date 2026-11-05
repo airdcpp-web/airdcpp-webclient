@@ -35,9 +35,9 @@ public:
 	HashStore();
 	~HashStore();
 
-	void addHashedFile(const string& aFilePathLower, const TigerTree& tt, const HashedFile& fi_);
-	void addFile(const string& aFilePathLower, const HashedFile& fi_);
-	void removeFile(const string& aFilePathLower);
+	void addHashedFile(const string& aFilePath, const TigerTree& tt, const HashedFile& fi_);
+	void addFile(const string& aFilePath, const HashedFile& fi_);
+	void removeFile(const string& aFilePath);
 
 	// Rename a file in the database
 	// Throws HashException
@@ -47,10 +47,14 @@ public:
 
 	void optimize(bool doVerify) noexcept;
 
-	bool checkTTH(const string& aFileNameLower, HashedFile& fi_) noexcept;
+	// One-shot FileIndex migration to case-sensitive keys (share paths only, no FS access).
+	// Safe to call only when the share tree is loaded; no-op if already migrated.
+	void migrateCaseKeys() noexcept;
+
+	bool checkTTH(const string& aFilePath, HashedFile& fi_) noexcept;
 
 	void addTree(const TigerTree& tt);
-	bool getFileInfo(const string& aFileLower, HashedFile& aFile) noexcept;
+	bool getFileInfo(const string& aFilePath, HashedFile& aFile) noexcept;
 	bool getTree(const TTHValue& root, TigerTree& tth);
 	bool hasTree(const TTHValue& root);
 

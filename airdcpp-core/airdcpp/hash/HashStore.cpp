@@ -88,28 +88,29 @@ void HashStore::log(const string& aMsg, LogMessage::Severity aSeverity) noexcept
 	LogManager::getInstance()->message(aMsg, aSeverity, STRING(HASH_DATABASE));
 }
 
-void HashStore::addHashedFile(const string& aFileLower, const TigerTree& tt, const HashedFile& fi_) {
+void HashStore::addHashedFile(const string& aFilePath, const TigerTree& tt, const HashedFile& fi_) {
 	addTree(tt);
-	addFile(aFileLower, fi_);
+	addFile(aFilePath, fi_);
 }
 
-void HashStore::addFile(const string& aFileLower, const HashedFile& fi_) {
+void HashStore::addFile(const string& aFilePath, const HashedFile& fi_) {
 	auto sz = getFileInfoSize(fi_);
 	void* buf = malloc(sz);
 	saveFileInfo(buf, fi_);
 
 	try {
-		fileDb->put((void*)aFileLower.c_str(), aFileLower.length(), (void*)buf, sz);
+		fileDb->put((void*)aFilePath.c_str(), aFilePath.length(), (void*)buf, sz);
 	} catch (const DbException& e) {
+		free(buf);
 		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()));
 	}
 
 	free(buf);
 }
 
-void HashStore::removeFile(const string& aFilePathLower) {
+void HashStore::removeFile(const string& aFilePath) {
 	try {
-		fileDb->remove((void*)aFilePathLower.c_str(), aFilePathLower.length());
+		fileDb->remove((void*)aFilePath.c_str(), aFilePath.length());
 	} catch (const DbException& e) {
 		throw HashException(STRING_F(WRITE_FAILED_X, fileDb->getNameLower() % e.getError()));
 	}
@@ -117,12 +118,9 @@ void HashStore::removeFile(const string& aFilePathLower) {
 
 
 void HashStore::renameFileThrow(const string& aOldPath, const string& aNewPath) {
-	auto oldPathLower = Text::toLower(aOldPath);
-	auto newPathLower = Text::toLower(aNewPath);
-
 	// Check the old file
 	HashedFile hashedFile;
-	if (!getFileInfo(oldPathLower, hashedFile)) {
+	if (!getFileInfo(aOldPath, hashedFile)) {
 		throw HashException("Path " + aOldPath + " doesn't exist in hash database");
 	}
 
@@ -140,9 +138,18 @@ void HashStore::renameFileThrow(const string& aOldPath, const string& aNewPath) 
 		throw HashException("Could not open path " + aNewPath + ": " + e.getError());
 	}
 
-	// Rename
-	removeFile(oldPathLower);
-	addFile(newPathLower, hashedFile);
+	// Rename (exact paths; getFileInfo may have rewritten a legacy lower key already)
+	removeFile(aOldPath);
+	// If the lazy rewrite failed, the entry may still sit under the legacy lowercase key
+	auto oldLower = Text::toLower(aOldPath);
+	if (oldLower != aOldPath) {
+		try {
+			fileDb->remove((void*)oldLower.c_str(), oldLower.length());
+		} catch (const DbException&) {
+			// Best-effort cleanup; optimize() can drop leftover non-shared keys later
+		}
+	}
+	addFile(aNewPath, hashedFile);
 }
 
 void HashStore::addTree(const TigerTree& tt) {
@@ -324,11 +331,11 @@ int64_t HashStore::getRootInfo(const TTHValue& root, InfoType aType) noexcept {
 	return ret;
 }
 
-bool HashStore::checkTTH(const string& aFileLower, HashedFile& fi_) noexcept {
+bool HashStore::checkTTH(const string& aFilePath, HashedFile& fi_) noexcept {
 	auto initialTime = fi_.getTimeStamp();
 	auto initialSize = fi_.getSize();
 
-	if (getFileInfo(aFileLower, fi_)) {
+	if (getFileInfo(aFilePath, fi_)) {
 		if (fi_.getTimeStamp() == initialTime && fi_.getSize() == initialSize) {
 			return true;
 		}
@@ -337,16 +344,112 @@ bool HashStore::checkTTH(const string& aFileLower, HashedFile& fi_) noexcept {
 	return false;
 }
 
-bool HashStore::getFileInfo(const string& aFileLower, HashedFile& fi_) noexcept {
+bool HashStore::getFileInfo(const string& aFilePath, HashedFile& fi_) noexcept {
 	try {
-		return fileDb->get((void*)aFileLower.c_str(), aFileLower.length(), sizeof(HashedFile), [&](void* aValue, size_t valueLen) {
+		auto load = [&](void* aValue, size_t valueLen) {
 			return loadFileInfo(aValue, valueLen, fi_);
-		});
+		};
+
+		if (fileDb->get((void*)aFilePath.c_str(), aFilePath.length(), sizeof(HashedFile), load)) {
+			return true;
+		}
+
+		// Legacy transition: keys were Text::toLower(path); rewrite lazily to the exact path
+		auto lower = Text::toLower(aFilePath);
+		if (lower != aFilePath && fileDb->get((void*)lower.c_str(), lower.length(), sizeof(HashedFile), load)) {
+			try {
+				auto sz = getFileInfoSize(fi_);
+				vector<char> buf(sz);
+				saveFileInfo(buf.data(), fi_);
+				fileDb->put((void*)aFilePath.c_str(), aFilePath.length(), buf.data(), sz);
+				fileDb->remove((void*)lower.c_str(), lower.length());
+			} catch (const DbException&) {
+				// Keep the hit even if the rewrite fails; migration/optimize can retry later
+			}
+			return true;
+		}
 	} catch (const DbException& e) {
 		log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
 	}
 
 	return false;
+}
+
+void HashStore::migrateCaseKeys() noexcept {
+	if (!fileDb) {
+		return;
+	}
+
+	auto marker = fileDb->getPath() + "CASEKEYS_MIGRATED";
+	if (PathUtil::fileExists(marker)) {
+		return;
+	}
+
+	size_t kept = 0;
+	size_t rewritten = 0;
+	size_t removed = 0;
+
+	try {
+		unique_ptr<DbSnapshot> snapshot(fileDb->getSnapshot());
+
+		// Collect under a stable snapshot; apply in bounded chunks (existing put/remove)
+		constexpr size_t chunkSize = 1000;
+		vector<pair<string, string>> rewrites; // newKey -> value
+		vector<string> deletes;
+
+		auto flush = [&]() {
+			for (auto& [newKey, value] : rewrites) {
+				// Prefer the first entry if an exact key already exists
+				if (!fileDb->hasKey((void*)newKey.c_str(), newKey.length())) {
+					fileDb->put((void*)newKey.c_str(), newKey.length(), (void*)value.data(), value.size());
+				}
+			}
+			for (auto& key : deletes) {
+				fileDb->remove((void*)key.c_str(), key.length());
+			}
+			rewrites.clear();
+			deletes.clear();
+		};
+
+		fileDb->forEach([&](void* aKey, size_t keyLen, void* aValue, size_t valueLen) {
+			string key(static_cast<char*>(aKey), keyLen);
+			string realPath;
+			auto found = ShareManager::getInstance()->findFileByRealPath(key, [&](const ShareDirectory::File& aFile) {
+				realPath = aFile.getRealPath();
+			});
+
+			if (!found) {
+				deletes.push_back(key);
+				++removed;
+			} else if (realPath != key) {
+				rewrites.emplace_back(realPath, string(static_cast<char*>(aValue), valueLen));
+				deletes.push_back(key);
+				++rewritten;
+			} else {
+				++kept;
+			}
+
+			if (rewrites.size() + deletes.size() >= chunkSize) {
+				flush();
+			}
+			return true;
+		}, snapshot.get());
+
+		flush();
+
+		if (!File::createFile(marker)) {
+			log("Failed to write FileIndex case-key migration marker", LogMessage::SEV_WARNING);
+			return;
+		}
+
+		dcdebug("FileIndex migrate: kept=%zu rewritten=%zu removed=%zu\n", kept, rewritten, removed);
+		log("FileIndex case-key migration finished (kept=" + Util::toString(kept) +
+			", rewritten=" + Util::toString(rewritten) +
+			", removed=" + Util::toString(removed) + ")", LogMessage::SEV_INFO);
+	} catch (const DbException& e) {
+		log(STRING_F(READ_FAILED_X, fileDb->getNameLower() % e.getError()), LogMessage::SEV_ERROR);
+		log(STRING(HASHDB_MAINTENANCE_FAILED), LogMessage::SEV_ERROR);
+	}
 }
 
 void HashStore::optimize(bool doVerify) noexcept {
