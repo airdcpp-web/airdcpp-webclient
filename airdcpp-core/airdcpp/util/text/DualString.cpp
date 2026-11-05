@@ -29,6 +29,10 @@ using std::string;
 // Text::utf8ToWc should be sufficient for equality checks
 DualString::DualString(const string& aStr) : str(dcpp::Text::toLower(aStr)) {
 	init(aStr);
+	if (reconstruct() != aStr) {
+		// Locale-dependent case mappings can be lossy (e.g. İ → i → I); keep the real name for getNormal()
+		original = std::make_unique<string>(aStr);
+	}
 }
 
 // Set possible uppercase characters
@@ -76,10 +80,10 @@ size_t DualString::initSizeArray(size_t strLen) noexcept {
 	return arrSize;
 }
 
-DualString::DualString(DualString&& rhs) noexcept : charSizes(std::move(rhs.charSizes)), str(std::move(rhs.str)) {
+DualString::DualString(DualString&& rhs) noexcept : charSizes(std::move(rhs.charSizes)), original(std::move(rhs.original)), str(std::move(rhs.str)) {
 }
 
-string DualString::getNormal() const noexcept {
+string DualString::reconstruct() const noexcept {
 	if (!charSizes)
 		return str;
 
@@ -114,6 +118,13 @@ string DualString::getNormal() const noexcept {
 	return ret;
 }
 
+string DualString::getNormal() const noexcept {
+	if (original)
+		return *original;
+
+	return reconstruct();
+}
+
 bool DualString::lowerCaseOnly() const noexcept {
-	return !charSizes; 
+	return !charSizes && !original;
 }

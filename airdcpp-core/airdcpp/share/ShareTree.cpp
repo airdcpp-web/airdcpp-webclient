@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (C) 2001-2024 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
@@ -40,7 +40,7 @@ using ranges::copy;
 
 ShareTree::ShareTree() : bloom(make_unique<ShareBloom>(1 << 20)), ShareTreeMaps([this] { return bloom.get(); })
 {
-#if defined(_DEBUG) && defined(_WIN32)
+#ifdef _DEBUG
 	testDualString();
 #endif
 }
@@ -910,8 +910,26 @@ void ShareTree::addHashedFile(const string& aRealPath, const HashedFile& aFileIn
 // DEBUG CODE
 #ifdef _DEBUG
 
-#ifdef _WIN32 // Text::wideToUtf8 is available only on Windows
 void ShareTree::testDualString() {
+	// UTF-8 literals so these run on Linux CI as well (wideToUtf8 is Windows-only)
+	{
+		DualString d("İlhanlı");
+		dcassert(d.getNormal() == "İlhanlı");
+	}
+
+	{
+		DualString d("Ö");
+		dcassert(d.getNormal() == "Ö");
+		dcassert(d.getLower() == "ö");
+	}
+
+	{
+		DualString d("abc");
+		dcassert(d.getNormal() == "abc");
+		dcassert(d.lowerCaseOnly());
+	}
+
+#ifdef _WIN32 // Text::wideToUtf8 is available only on Windows
 	{
 		auto emoji = Text::wideToUtf8(L"\U0001F30D");
 
@@ -931,8 +949,8 @@ void ShareTree::testDualString() {
 		DualString d2(character);
 		dcassert(d2.getNormal() != d2.getLower());
 	}
-}
 #endif
+}
 
 void ShareTree::validateDirectoryTreeDebug() const noexcept {
 	RLock l(cs);

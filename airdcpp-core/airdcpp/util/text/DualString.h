@@ -48,7 +48,11 @@ public:
 private:
 	void init(const string& aNormalStr) noexcept;
 	size_t initSizeArray(size_t strLen) noexcept;
+	string reconstruct() const noexcept;
+
 	std::unique_ptr<MaskType[]> charSizes;
+	// Original input when getNormal() reconstruction is lossy (e.g. İ); heap-only to keep DualString small
+	std::unique_ptr<string> original;
 
 	const string str;
 };
