@@ -98,8 +98,10 @@ void ShareManager::startup(StartupLoader& aLoader) noexcept {
 		});
 
 		refreshScheduled = true;
-	} else {
-		// Share tree is loaded: one-shot rewrite of legacy lowercase FileIndex keys (issue #545)
+	} else if (!tree->getRootPathsUnsafe().empty()) {
+		// Share roots are loaded: one-shot rewrite of legacy lowercase FileIndex keys (issue #545).
+		// loadCache() also returns true with zero roots (fresh install / all roots removed);
+		// migrating then would treat every entry as non-shared and wipe the index.
 		HashManager::getInstance()->migrateFileIndexCaseKeys();
 	}
 

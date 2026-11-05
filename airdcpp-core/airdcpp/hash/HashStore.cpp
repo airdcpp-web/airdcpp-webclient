@@ -140,6 +140,15 @@ void HashStore::renameFileThrow(const string& aOldPath, const string& aNewPath) 
 
 	// Rename (exact paths; getFileInfo may have rewritten a legacy lower key already)
 	removeFile(aOldPath);
+	// If the lazy rewrite failed, the entry may still sit under the legacy lowercase key
+	auto oldLower = Text::toLower(aOldPath);
+	if (oldLower != aOldPath) {
+		try {
+			fileDb->remove((void*)oldLower.c_str(), oldLower.length());
+		} catch (const DbException&) {
+			// Best-effort cleanup; optimize() can drop leftover non-shared keys later
+		}
+	}
 	addFile(aNewPath, hashedFile);
 }
 
